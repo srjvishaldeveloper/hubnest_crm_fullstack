@@ -95,6 +95,72 @@ async function sendOTPEmail(to, otp, userName) {
   }
 }
 
+function buildCredentialsTemplate(adminId, tempPassword, companyName, adminName) {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Job Nest CRM Workspace Credentials</title>
+</head>
+<body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.10);">
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);padding:36px 48px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;letter-spacing:2px;">JOB NEST CRM</h1>
+              <p style="margin:6px 0 0;color:#93c5fd;font-size:13px;letter-spacing:1px;">WORKSPACE PROVISIONED</p>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px 48px;">
+              <p style="margin:0 0 8px;color:#111827;font-size:16px;font-weight:600;">Hello, ${adminName}</p>
+              <p style="margin:0 0 20px;color:#6b7280;font-size:14px;line-height:1.7;">
+                Your workspace for <strong>${companyName}</strong> has been successfully created.
+                Here are your administrator login credentials:
+              </p>
+              <!-- Credentials Box -->
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin:0 0 24px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="padding:6px 0;font-size:13px;color:#64748b;font-weight:600;" width="140">Admin ID:</td>
+                    <td style="padding:6px 0;font-size:13px;color:#0f172a;font-family:monospace;font-weight:700;">${adminId}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:6px 0;font-size:13px;color:#64748b;font-weight:600;">Password:</td>
+                    <td style="padding:6px 0;font-size:13px;color:#0f172a;font-family:monospace;font-weight:700;">${tempPassword}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:6px 0;font-size:13px;color:#64748b;font-weight:600;">Portal URL:</td>
+                    <td style="padding:6px 0;font-size:13px;color:#2563eb;font-weight:700;"><a href="http://localhost:3000/auth/login" style="color:#2563eb;text-decoration:none;">http://localhost:3000/auth/login</a></td>
+                  </tr>
+                </table>
+              </div>
+              
+              <div style="background:#eff6ff;border-left:4px solid #2563eb;border-radius:4px;padding:14px 18px;margin:0 0 24px;">
+                <p style="margin:0;color:#1e3a8a;font-size:13px;line-height:1.5;">
+                  <strong>First-time Sign In:</strong> For security reasons, please change your password immediately after logging in.
+                </p>
+              </div>
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
+              <p style="margin:0;color:#d1d5db;font-size:12px;text-align:center;">
+                &copy; ${new Date().getFullYear()} JOB NEST CRM &bull; All rights reserved
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`.trim();
+}
+
 async function sendPasswordResetEmail(to, otp, userName) {
   const expiryMinutes = Math.floor(env.otpExpirySeconds / 60);
   const subject = 'JOB NEST CRM - Password Reset OTP';
@@ -113,4 +179,21 @@ async function sendPasswordResetEmail(to, otp, userName) {
   }
 }
 
-module.exports = { sendOTPEmail, sendPasswordResetEmail };
+async function sendCredentialsEmail(to, adminId, tempPassword, companyName, adminName) {
+  const subject = 'JOB NEST CRM - Workspace Credentials';
+
+  try {
+    const info = await getTransporter().sendMail({
+      from: `"JOB NEST CRM" <${env.smtp.user}>`,
+      to,
+      subject,
+      html: buildCredentialsTemplate(adminId, tempPassword, companyName, adminName),
+    });
+    logger.info(`Credentials email sent to ${to}`, { messageId: info.messageId });
+  } catch (err) {
+    logger.error(`Failed to send credentials email to ${to}`, { message: err.message });
+    throw Object.assign(new Error('Failed to send credentials email. Please try again.'), { statusCode: 503 });
+  }
+}
+
+module.exports = { sendOTPEmail, sendPasswordResetEmail, sendCredentialsEmail };

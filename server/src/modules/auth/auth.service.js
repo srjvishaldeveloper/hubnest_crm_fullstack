@@ -96,6 +96,39 @@ async function verifyOtp(userId, otp) {
   };
 }
 
+async function resendOtp(userId) {
+  const user = await findById(userId);
+  if (!user) {
+    throw Object.assign(new Error('User not found'), { statusCode: 404 });
+  }
+
+  if (user.status !== 'Active') {
+    throw Object.assign(new Error('Account is inactive or suspended.'), { statusCode: 403 });
+  }
+
+  const otp = await otpService.generateAndStoreOTP(user.id);
+
+  if (IS_DEV) {
+    logger.warn(`\n${'='.repeat(50)}\n[DEV] Resend OTP for ${user.email}: ${otp}\n${'='.repeat(50)}`);
+  }
+
+  try {
+    await emailService.sendOTPEmail(user.email, otp, user.name);
+    logger.info(`Resend OTP email sent for user ${user.id}`);
+  } catch (emailErr) {
+    if (!IS_DEV) throw emailErr;
+    logger.warn(`[DEV] Email sending failed — use the OTP printed above. Error: ${emailErr.message}`);
+  }
+
+  return {
+    userId: user.id,
+    maskedEmail: maskEmail(user.email),
+    message: IS_DEV
+      ? 'OTP printed in backend console (dev mode — email not required)'
+      : 'A new OTP has been sent to your registered email address',
+  };
+}
+
 async function refreshAccessToken(refreshToken) {
   let decoded;
   try {
@@ -180,4 +213,4 @@ async function resetPassword(email, otp, newPassword) {
   return { message: 'Password reset successful. Please login with your new password.' };
 }
 
-module.exports = { login, verifyOtp, refreshAccessToken, logout, forgotPassword, resetPassword };
+module.exports = { login, verifyOtp, resendOtp, refreshAccessToken, logout, forgotPassword, resetPassword };

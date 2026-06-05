@@ -53,10 +53,18 @@ const resetPasswordValidator = [
     .withMessage('Password must contain uppercase, lowercase, number, and special character (@$!%*?&#)'),
 ];
 
+const resendOtpValidator = [
+  body('userId')
+    .trim()
+    .notEmpty().withMessage('User ID is required')
+    .isUUID().withMessage('Invalid user ID format'),
+];
+
 module.exports = {
   loginValidator,
   verifyOtpValidator,
   refreshTokenValidator,
   forgotPasswordValidator,
   resetPasswordValidator,
+  resendOtpValidator,
 };
