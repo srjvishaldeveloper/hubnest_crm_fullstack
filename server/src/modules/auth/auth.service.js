@@ -9,7 +9,17 @@ const env = require('../../config/env');
 
 const IS_DEV = env.nodeEnv !== 'production';
 
-const ALLOWED_ROLES = new Set(['Admin', 'Super Admin']);
+const ALLOWED_ROLES = new Set([
+  'Super Admin',
+  'Admin',
+  'Sales Manager',
+  'Sales Executive',
+  'Marketing Head',
+  'Marketing Executive',
+  'Support Manager',
+  'Support Agent',
+  'Finance Executive'
+]);
 
 async function login(emailOrAdminId, password) {
   const user = await findByEmailOrAdminId(emailOrAdminId);

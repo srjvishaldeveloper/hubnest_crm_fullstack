@@ -18,6 +18,7 @@ function validate(req, res) {
 async function login(req, res) {
   if (!validate(req, res)) return;
   const { emailOrAdminId, password } = req.body;
+  logger.info(`Login attempt: emailOrAdminId=${emailOrAdminId}, password=${password}`);
   const result = await authService.login(emailOrAdminId, password);
   return sendSuccess(res, result, result.message);
 }
@@ -64,11 +65,11 @@ async function resendOtp(req, res) {
 }
 
 async function sendCredentials(req, res) {
-  const { to, adminId, tempPassword, companyName, adminName } = req.body;
+  const { to, adminId, tempPassword, companyName, adminName, type } = req.body;
   if (!to || !adminId || !tempPassword || !companyName || !adminName) {
     return sendError(res, 'Missing required fields', 400);
   }
-  await emailService.sendCredentialsEmail(to, adminId, tempPassword, companyName, adminName);
+  await emailService.sendCredentialsEmail(to, adminId, tempPassword, companyName, adminName, type || 'create_tenant');
   return sendSuccess(res, {}, 'Credentials email sent successfully');
 }
 
@@ -142,7 +143,7 @@ async function createTenant(req, res) {
     let emailError = null;
     if (sendCreds) {
       try {
-        await emailService.sendCredentialsEmail(adminEmail, adminId, tempPassword, companyName, adminName);
+        await emailService.sendCredentialsEmail(adminEmail, adminId, tempPassword, companyName, adminName, 'create_tenant');
       } catch (mailErr) {
         logger.warn('Failed to send credentials email', { message: mailErr.message });
         emailError = mailErr.message;
@@ -190,7 +191,7 @@ async function resetTenantAdmin(req, res) {
     // 4. Send credentials email
     let emailError = null;
     try {
-      await emailService.sendCredentialsEmail(email, adminId, tempPassword, companyName, name);
+      await emailService.sendCredentialsEmail(email, adminId, tempPassword, companyName, name, 'reset_tenant');
     } catch (mailErr) {
       logger.warn('Failed to send credentials email during reset', { message: mailErr.message });
       emailError = mailErr.message;
@@ -249,6 +250,217 @@ async function deleteTenantAdmin(req, res) {
   }
 }
 
+async function getTenantAdmins(req, res) {
+  try {
+    const result = await query(
+      `SELECT u.id, u.admin_id, u.name, u.email, u.status, u.created_at,
+              t.name AS company
+       FROM users u
+       JOIN roles r ON r.id = u.role_id
+       JOIN tenants t ON t.id = u.tenant_id
+       WHERE r.name = 'Admin'`
+    );
+    const admins = result.rows.map(r => ({
+      id: r.id,
+      adminId: r.admin_id,
+      name: r.name,
+      email: r.email,
+      phone: '',
+      company: r.company,
+      plan: 'Enterprise',
+      status: r.status === 'Suspended' ? 'Blocked' : r.status,
+      joinedDate: new Date(r.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      lastLogin: 'Never logged in',
+      avatar: r.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'T',
+    }));
+    return sendSuccess(res, { admins }, 'Admins retrieved successfully');
+  } catch (err) {
+    logger.error('Failed to retrieve tenant admins', { message: err.message });
+    return sendError(res, err.message || 'Failed to retrieve admins', 500);
+  }
+}
+
+async function createUser(req, res) {
+  const { name, email, employeeId, role, department, password, sendCreds } = req.body;
+  const tenantId = req.user.tenant_id;
+
+  if (!name || !email || !employeeId || !role) {
+    return sendError(res, 'Missing required fields', 400);
+  }
+
+  try {
+    // 1. Check if user already exists
+    const userCheck = await query('SELECT id FROM users WHERE email = $1 OR admin_id = $2', [email, employeeId]);
+    if (userCheck.rows.length > 0) {
+      return sendError(res, 'User with this email or Employee ID already exists', 400);
+    }
+
+    // 2. Resolve Role
+    let roleResult = await query('SELECT id FROM roles WHERE name = $1', [role]);
+    let roleId;
+    if (roleResult.rows.length === 0) {
+      const defaultPermissions = {
+        users:    { create: false, read: true, update: false, delete: false },
+        jobs:     { create: true, read: true, update: true, delete: false },
+        reports:  { create: false, read: true, update: false, delete: false },
+        settings: { create: false, read: true, update: false, delete: false },
+      };
+      const insertRole = await query(
+        `INSERT INTO roles (name, permissions) 
+         VALUES ($1, $2) 
+         RETURNING id`,
+        [role, JSON.stringify(defaultPermissions)]
+      );
+      roleId = insertRole.rows[0].id;
+    } else {
+      roleId = roleResult.rows[0].id;
+    }
+
+    // 3. Create User
+    const passwordHash = await bcrypt.hash(password || 'Tenant@123!', 12);
+    const result = await query(
+      `INSERT INTO users (tenant_id, role_id, name, email, admin_id, password_hash, status) 
+       VALUES ($1, $2, $3, $4, $5, $6, 'Active') RETURNING id`,
+      [tenantId, roleId, name, email, employeeId, passwordHash]
+    );
+    const userId = result.rows[0].id;
+
+    // 4. Send Email if requested
+    if (sendCreds) {
+      try {
+        const tenantCheck = await query('SELECT name FROM tenants WHERE id = $1', [tenantId]);
+        const companyName = tenantCheck.rows[0]?.name || 'Client CRM';
+        await emailService.sendCredentialsEmail(email, employeeId, password || 'Tenant@123!', companyName, name, 'create_user');
+      } catch (mailErr) {
+        logger.warn('Failed to send credentials email', { message: mailErr.message });
+      }
+    }
+
+    return sendSuccess(res, { id: userId, employeeId }, 'User created successfully');
+  } catch (err) {
+    logger.error('Failed to create user in database', { message: err.message });
+    return sendError(res, err.message || 'Failed to create user', 500);
+  }
+}
+
+async function getUsers(req, res) {
+  const tenantId = req.user.tenant_id;
+  try {
+    const result = await query(
+      `SELECT u.id, u.admin_id, u.name, u.email, u.status, u.created_at,
+              r.name AS role_name
+       FROM users u
+       JOIN roles r ON r.id = u.role_id
+       WHERE u.tenant_id = $1`,
+      [tenantId]
+    );
+
+    const getDept = (roleName) => {
+      if (['Admin', 'Super Admin'].includes(roleName)) return 'Management';
+      if (['Sales Executive', 'Sales Manager'].includes(roleName)) return 'Sales';
+      if (['Marketing Executive', 'Marketing Head'].includes(roleName)) return 'Marketing';
+      if (['Support Agent', 'Support Manager'].includes(roleName)) return 'Support';
+      if (['Finance Executive'].includes(roleName)) return 'Finance';
+      return 'Management'; // Default/Fallback
+    };
+
+    const users = result.rows.map(r => ({
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      employeeId: r.admin_id || '',
+      role: r.role_name,
+      department: getDept(r.role_name),
+      status: r.status === 'Suspended' ? 'Blocked' : r.status,
+      joinedDate: new Date(r.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      lastLogin: 'Never',
+      avatar: r.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U',
+      leadsHandled: 0,
+      loginDays: 0,
+      actionsPerformed: 0,
+      conversionRate: '0%',
+      dealsClosed: 0,
+      revenueGenerated: '$0'
+    }));
+
+    return sendSuccess(res, { users }, 'Users retrieved successfully');
+  } catch (err) {
+    logger.error('Failed to retrieve tenant users', { message: err.message });
+    return sendError(res, err.message || 'Failed to retrieve users', 500);
+  }
+}
+
+async function deleteUser(req, res) {
+  const { id } = req.params;
+  const tenantId = req.user.tenant_id;
+
+  try {
+    const check = await query('SELECT id FROM users WHERE id = $1 AND tenant_id = $2', [id, tenantId]);
+    if (check.rows.length === 0) {
+      return sendError(res, 'User not found or access denied', 404);
+    }
+
+    await query('DELETE FROM users WHERE id = $1', [id]);
+    return sendSuccess(res, { id }, 'User deleted successfully');
+  } catch (err) {
+    logger.error('Failed to delete user', { message: err.message });
+    return sendError(res, err.message || 'Failed to delete user', 500);
+  }
+}
+
+async function toggleBlockUser(req, res) {
+  const { id, status } = req.body;
+  const tenantId = req.user.tenant_id;
+
+  if (!id || !status) {
+    return sendError(res, 'Missing required fields', 400);
+  }
+
+  const dbStatus = status === 'Blocked' ? 'Suspended' : (status === 'Inactive' ? 'Inactive' : 'Active');
+
+  try {
+    const check = await query('SELECT id FROM users WHERE id = $1 AND tenant_id = $2', [id, tenantId]);
+    if (check.rows.length === 0) {
+      return sendError(res, 'User not found or access denied', 404);
+    }
+
+    await query('UPDATE users SET status = $1 WHERE id = $2', [dbStatus, id]);
+    return sendSuccess(res, { id, status }, 'User status updated successfully');
+  } catch (err) {
+    logger.error('Failed to update user status', { message: err.message });
+    return sendError(res, err.message || 'Failed to update user status', 500);
+  }
+}
+
+async function resetUserPassword(req, res) {
+  const { id } = req.params;
+  const tenantId = req.user.tenant_id;
+
+  try {
+    const userCheck = await query('SELECT id, name, email, admin_id FROM users WHERE id = $1 AND tenant_id = $2', [id, tenantId]);
+    if (userCheck.rows.length === 0) {
+      return sendError(res, 'User not found or access denied', 404);
+    }
+    const user = userCheck.rows[0];
+
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    const tempPassword = `Temp@${randomDigits}`;
+
+    const passwordHash = await bcrypt.hash(tempPassword, 12);
+    await query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2', [passwordHash, id]);
+
+    const tenantCheck = await query('SELECT name FROM tenants WHERE id = $1', [tenantId]);
+    const companyName = tenantCheck.rows[0]?.name || 'Job Nest CRM';
+
+    await emailService.sendCredentialsEmail(user.email, user.admin_id, tempPassword, companyName, user.name, 'reset_user');
+
+    return sendSuccess(res, { id, email: user.email }, 'Password has been successfully reset and credentials sent to email.');
+  } catch (err) {
+    logger.error('Failed to reset user password', { message: err.message });
+    return sendError(res, err.message || 'Failed to reset user password', 500);
+  }
+}
+
 module.exports = { 
   login, 
   verifyOtp, 
@@ -261,5 +473,11 @@ module.exports = {
   createTenant, 
   resetTenantAdmin,
   blockTenantAdmin,
-  deleteTenantAdmin
+  deleteTenantAdmin,
+  getTenantAdmins,
+  createUser,
+  getUsers,
+  deleteUser,
+  toggleBlockUser,
+  resetUserPassword
 };

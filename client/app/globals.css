@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-serif: var(--font-instrument-serif), "Playfair Display", Georgia, serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-surface: var(--surface);
+  --color-navy: var(--navy);
+}
+
+:root {
+  --radius: 0.625rem;
+  /* white background */
+  --background: oklch(1 0 0);
+  /* #0F172A dark navy */
+  --foreground: oklch(0.21 0.034 264.5);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.034 264.5);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.034 264.5);
+  /* #2563EB blue */
+  --primary: oklch(0.553 0.214 263.5);
+  --primary-foreground: oklch(1 0 0);
+  /* #F8FAFC */
+  --secondary: oklch(0.984 0.003 247.86);
+  --secondary-foreground: oklch(0.21 0.034 264.5);
+  --muted: oklch(0.968 0.007 247.9);
+  /* #64748B */
+  --muted-foreground: oklch(0.554 0.038 257.4);
+  --accent: oklch(0.968 0.007 247.9);
+  --accent-foreground: oklch(0.21 0.034 264.5);
+  /* #DC2626 */
+  --destructive: oklch(0.577 0.245 27.3);
+  --destructive-foreground: oklch(1 0 0);
+  /* #E2E8F0 */
+  --border: oklch(0.929 0.013 255.5);
+  --input: oklch(0.929 0.013 255.5);
+  --ring: oklch(0.553 0.214 263.5);
+  /* #16A34A */
+  --success: oklch(0.628 0.17 149.5);
+  /* #D97706 */
+  --warning: oklch(0.66 0.16 55);
+  /* #F8FAFC card bg */
+  --surface: oklch(0.984 0.012 247.86);
+  /* navy panel */
+  --navy: oklch(0.21 0.034 264.5);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+  .font-serif {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* ── Existing animations ─────────────────────── */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+  will-change: transform;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+.animate-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.bg-dot-grid {
+  background-image: radial-gradient(circle, rgba(0,0,0,0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ── Dashboard animations ────────────────────── */
+@keyframes pulse-status {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.5; }
+}
+.animate-pulse-status {
+  animation: pulse-status 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+
+/* ── Scrollbar styling ───────────────────────── */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Main content scrollbar */
+.scrollbar-main::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-main::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-main::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+.scrollbar-main::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

@@ -9,6 +9,11 @@ const logger = require('./utils/logger');
 const { sendError } = require('./utils/helpers');
 
 const authRoutes = require('./modules/auth/auth.routes');
+const campaignRoutes = require('./modules/marketing/marketing.routes');
+const marketingLeadsRoutes = require('./modules/marketing/marketing.leads.routes');
+const salesRoutes = require('./modules/sales/sales.routes');
+const salesManagerRoutes = require('./modules/sales-manager/salesManager.routes');
+const supportRoutes = require('./modules/support/support.routes');
 
 const app = express();
 
@@ -21,8 +26,8 @@ app.use(
   cors({
     origin: env.frontendUrl,
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   })
 );
 
@@ -44,6 +49,11 @@ app.get('/health', (_req, res) => {
 
 // API v1 routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/campaigns', campaignRoutes);
+app.use('/api/v1/marketing/leads', marketingLeadsRoutes);
+app.use('/api/v1/sales', salesRoutes);
+app.use('/api/v1/sales-manager', salesManagerRoutes);
+app.use('/api/v1/support', supportRoutes);
 
 // 404 — route not found
 app.use((req, res) => {
