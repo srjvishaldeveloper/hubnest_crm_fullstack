@@ -24,6 +24,9 @@ export interface AuthUser {
   role: string;
   permissions: Record<string, Record<string, boolean>>;
   tenantId: string;
+  phone?: string;
+  photoUrl?: string;
+  language?: string;
 }
 
 export interface VerifyOtpResponse {

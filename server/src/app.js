@@ -14,6 +14,13 @@ const marketingLeadsRoutes = require('./modules/marketing/marketing.leads.routes
 const salesRoutes = require('./modules/sales/sales.routes');
 const salesManagerRoutes = require('./modules/sales-manager/salesManager.routes');
 const supportRoutes = require('./modules/support/support.routes');
+const aiRoutes = require('./modules/ai/ai.routes');
+const reportsRoutes = require('./modules/reports/reports.routes');
+
+const superAdminRoutes = require('./modules/super-admin/superAdmin.routes');
+const adminRoutes = require('./modules/admin/admin.routes');
+const managerAliasRoutes = require('./modules/sales-manager/managerAlias.routes');
+const marketingAliasRoutes = require('./modules/marketing/marketingAlias.routes');
 
 const app = express();
 
@@ -54,6 +61,13 @@ app.use('/api/v1/marketing/leads', marketingLeadsRoutes);
 app.use('/api/v1/sales', salesRoutes);
 app.use('/api/v1/sales-manager', salesManagerRoutes);
 app.use('/api/v1/support', supportRoutes);
+app.use('/api/v1/ai', aiRoutes);
+app.use('/api/v1', reportsRoutes);
+
+app.use('/api/v1/super-admin', superAdminRoutes);
+app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/manager', managerAliasRoutes);
+app.use('/api/v1/marketing', marketingAliasRoutes);
 
 // 404 — route not found
 app.use((req, res) => {

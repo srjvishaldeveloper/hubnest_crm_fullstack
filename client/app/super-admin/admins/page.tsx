@@ -55,6 +55,7 @@ export default function AdminsPage() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<AdminStatus | 'All'>('All');
+  const [companyFilter, setCompanyFilter] = useState<string>('All');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('name-asc');
   
@@ -75,6 +76,10 @@ export default function AdminsPage() {
     }
     fetchAdmins();
   }, [setAdmins]);
+
+  const uniqueCompanies = useMemo(() => {
+    return Array.from(new Set(admins.map(a => a.company).filter(Boolean))).sort();
+  }, [admins]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -139,7 +144,8 @@ export default function AdminsPage() {
         a.adminId.toLowerCase().includes(search.toLowerCase()) ||
         a.company.toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === 'All' || a.status === statusFilter;
-      return matchSearch && matchStatus;
+      const matchCompany = companyFilter === 'All' || a.company === companyFilter;
+      return matchSearch && matchStatus && matchCompany;
     });
 
     return [...res].sort((a, b) => {
@@ -149,7 +155,7 @@ export default function AdminsPage() {
       if (sortBy === 'date-oldest') return new Date(a.joinedDate).getTime() - new Date(b.joinedDate).getTime();
       return 0;
     });
-  }, [search, statusFilter, admins, sortBy]);
+  }, [search, statusFilter, companyFilter, admins, sortBy]);
 
   return (
     <div className="space-y-6">
@@ -184,6 +190,21 @@ export default function AdminsPage() {
                 <option value="name-desc">Sort: Name (Z-A)</option>
                 <option value="date-newest">Sort: Date (Newest)</option>
                 <option value="date-oldest">Sort: Date (Oldest)</option>
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            </div>
+
+            {/* Company filter */}
+            <div className="relative">
+              <select
+                value={companyFilter}
+                onChange={e => setCompanyFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white hover:bg-slate-50 transition outline-none text-slate-700"
+              >
+                <option value="All">All Companies</option>
+                {uniqueCompanies.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
               </select>
               <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             </div>

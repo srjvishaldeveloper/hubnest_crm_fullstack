@@ -9,28 +9,23 @@ import {
   UserX,
 } from 'lucide-react';
 
-const INSIGHTS = [
-  {
-    icon: TrendingUp,
-    text: 'Lead conversion rate is up 18% compared to last month. Consider increasing ad spend on top-performing channels.',
-    type: 'positive' as const,
-  },
-  {
-    icon: AlertTriangle,
-    text: 'Support SLA risk detected — 3 tickets approaching 24hr breach limit. Recommend assigning 2 more agents.',
-    type: 'warning' as const,
-  },
-  {
-    icon: DollarSign,
-    text: 'Revenue projected to increase by 12% next quarter based on current pipeline velocity and conversion trends.',
-    type: 'positive' as const,
-  },
-  {
-    icon: UserX,
-    text: '14 inactive user accounts detected with no login activity in 30+ days. Recommend engagement outreach.',
-    type: 'warning' as const,
-  },
-];
+const IconMap: Record<string, any> = {
+  TrendingUp,
+  AlertTriangle,
+  DollarSign,
+  UserX,
+  Sparkles,
+};
+
+interface AIInsightItem {
+  icon: string;
+  text: string;
+  type: 'positive' | 'warning' | 'negative' | string;
+}
+
+interface AIInsightsProps {
+  data?: AIInsightItem[];
+}
 
 const container = {
   hidden: { opacity: 0 },
@@ -42,7 +37,30 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
-export default function AIInsights() {
+export default function AIInsights({ data }: AIInsightsProps) {
+  const insightsToRender = data && data.length > 0 ? data : [
+    {
+      icon: 'TrendingUp',
+      text: 'Lead conversion rate is up 18% compared to last month. Consider increasing ad spend on top-performing channels.',
+      type: 'positive',
+    },
+    {
+      icon: 'AlertTriangle',
+      text: 'Support SLA risk detected — 3 tickets approaching 24hr breach limit. Recommend assigning 2 more agents.',
+      type: 'warning',
+    },
+    {
+      icon: 'DollarSign',
+      text: 'Revenue projected to increase by 12% next quarter based on current pipeline velocity and conversion trends.',
+      type: 'positive',
+    },
+    {
+      icon: 'UserX',
+      text: '14 inactive user accounts detected with no login activity in 30+ days. Recommend engagement outreach.',
+      type: 'warning',
+    },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -75,8 +93,8 @@ export default function AIInsights() {
           animate="show"
           className="space-y-3"
         >
-          {INSIGHTS.map((insight, i) => {
-            const Icon = insight.icon;
+          {insightsToRender.map((insight, i) => {
+            const Icon = IconMap[insight.icon] || Sparkles;
             return (
               <motion.div
                 key={i}

@@ -11,6 +11,7 @@
     "update-admin": "node seed/updateSuperAdmin.js"
   },
   "dependencies": {
+    "axios": "^1.17.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -29,7 +30,9 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "jest": "^30.4.2",
+    "nodemon": "^3.0.2",
+    "supertest": "^7.2.2"
   },
   "engines": {
     "node": ">=18.0.0"

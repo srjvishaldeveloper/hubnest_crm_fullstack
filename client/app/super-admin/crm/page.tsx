@@ -1,16 +1,52 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Target, Megaphone, Ticket, DollarSign, SlidersHorizontal, Settings, Plug, Activity, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Target, Megaphone, Ticket, DollarSign, SlidersHorizontal, Settings, Plug, Activity, AlertTriangle, ShieldCheck, Loader2 } from 'lucide-react';
+import api from '../../../services/api';
 
 export default function SuperAdminCRMPage() {
-  const [globalSettings, setGlobalSettings] = useState({
+  const [globalSettings, setGlobalSettings] = useState<Record<string, boolean>>({
     maintenanceMode: false,
     restrictNewRegistrations: false,
     enableSuperInsights: true,
     autoPurgeLogs: true,
   });
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const res = await api.get('/super-admin/settings');
+        if (res.data?.success && Object.keys(res.data.data).length > 0) {
+          setGlobalSettings(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch settings:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchSettings();
+  }, []);
+
+  const handleToggle = async (key: string) => {
+    const newValue = !globalSettings[key];
+    setUpdating(key);
+    // Optimistic update
+    setGlobalSettings(p => ({ ...p, [key]: newValue }));
+    
+    try {
+      await api.patch('/super-admin/settings', { [key]: newValue });
+    } catch (err) {
+      console.error('Failed to update setting', err);
+      // Revert on error
+      setGlobalSettings(p => ({ ...p, [key]: !newValue }));
+    } finally {
+      setUpdating(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -27,31 +63,39 @@ export default function SuperAdminCRMPage() {
             <h3 className="text-sm font-bold text-[#0F172A] mb-4 flex items-center gap-2">
               <SlidersHorizontal className="w-4 h-4 text-[#2563EB]" /> Global Environment Flags
             </h3>
-
-            {[
-              { key: 'maintenanceMode', label: 'Maintenance Mode', desc: 'Lock the entire platform for system updates' },
-              { key: 'restrictNewRegistrations', label: 'Restrict New Signups', desc: 'Disable new B2B registration and sandbox creations' },
-              { key: 'enableSuperInsights', label: 'AI Super Insights Engine', desc: 'Activate machine learning recommendation cards across all client workspaces' },
-              { key: 'autoPurgeLogs', label: 'Auto Purge Database Logs', desc: 'Periodically clear audit logs older than 90 days' },
-            ].map(f => (
-              <div key={f.key} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/20">
-                <div>
-                  <span className="text-xs font-bold text-[#0F172A]">{f.label}</span>
-                  <p className="text-[10px] text-slate-500 mt-0.5">{f.desc}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${globalSettings[f.key as keyof typeof globalSettings] ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
-                    {globalSettings[f.key as keyof typeof globalSettings] ? 'Active' : 'Disabled'}
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={globalSettings[f.key as keyof typeof globalSettings]}
-                    onChange={() => setGlobalSettings(p => ({ ...p, [f.key]: !p[f.key as keyof typeof p] }))}
-                    className="w-10 h-5 bg-slate-200 rounded-full appearance-none relative checked:bg-[#2563EB] cursor-pointer transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform checked:after:translate-x-5"
-                  />
-                </div>
+            
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
               </div>
-            ))}
+            ) : (
+              [
+                { key: 'maintenanceMode', label: 'Maintenance Mode', desc: 'Lock the entire platform for system updates' },
+                { key: 'restrictNewRegistrations', label: 'Restrict New Signups', desc: 'Disable new B2B registration and sandbox creations' },
+                { key: 'enableSuperInsights', label: 'AI Super Insights Engine', desc: 'Activate machine learning recommendation cards across all client workspaces' },
+                { key: 'autoPurgeLogs', label: 'Auto Purge Database Logs', desc: 'Periodically clear audit logs older than 90 days' },
+              ].map(f => (
+                <div key={f.key} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/20">
+                  <div>
+                    <span className="text-xs font-bold text-[#0F172A]">{f.label}</span>
+                    <p className="text-[10px] text-slate-500 mt-0.5">{f.desc}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${globalSettings[f.key] ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
+                      {globalSettings[f.key] ? 'Active' : 'Disabled'}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={updating === f.key}
+                      onClick={() => handleToggle(f.key)}
+                      className={`w-10 h-5 rounded-full relative transition-colors duration-200 ${globalSettings[f.key] ? 'bg-[#2563EB]' : 'bg-slate-200'} ${updating === f.key ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <span className={`absolute top-[2px] left-[2px] w-4 h-4 bg-white rounded-full transition-transform duration-200 ${globalSettings[f.key] ? 'translate-x-5' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Database & Storage */}

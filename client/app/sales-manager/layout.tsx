@@ -4,6 +4,7 @@ import { useState } from 'react';
 import AdminSidebar from '../../components/shared/AdminSidebar';
 import AdminHeader from '../../components/shared/AdminHeader';
 import SessionTimer from '../../components/SessionTimer';
+import AIChatbot from '../../components/AIChatbot';
 
 export default function SalesManagerLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -16,6 +17,7 @@ export default function SalesManagerLayout({ children }: { children: React.React
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SessionTimer />
+      <AIChatbot />
       <AdminSidebar open={sidebarOpen} collapsed={sidebarCollapsed} onClose={() => setSidebarOpen(false)} role="Sales Manager" />
       <div className={`transition-all duration-300 ${sidebarW} flex flex-col min-h-screen`}>
         <AdminHeader onToggleSidebar={toggleSidebar} sidebarOpen={sidebarOpen} role="Sales Manager" />

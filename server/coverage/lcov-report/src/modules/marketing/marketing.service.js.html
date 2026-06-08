@@ -1,0 +1,526 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/modules/marketing/marketing.service.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/modules/marketing</a> marketing.service.js</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">47.22% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>34/72</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">52.08% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>25/48</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">54.54% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>6/11</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">65.38% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>34/52</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const { query } = require('../../config/database');
+&nbsp;
+async function listCampaigns(tenantId, { status, platform } = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
+  let sql = `SELECT * FROM campaigns WHERE tenant_id = $1`;
+  const params = [tenantId];
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (status) { <span class="cstat-no" title="statement not covered" >params.push(status); <span class="cstat-no" title="statement not covered" ></span>sql += ` AND status = $${params.length}`; </span>}
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (platform) { <span class="cstat-no" title="statement not covered" >params.push(platform); <span class="cstat-no" title="statement not covered" ></span>sql += ` AND platform = $${params.length}`; </span>}
+  sql += ` ORDER BY created_at DESC`;
+  const result = await query(sql, params);
+  return result.rows;
+}
+&nbsp;
+async function <span class="fstat-no" title="function not covered" >getCampaignById(</span>tenantId, id) {
+  const result = <span class="cstat-no" title="statement not covered" >await query(</span>
+    `SELECT c.*,
+       COALESCE(json_agg(ca ORDER BY ca.date DESC) FILTER (WHERE ca.id IS NOT NULL), '[]') AS analytics
+     FROM campaigns c
+     LEFT JOIN campaign_analytics ca ON ca.campaign_id = c.id
+     WHERE c.id = $1 AND c.tenant_id = $2
+     GROUP BY c.id`,
+    [id, tenantId]
+  );
+<span class="cstat-no" title="statement not covered" >  return result.rows[0] || null;</span>
+}
+&nbsp;
+async function createCampaign(tenantId, userId, data) {
+  const { name, type, platform, budget_daily, budget_total, start_date, end_date, status, target_audience, content } = data;
+  const result = await query(
+    `INSERT INTO campaigns (tenant_id, name, type, platform, budget_daily, budget_total,
+       start_date, end_date, status, target_audience, content, created_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+     RETURNING *`,
+    [tenantId, name, type, platform, budget_daily || 0, budget_total || 0,
+     start_date || null, end_date || null, status || 'Draft',
+     JSON.stringify(target_audience || {}), JSON.stringify(content || {}), userId]
+  );
+  return result.rows[0];
+}
+&nbsp;
+async function updateCampaign(tenantId, id, data) {
+  const fields = ['name','type','platform','budget_daily','budget_total','start_date','end_date','status','target_audience','content'];
+  const updates = [];
+  const params = [];
+  fields.forEach(f =&gt; {
+    if (data[f] !== undefined) {
+      params.push(typeof data[f] === 'object' ? <span class="branch-0 cbranch-no" title="branch not covered" >JSON.stringify(data[f]) </span>: data[f]);
+      updates.push(`${f} = $${params.length}`);
+    }
+  });
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (!updates.length) <span class="cstat-no" title="statement not covered" >return null;</span>
+  params.push(id, tenantId);
+  const result = await query(
+    `UPDATE campaigns SET ${updates.join(', ')}, updated_at = NOW()
+     WHERE id = $${params.length - 1} AND tenant_id = $${params.length}
+     RETURNING *`,
+    params
+  );
+  return result.rows[0] || <span class="branch-1 cbranch-no" title="branch not covered" >null;</span>
+}
+&nbsp;
+async function <span class="fstat-no" title="function not covered" >deleteCampaign(</span>tenantId, id) {
+  const result = <span class="cstat-no" title="statement not covered" >await query(</span>
+    `DELETE FROM campaigns WHERE id = $1 AND tenant_id = $2 RETURNING id`,
+    [id, tenantId]
+  );
+<span class="cstat-no" title="statement not covered" >  return !!result.rows[0];</span>
+}
+&nbsp;
+async function listLeads(tenantId, { status, source, platform, campaign_id } = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
+  let sql = `SELECT l.*, c.name AS campaign_name
+             FROM leads_marketing l
+             LEFT JOIN campaigns c ON c.id = l.campaign_id
+             WHERE l.tenant_id = $1`;
+  const params = [tenantId];
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (status) { <span class="cstat-no" title="statement not covered" >params.push(status); <span class="cstat-no" title="statement not covered" ></span>sql += ` AND l.status = $${params.length}`; </span>}
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (source) { <span class="cstat-no" title="statement not covered" >params.push(source); <span class="cstat-no" title="statement not covered" ></span>sql += ` AND l.source = $${params.length}`; </span>}
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (platform) { <span class="cstat-no" title="statement not covered" >params.push(platform); <span class="cstat-no" title="statement not covered" ></span>sql += ` AND l.platform = $${params.length}`; </span>}
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (campaign_id) { <span class="cstat-no" title="statement not covered" >params.push(campaign_id); <span class="cstat-no" title="statement not covered" ></span>sql += ` AND l.campaign_id = $${params.length}`; </span>}
+  sql += ` ORDER BY l.created_at DESC`;
+  const result = await query(sql, params);
+  return result.rows;
+}
+&nbsp;
+async function <span class="fstat-no" title="function not covered" >updateLead(</span>tenantId, id, data) {
+  const { status, assigned_to, quality_score } = <span class="cstat-no" title="statement not covered" >data;</span>
+  const updates = <span class="cstat-no" title="statement not covered" >[];</span>
+  const params = <span class="cstat-no" title="statement not covered" >[];</span>
+<span class="cstat-no" title="statement not covered" >  if (status !== undefined) { <span class="cstat-no" title="statement not covered" >params.push(status); <span class="cstat-no" title="statement not covered" ></span>updates.push(`status = $${params.length}`); </span>}</span>
+<span class="cstat-no" title="statement not covered" >  if (assigned_to !== undefined) { <span class="cstat-no" title="statement not covered" >params.push(assigned_to); <span class="cstat-no" title="statement not covered" ></span>updates.push(`assigned_to = $${params.length}`); </span>}</span>
+<span class="cstat-no" title="statement not covered" >  if (quality_score !== undefined) { <span class="cstat-no" title="statement not covered" >params.push(quality_score); <span class="cstat-no" title="statement not covered" ></span>updates.push(`quality_score = $${params.length}`); </span>}</span>
+<span class="cstat-no" title="statement not covered" >  if (!updates.length) <span class="cstat-no" title="statement not covered" >return null;</span></span>
+<span class="cstat-no" title="statement not covered" >  params.push(id, tenantId);</span>
+  const result = <span class="cstat-no" title="statement not covered" >await query(</span>
+    `UPDATE leads_marketing SET ${updates.join(', ')}, updated_at = NOW()
+     WHERE id = $${params.length - 1} AND tenant_id = $${params.length}
+     RETURNING *`,
+    params
+  );
+<span class="cstat-no" title="statement not covered" >  return result.rows[0] || null;</span>
+}
+&nbsp;
+async function <span class="fstat-no" title="function not covered" >bulkAssignLeads(</span>tenantId, leadIds, assignedTo) {
+<span class="cstat-no" title="statement not covered" >  await query(</span>
+    `UPDATE leads_marketing SET assigned_to = $1, updated_at = NOW()
+     WHERE id = ANY($2::uuid[]) AND tenant_id = $3`,
+    [assignedTo, leadIds, tenantId]
+  );
+<span class="cstat-no" title="statement not covered" >  return { assigned: leadIds.length };</span>
+}
+&nbsp;
+async function getDashboardAnalytics(tenantId) {
+  const [campaigns, leads, analytics] = await Promise.all([
+    query(`SELECT status, COUNT(*) AS cnt FROM campaigns WHERE tenant_id = $1 GROUP BY status`, [tenantId]),
+    query(`SELECT status, source, COUNT(*) AS cnt FROM leads_marketing WHERE tenant_id = $1 GROUP BY status, source`, [tenantId]),
+    query(
+      `SELECT ca.date, SUM(ca.impressions) AS impressions, SUM(ca.clicks) AS clicks,
+              SUM(ca.leads) AS leads, SUM(ca.cost) AS cost, SUM(ca.revenue) AS revenue
+       FROM campaign_analytics ca
+       JOIN campaigns c ON c.id = ca.campaign_id
+       WHERE c.tenant_id = $1 AND ca.date &gt;= NOW() - INTERVAL '30 days'
+       GROUP BY ca.date ORDER BY ca.date`,
+      [tenantId]
+    ),
+  ]);
+  return { campaigns: campaigns.rows, leads: leads.rows, analytics: analytics.rows };
+}
+&nbsp;
+async function <span class="fstat-no" title="function not covered" >getROIData(</span>tenantId) {
+  const result = <span class="cstat-no" title="statement not covered" >await query(</span>
+    `SELECT ca.date,
+            SUM(ca.cost) AS cost,
+            SUM(ca.revenue) AS revenue,
+            CASE WHEN SUM(ca.cost) &gt; 0 THEN ROUND(((SUM(ca.revenue) - SUM(ca.cost)) / SUM(ca.cost)) * 100, 2) ELSE 0 END AS roi
+     FROM campaign_analytics ca
+     JOIN campaigns c ON c.id = ca.campaign_id
+     WHERE c.tenant_id = $1 AND ca.date &gt;= NOW() - INTERVAL '30 days'
+     GROUP BY ca.date ORDER BY ca.date`,
+    [tenantId]
+  );
+<span class="cstat-no" title="statement not covered" >  return result.rows;</span>
+}
+&nbsp;
+module.exports = {
+  listCampaigns, getCampaignById, createCampaign, updateCampaign, deleteCampaign,
+  listLeads, updateLead, bulkAssignLeads,
+  getDashboardAnalytics, getROIData,
+};
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-06-08T06:18:46.875Z
+            </div>
+        <script src="../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../sorter.js"></script>
+        <script src="../../../block-navigation.js"></script>
+    </body>
+</html>
+    

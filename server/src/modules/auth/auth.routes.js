@@ -9,11 +9,12 @@ const {
   resetPasswordValidator,
   resendOtpValidator,
 } = require('./auth.validator');
-const { loginRateLimiter, otpRateLimiter } = require('../../middleware/rateLimiter');
+const { loginRateLimiter, otpRateLimiter, emailCheckRateLimiter } = require('../../middleware/rateLimiter');
 
 const { authenticate } = require('../../middleware/auth');
 const { authorizeSuperAdmin } = require('../../middleware/rbac');
 
+router.get('/check-email',       emailCheckRateLimiter,                    ctrl.checkEmail);
 router.post('/login',           loginRateLimiter, loginValidator,          ctrl.login);
 router.post('/verify-otp',      otpRateLimiter,   verifyOtpValidator,      ctrl.verifyOtp);
 router.post('/resend-otp',      otpRateLimiter,   resendOtpValidator,      ctrl.resendOtp);
@@ -28,6 +29,14 @@ router.post('/reset-tenant-admin', authenticate, authorizeSuperAdmin, ctrl.reset
 router.post('/block-tenant-admin', authenticate, authorizeSuperAdmin, ctrl.blockTenantAdmin);
 router.post('/delete-tenant-admin',authenticate, authorizeSuperAdmin, ctrl.deleteTenantAdmin);
 router.get('/tenant-admins',       authenticate, authorizeSuperAdmin, ctrl.getTenantAdmins);
+
+// Profile management
+router.get('/profile',             authenticate, ctrl.getProfile);
+router.put('/profile',             authenticate, ctrl.updateProfile);
+router.put('/change-password',     authenticate, ctrl.changePassword);
+router.get('/active-sessions',      authenticate, ctrl.getActiveSessions);
+router.post('/logout-other-devices',authenticate, ctrl.logoutOtherDevices);
+router.post('/revoke-session',      authenticate, ctrl.revokeSession);
 
 // Tenant User management
 router.post('/create-user',         authenticate, ctrl.createUser);

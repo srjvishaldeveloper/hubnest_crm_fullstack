@@ -28,13 +28,13 @@ function verifyRefreshToken(token) {
   return jwt.verify(token, env.jwtRefreshSecret, { issuer: 'jobnest-crm' });
 }
 
-async function saveRefreshToken(userId, token) {
+async function saveRefreshToken(userId, token, ipAddress = null, userAgent = null) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   await query(
-    `INSERT INTO refresh_tokens (id, user_id, token, expires_at)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO refresh_tokens (id, user_id, token, expires_at, ip_address, user_agent)
+     VALUES ($1, $2, $3, $4, $5, $6)
      ON CONFLICT (token) DO NOTHING`,
-    [uuidv4(), userId, token, expiresAt]
+    [uuidv4(), userId, token, expiresAt, ipAddress, userAgent]
   );
 }
 

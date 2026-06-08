@@ -15,6 +15,7 @@ import IntegrationsPanel from '../../../components/super-admin/IntegrationsPanel
 import QuickActions from '../../../components/super-admin/QuickActions';
 import TopPerformers from '../../../components/super-admin/TopPerformers';
 import SystemStatus from '../../../components/super-admin/SystemStatus';
+import { useDashboard } from './useDashboard';
 
 /* ── Section wrapper with animation ───────────── */
 function Section({
@@ -49,21 +50,59 @@ function Section({
 
 /* ── Dashboard page ────────────────────────────── */
 export default function SuperAdminDashboard() {
+  const { data, loading, error, refetch } = useDashboard();
+
+  if (loading) {
+    return (
+      <div className="space-y-6 sm:space-y-8 animate-pulse">
+        <div className="h-6 w-48 bg-slate-200 rounded mb-4"></div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-8">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-32 bg-slate-200 rounded-3xl"></div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 sm:gap-6">
+          <div className="xl:col-span-3 h-80 bg-slate-200 rounded-3xl"></div>
+          <div className="xl:col-span-2 h-80 bg-slate-200 rounded-3xl"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <p className="text-red-500 mb-4 font-medium">Failed to load dashboard data.</p>
+        <button 
+          onClick={refetch}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 sm:space-y-8">
       <Section title="CRM Overview" subtitle="Key performance indicators across all tenants" delay={0}>
-        <KPICards />
+        <KPICards data={data} />
       </Section>
 
       <Section title="Business Overview" subtitle="Sales performance & revenue snapshot" delay={0.05}>
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 sm:gap-6">
-          <div className="xl:col-span-3"><SalesOverview /></div>
-          <div className="xl:col-span-2"><FinanceSnapshot /></div>
+          <div className="xl:col-span-3"><SalesOverview data={data.sales_performance} /></div>
+          <div className="xl:col-span-2"><FinanceSnapshot data={data.revenue_snapshot} /></div>
         </div>
       </Section>
 
       <Section title="CRM Health" subtitle="Lead pipeline, support, campaigns & finance" delay={0.1}>
-        <CRMHealth />
+        <CRMHealth 
+          leadPipeline={data.lead_pipeline}
+          supportOverview={data.support_overview}
+          campaignPerformance={data.campaign_performance}
+          financeOverview={data.finance_overview}
+        />
       </Section>
 
       <Section title="Analytics" subtitle="User activity, roles, usage & trends" delay={0.15}>
@@ -77,8 +116,8 @@ export default function SuperAdminDashboard() {
 
       <Section title="Activity & Insights" subtitle="Recent events and AI-powered recommendations" delay={0.2}>
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-          <RecentActivities />
-          <AIInsights />
+          <RecentActivities data={data.recent_activities} />
+          <AIInsights data={data.ai_insights} />
         </div>
       </Section>
 

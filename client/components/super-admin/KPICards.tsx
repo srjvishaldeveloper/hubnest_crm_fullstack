@@ -114,7 +114,70 @@ const item = {
   show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4 } },
 };
 
-export default function KPICards() {
+export default function KPICards({ data }: { data?: any }) {
+  const dynamicKPIS = [
+    {
+      label: 'Total Users',
+      value: data ? data.total_users.toLocaleString() : '0',
+      change: '+8.2%',
+      positive: true,
+      icon: Users,
+      color: '#2563EB',
+      bgLight: 'bg-blue-50',
+      sparkline: [30, 38, 35, 42, 40, 48, 52, 55],
+    },
+    {
+      label: 'Active Users',
+      value: data ? data.active_users.toLocaleString() : '0',
+      change: '+12.5%',
+      positive: true,
+      icon: UserCheck,
+      color: '#10B981',
+      bgLight: 'bg-emerald-50',
+      sparkline: [20, 28, 32, 30, 38, 42, 45, 50],
+    },
+    {
+      label: 'Total Leads',
+      value: data ? data.total_leads.toLocaleString() : '0',
+      change: '+15.3%',
+      positive: true,
+      icon: Target,
+      color: '#8B5CF6',
+      bgLight: 'bg-purple-50',
+      sparkline: [40, 45, 50, 48, 55, 60, 65, 72],
+    },
+    {
+      label: 'Open Tickets',
+      value: data ? data.open_tickets.toLocaleString() : '0',
+      change: '-3.1%',
+      positive: false,
+      icon: Ticket,
+      color: '#F59E0B',
+      bgLight: 'bg-amber-50',
+      sparkline: [60, 55, 58, 52, 48, 45, 42, 38],
+    },
+    {
+      label: 'Campaigns',
+      value: data ? data.campaigns.toLocaleString() : '0',
+      change: '+6.7%',
+      positive: true,
+      icon: Megaphone,
+      color: '#EC4899',
+      bgLight: 'bg-pink-50',
+      sparkline: [15, 18, 20, 22, 25, 28, 32, 38],
+    },
+    {
+      label: 'Revenue',
+      value: data ? `₹${(data.revenue / 100000).toFixed(2)}L` : '₹0',
+      change: '+22.4%',
+      positive: true,
+      icon: DollarSign,
+      color: '#2563EB',
+      bgLight: 'bg-indigo-50',
+      sparkline: [80, 95, 88, 110, 125, 140, 138, 165],
+    },
+  ];
+
   return (
     <motion.div
       variants={container}
@@ -122,7 +185,7 @@ export default function KPICards() {
       animate="show"
       className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4"
     >
-      {KPIS.map((kpi) => {
+      {dynamicKPIS.map((kpi) => {
         const Icon = kpi.icon;
         const TrendIcon = kpi.positive ? TrendingUp : TrendingDown;
         return (

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import SalesSidebar from '../../components/sales/SalesSidebar';
 import SalesHeader from '../../components/sales/SalesHeader';
 import SessionTimer from '../../components/SessionTimer';
+import AIChatbot from '../../components/AIChatbot';
 
 export default function SalesLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -22,6 +23,7 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SessionTimer />
+      <AIChatbot />
       <SalesSidebar
         open={sidebarOpen}
         collapsed={sidebarCollapsed}

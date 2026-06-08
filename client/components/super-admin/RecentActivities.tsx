@@ -11,14 +11,27 @@ import {
   Building2,
 } from 'lucide-react';
 
-const ACTIVITIES = [
-  { icon: UserPlus, text: 'New user Sarah Johnson registered', time: '2 min ago', color: '#2563EB', bg: 'bg-blue-50' },
-  { icon: Target, text: 'Lead "Acme Corp" moved to negotiation stage', time: '15 min ago', color: '#8B5CF6', bg: 'bg-purple-50' },
-  { icon: Megaphone, text: 'Campaign "Summer Sale 2026" launched', time: '1 hour ago', color: '#EC4899', bg: 'bg-pink-50' },
-  { icon: Ticket, text: 'Ticket #4821 resolved by Admin Mike', time: '2 hours ago', color: '#10B981', bg: 'bg-emerald-50' },
-  { icon: ShieldCheck, text: 'Admin role assigned to Alex Turner', time: '3 hours ago', color: '#F59E0B', bg: 'bg-amber-50' },
-  { icon: Building2, text: 'New tenant "TechStart Inc" created', time: '5 hours ago', color: '#6366F1', bg: 'bg-indigo-50' },
-];
+const IconMap: Record<string, any> = {
+  UserPlus,
+  Target,
+  Megaphone,
+  Ticket,
+  ShieldCheck,
+  Building2,
+  Clock,
+};
+
+interface RecentActivityItem {
+  icon: string;
+  text: string;
+  time: string;
+  color: string;
+  bg: string;
+}
+
+interface RecentActivitiesProps {
+  data?: RecentActivityItem[];
+}
 
 const container = {
   hidden: { opacity: 0 },
@@ -30,7 +43,16 @@ const item = {
   show: { opacity: 1, x: 0, transition: { duration: 0.35 } },
 };
 
-export default function RecentActivities() {
+export default function RecentActivities({ data }: RecentActivitiesProps) {
+  const activitiesToRender = data && data.length > 0 ? data : [
+    { icon: 'UserPlus', text: 'New user Sarah Johnson registered', time: '2 min ago', color: '#2563EB', bg: 'bg-blue-50' },
+    { icon: 'Target', text: 'Lead "Acme Corp" moved to negotiation stage', time: '15 min ago', color: '#8B5CF6', bg: 'bg-purple-50' },
+    { icon: 'Megaphone', text: 'Campaign "Summer Sale 2026" launched', time: '1 hour ago', color: '#EC4899', bg: 'bg-pink-50' },
+    { icon: 'Ticket', text: 'Ticket #4821 resolved by Admin Mike', time: '2 hours ago', color: '#10B981', bg: 'bg-emerald-50' },
+    { icon: 'ShieldCheck', text: 'Admin role assigned to Alex Turner', time: '3 hours ago', color: '#F59E0B', bg: 'bg-amber-50' },
+    { icon: 'Building2', text: 'New tenant "TechStart Inc" created', time: '5 hours ago', color: '#6366F1', bg: 'bg-indigo-50' },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -60,8 +82,8 @@ export default function RecentActivities() {
         <div className="absolute left-[18px] top-3 bottom-3 w-[2px] bg-slate-100 rounded-full" />
 
         <div className="space-y-4">
-          {ACTIVITIES.map((a, i) => {
-            const Icon = a.icon;
+          {activitiesToRender.map((a, i) => {
+            const Icon = IconMap[a.icon] || Clock;
             return (
               <motion.div
                 key={i}

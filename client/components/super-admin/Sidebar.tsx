@@ -43,6 +43,7 @@ const NAV_SECTIONS = [
       { label: 'CRM Control', href: '/super-admin/crm', icon: SlidersHorizontal },
       { label: 'Reports', href: '/super-admin/reports', icon: BarChart3 },
       { label: 'Security', href: '/super-admin/security', icon: ShieldAlert },
+      { label: 'Audit Logs', href: '/super-admin/audit-logs', icon: ShieldCheck },
     ]
   },
   {
@@ -50,6 +51,8 @@ const NAV_SECTIONS = [
     items: [
       { label: 'Integrations', href: '/super-admin/integrations', icon: Plug },
       { label: 'Settings', href: '/super-admin/settings', icon: Settings },
+      { label: 'Global Settings', href: '/super-admin/global-settings', icon: Settings },
+      { label: 'Database', href: '/super-admin/database', icon: BarChart3 },
       { label: 'Profile', href: '/super-admin/profile', icon: UserCircle },
     ]
   },
@@ -155,13 +158,13 @@ export default function Sidebar({ open, collapsed, onClose }: SidebarProps) {
 
           {/* AI Assistant Card */}
           {!collapsed && (
-            <div className="mt-2 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-xl">
+            <div className="mt-2 p-4 bg-gradient-to-br from-orange-500 to-yellow-500 border border-orange-400 rounded-xl">
               <div className="flex items-center gap-1.5 mb-1.5">
-                <Sparkles className="w-4 h-4 text-[#2563EB]" />
-                <p className="text-[11px] font-bold text-[#2563EB] uppercase tracking-wider">AI Assistant</p>
+                <Sparkles className="w-4 h-4 text-orange-50" />
+                <p className="text-[11px] font-bold text-orange-50 uppercase tracking-wider">AI Assistant</p>
               </div>
-              <p className="text-xs text-slate-500 leading-relaxed">Ask anything about your tenants, admins & system health.</p>
-              <button className="w-full mt-3 py-2 bg-[#2563EB] hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm shadow-blue-500/20">
+              <p className="text-xs text-orange-100 leading-relaxed">Ask anything about your tenants, admins & system health.</p>
+              <button className="w-full mt-3 py-2 bg-white text-orange-600 hover:bg-orange-50 text-sm font-bold rounded-lg transition-colors shadow-sm shadow-orange-500/20">
                 Ask AI
               </button>
             </div>

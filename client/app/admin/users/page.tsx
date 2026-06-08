@@ -213,6 +213,54 @@ export default function AdminUsersPage() {
   const [sendCreds, setSendCreds] = useState(true);
   const [sortBy, setSortBy] = useState('name-asc');
 
+  // Email validation checking states
+  const [emailCheckErr, setEmailCheckErr] = useState('');
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (showAddModal) {
+      setNewName('');
+      setNewEmail('');
+      setNewPhone('');
+      setEmailCheckErr('');
+      setEmailAvailable(null);
+      setCheckingEmail(false);
+    }
+  }, [showAddModal]);
+
+  async function handleEmailBlur() {
+    const trimmed = newEmail.trim();
+    if (!trimmed) {
+      setEmailAvailable(null);
+      setEmailCheckErr('');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(trimmed)) {
+      setEmailAvailable(false);
+      setEmailCheckErr('Please enter a valid email address.');
+      return;
+    }
+
+    setCheckingEmail(true);
+    setEmailCheckErr('');
+    try {
+      const response = await api.get(`/auth/check-email?email=${encodeURIComponent(trimmed)}`);
+      const available = response.data?.data?.available;
+      setEmailAvailable(available);
+      if (!available) {
+        setEmailCheckErr('This email is already in use. Try a different one.');
+      } else {
+        setEmailCheckErr('');
+      }
+    } catch (err: any) {
+      console.error('Email check failed:', err);
+    } finally {
+      setCheckingEmail(false);
+    }
+  }
+
   // Detail View Right Drawer
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
   const [drawerTab, setDrawerTab] = useState<'Overview' | 'Permissions' | 'Activity' | 'Performance' | 'Security'>('Overview');
@@ -275,6 +323,11 @@ export default function AdminUsersPage() {
       return;
     }
 
+    if (emailAvailable === false) {
+      setEmailCheckErr('This email is already in use. Try a different one.');
+      return;
+    }
+
     // Validate phone number
     if (newPhone) {
       const phoneRegex = /^\+?[0-9\s\-()]{7,15}$/;
@@ -327,6 +380,11 @@ export default function AdminUsersPage() {
       }
     }).catch(err => {
       console.error(err);
+      if (err.response?.status === 409) {
+        setEmailCheckErr('This email is already in use. Try a different one.');
+        setEmailAvailable(false);
+        return;
+      }
       alert(err.response?.data?.message || 'Failed to create user');
     });
   };
@@ -776,14 +834,35 @@ export default function AdminUsersPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Email Address *</label>
-                      <input 
-                        required
-                        type="email" 
-                        value={newEmail}
-                        onChange={e => setNewEmail(e.target.value)}
-                        placeholder="varun@jobnest.com"
-                        className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition font-semibold" 
-                      />
+                      <div className="relative">
+                        <input 
+                          required
+                          type="email" 
+                          value={newEmail}
+                          onChange={e => {
+                            setNewEmail(e.target.value);
+                            setEmailAvailable(null);
+                            setEmailCheckErr('');
+                          }}
+                          onBlur={handleEmailBlur}
+                          placeholder="varun@jobnest.com"
+                          className={`w-full px-3 py-2 text-xs rounded-xl border outline-none transition font-semibold ${
+                            emailCheckErr ? 'border-red-400 focus:border-red-400' : 'border-slate-200 focus:border-blue-500'
+                          } pr-8`}
+                        />
+                        {checkingEmail && (
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                        )}
+                        {!checkingEmail && emailAvailable === true && (
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-emerald-500 font-bold text-xs" title="Email available">✓</span>
+                        )}
+                        {!checkingEmail && emailAvailable === false && (
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-red-500 font-bold text-xs" title="Email already in use">✗</span>
+                        )}
+                      </div>
+                      {emailCheckErr && (
+                        <p className="text-[10px] text-red-500 mt-1 font-medium">{emailCheckErr}</p>
+                      )}
                     </div>
                     <div>
                       <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Phone Number</label>
@@ -872,7 +951,8 @@ export default function AdminUsersPage() {
                     </button>
                     <button 
                       type="submit"
-                      className="flex-1 py-2 text-xs font-bold rounded-xl bg-[#2563EB] hover:bg-blue-700 text-white transition shadow-sm shadow-blue-500/10"
+                      disabled={checkingEmail || emailAvailable === false}
+                      className="flex-1 py-2 text-xs font-bold rounded-xl bg-[#2563EB] hover:bg-blue-700 text-white transition shadow-sm shadow-blue-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Save User
                     </button>

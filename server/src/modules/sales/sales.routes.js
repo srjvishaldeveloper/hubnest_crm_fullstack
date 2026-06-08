@@ -6,6 +6,12 @@ const { authorize } = require('../../middleware/rbac');
 const { scopeGuard } = require('../../middleware/scopeGuard');
 
 router.use(authenticate);
+router.use((req, res, next) => {
+  if (req.user.role_name !== 'Sales Executive') {
+    return res.status(403).json({ success: false, message: 'Access denied. Sales Executive role required.' });
+  }
+  next();
+});
 router.use(scopeGuard);
 
 // LEADS

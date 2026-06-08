@@ -5,16 +5,6 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const DAILY_DATA = [
-  { name: 'Mon', leads: 120, converted: 45 },
-  { name: 'Tue', leads: 150, converted: 62 },
-  { name: 'Wed', leads: 180, converted: 78 },
-  { name: 'Thu', leads: 140, converted: 55 },
-  { name: 'Fri', leads: 210, converted: 95 },
-  { name: 'Sat', leads: 90, converted: 32 },
-  { name: 'Sun', leads: 60, converted: 20 },
-];
-
 const WEEKLY_DATA = [
   { name: 'Wk 1', leads: 680, converted: 290 },
   { name: 'Wk 2', leads: 750, converted: 320 },
@@ -31,17 +21,24 @@ const MONTHLY_DATA = [
   { name: 'Jun', leads: 4200, converted: 2100 },
 ];
 
-const DATA_MAP: Record<string, typeof DAILY_DATA> = {
-  Daily: DAILY_DATA,
-  Weekly: WEEKLY_DATA,
-  Monthly: MONTHLY_DATA,
-};
-
 const TABS = ['Daily', 'Weekly', 'Monthly'];
 
-export default function SalesOverview() {
+export default function SalesOverview({ data }: { data?: any[] }) {
   const [activeTab, setActiveTab] = useState('Daily');
-  const data = DATA_MAP[activeTab];
+
+  const formattedDailyData = data?.map(item => ({
+    name: item.day,
+    leads: item.leads,
+    converted: item.converted,
+  })) || [];
+
+  const DATA_MAP: Record<string, any[]> = {
+    Daily: formattedDailyData.length ? formattedDailyData : [],
+    Weekly: WEEKLY_DATA,
+    Monthly: MONTHLY_DATA,
+  };
+
+  const chartData = DATA_MAP[activeTab];
 
   return (
     <motion.div
@@ -81,7 +78,7 @@ export default function SalesOverview() {
       </div>
 
       <ResponsiveContainer width="100%" height={280}>
-        <AreaChart data={data}>
+        <AreaChart data={chartData}>
           <defs>
             <linearGradient id="leadGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#2563EB" stopOpacity={0.2} />

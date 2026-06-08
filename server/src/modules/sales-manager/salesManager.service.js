@@ -1,5 +1,6 @@
 const { query } = require('../../config/database');
 const bcrypt = require('bcryptjs');
+const { checkEmailExists } = require('../../models/userModel');
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -266,11 +267,24 @@ async function addExecutive(tenantId, managerId, data) {
   const { name, email, employeeId, password, mobile, sendCreds } = data;
 
   // Check duplicates
-  const dup = await query(
-    `SELECT id FROM users WHERE (email = $1 OR admin_id = $2) AND tenant_id = $3`,
-    [email, employeeId, tenantId]
+  const emailExists = await checkEmailExists(email);
+  if (emailExists) {
+    throw Object.assign(
+      new Error("This email is already registered in the system. Please use a different email address."),
+      { statusCode: 409 }
+    );
+  }
+
+  const dupEmp = await query(
+    `SELECT id FROM users WHERE admin_id = $1`,
+    [employeeId]
   );
-  if (dup.rows.length > 0) throw Object.assign(new Error('User with this email or Employee ID already exists'), { statusCode: 400 });
+  if (dupEmp.rows.length > 0) {
+    throw Object.assign(
+      new Error('User with this Employee ID already exists'),
+      { statusCode: 400 }
+    );
+  }
 
   // Get or create Sales Executive role
   let roleResult = await query(`SELECT id FROM roles WHERE name = 'Sales Executive'`);
@@ -490,7 +504,7 @@ async function getReportsOverview(tenantId, managerId) {
     query(`SELECT COUNT(*) AS cnt FROM leads_marketing WHERE tenant_id = $1`, [tenantId]),
     query(`SELECT COUNT(*) AS cnt FROM leads_marketing WHERE tenant_id = $1 AND status = 'Converted'`, [tenantId]),
     query(`SELECT COUNT(*) AS cnt FROM leads_marketing WHERE tenant_id = $1 AND status = 'Lost'`, [tenantId]),
-    query(`SELECT COALESCE(SUM(achieved_amount), 0) AS total FROM manager_targets WHERE manager_id = $1 AND year = $2`, [managerId, year]),
+    query(`SELECT COALESCE(SUM(revenue_achieved), 0) AS total FROM manager_targets WHERE manager_id = $1 AND year = $2`, [managerId, year]),
     query(`SELECT type, COUNT(*) AS cnt FROM activities WHERE tenant_id = $1 GROUP BY type`, [tenantId]),
   ]);
 

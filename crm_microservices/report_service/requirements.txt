@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+pandas
+matplotlib
+plotly
+reportlab
+openpyxl
+asyncpg
+python-dotenv
+kaleido
+Pillow
+pydantic

@@ -36,53 +36,6 @@ function ProgressBar({ label, value, max, color }: ProgressBarProps) {
   );
 }
 
-const CARDS = [
-  {
-    title: 'Lead Pipeline',
-    icon: Target,
-    iconColor: '#8B5CF6',
-    iconBg: 'bg-purple-50',
-    items: [
-      { label: 'New', value: 4280, max: 12846, color: '#8B5CF6' },
-      { label: 'Qualified', value: 5120, max: 12846, color: '#6D28D9' },
-      { label: 'Converted', value: 3446, max: 12846, color: '#4C1D95' },
-    ],
-  },
-  {
-    title: 'Support Overview',
-    icon: Headphones,
-    iconColor: '#F59E0B',
-    iconBg: 'bg-amber-50',
-    items: [
-      { label: 'Open', value: 342, max: 1847, color: '#F59E0B' },
-      { label: 'Pending', value: 518, max: 1847, color: '#D97706' },
-      { label: 'Resolved', value: 987, max: 1847, color: '#10B981' },
-    ],
-  },
-  {
-    title: 'Campaign Performance',
-    icon: Megaphone,
-    iconColor: '#EC4899',
-    iconBg: 'bg-pink-50',
-    items: [
-      { label: 'Active', value: 12, max: 38, color: '#EC4899' },
-      { label: 'Completed', value: 22, max: 38, color: '#DB2777' },
-      { label: 'ROI Avg', value: 340, max: 500, color: '#10B981' },
-    ],
-  },
-  {
-    title: 'Finance Overview',
-    icon: IndianRupee,
-    iconColor: '#2563EB',
-    iconBg: 'bg-blue-50',
-    items: [
-      { label: 'Revenue', value: 2458, max: 3000, color: '#2563EB' },
-      { label: 'Pending', value: 345, max: 3000, color: '#F59E0B' },
-      { label: 'Collections', value: 2113, max: 3000, color: '#10B981' },
-    ],
-  },
-];
-
 const container = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.08 } },
@@ -93,7 +46,64 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.45 } },
 };
 
-export default function CRMHealth() {
+interface CRMHealthProps {
+  leadPipeline?: { new: number; contacted: number; interested: number; negotiation: number; converted: number };
+  supportOverview?: { open: number; in_progress: number; resolved: number };
+  campaignPerformance?: { active: number; leads: number; roi: string };
+  financeOverview?: { revenue: number; pending: number; collected: number };
+}
+
+export default function CRMHealth({ leadPipeline, supportOverview, campaignPerformance, financeOverview }: CRMHealthProps) {
+  const safeLeadTotal = leadPipeline ? Object.values(leadPipeline).reduce((a, b) => a + b, 0) || 1 : 12846;
+  const safeSupportTotal = supportOverview ? Object.values(supportOverview).reduce((a, b) => a + b, 0) || 1 : 1847;
+  
+  const dynamicCards = [
+    {
+      title: 'Lead Pipeline',
+      icon: Target,
+      iconColor: '#8B5CF6',
+      iconBg: 'bg-purple-50',
+      items: [
+        { label: 'New', value: leadPipeline?.new || 0, max: safeLeadTotal, color: '#8B5CF6' },
+        { label: 'Contacted', value: leadPipeline?.contacted || 0, max: safeLeadTotal, color: '#6D28D9' },
+        { label: 'Converted', value: leadPipeline?.converted || 0, max: safeLeadTotal, color: '#4C1D95' },
+      ],
+    },
+    {
+      title: 'Support Overview',
+      icon: Headphones,
+      iconColor: '#F59E0B',
+      iconBg: 'bg-amber-50',
+      items: [
+        { label: 'Open', value: supportOverview?.open || 0, max: safeSupportTotal, color: '#F59E0B' },
+        { label: 'In Progress', value: supportOverview?.in_progress || 0, max: safeSupportTotal, color: '#D97706' },
+        { label: 'Resolved', value: supportOverview?.resolved || 0, max: safeSupportTotal, color: '#10B981' },
+      ],
+    },
+    {
+      title: 'Campaign Performance',
+      icon: Megaphone,
+      iconColor: '#EC4899',
+      iconBg: 'bg-pink-50',
+      items: [
+        { label: 'Active', value: campaignPerformance?.active || 0, max: Math.max(38, campaignPerformance?.active || 0), color: '#EC4899' },
+        { label: 'Leads', value: campaignPerformance?.leads || 0, max: Math.max(500, campaignPerformance?.leads || 0), color: '#DB2777' },
+        { label: 'ROI Avg', value: parseInt(campaignPerformance?.roi?.replace(/[^0-9]/g, '') || '0', 10), max: 100, color: '#10B981' },
+      ],
+    },
+    {
+      title: 'Finance Overview',
+      icon: IndianRupee,
+      iconColor: '#2563EB',
+      iconBg: 'bg-blue-50',
+      items: [
+        { label: 'Revenue', value: financeOverview?.revenue || 0, max: Math.max(3000, financeOverview?.revenue || 0), color: '#2563EB' },
+        { label: 'Pending', value: financeOverview?.pending || 0, max: Math.max(3000, financeOverview?.revenue || 0), color: '#F59E0B' },
+        { label: 'Collections', value: financeOverview?.collected || 0, max: Math.max(3000, financeOverview?.revenue || 0), color: '#10B981' },
+      ],
+    },
+  ];
+
   return (
     <motion.div
       variants={container}
@@ -101,7 +111,7 @@ export default function CRMHealth() {
       animate="show"
       className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
     >
-      {CARDS.map((card) => {
+      {dynamicCards.map((card) => {
         const Icon = card.icon;
         return (
           <motion.div

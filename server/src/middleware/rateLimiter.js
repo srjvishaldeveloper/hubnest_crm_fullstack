@@ -20,6 +20,9 @@ const otpLimiter = new RateLimiterRedis({
 
 function makeRateLimitMiddleware(limiter, message) {
   return async (req, res, next) => {
+    if (process.env.NODE_ENV === 'test') {
+      return next();
+    }
     try {
       await limiter.consume(req.ip);
       next();
@@ -41,4 +44,17 @@ const otpRateLimiter = makeRateLimitMiddleware(
   'Too many OTP requests. Please wait 5 minutes before requesting again.'
 );
 
-module.exports = { loginRateLimiter, otpRateLimiter };
+const emailCheckLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  keyPrefix: 'rl_email_check',
+  points: 10,
+  duration: 60,
+  blockDuration: 60,
+});
+
+const emailCheckRateLimiter = makeRateLimitMiddleware(
+  emailCheckLimiter,
+  'Too many check attempts. Please wait 1 minute before trying again.'
+);
+
+module.exports = { loginRateLimiter, otpRateLimiter, emailCheckRateLimiter };

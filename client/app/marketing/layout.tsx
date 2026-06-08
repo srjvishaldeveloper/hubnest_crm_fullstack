@@ -4,6 +4,7 @@ import { useState } from 'react';
 import MarketingSidebar from '../../components/marketing/MarketingSidebar';
 import MarketingHeader from '../../components/marketing/MarketingHeader';
 import SessionTimer from '../../components/SessionTimer';
+import AIChatbot from '../../components/AIChatbot';
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -22,6 +23,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SessionTimer />
+      <AIChatbot />
       <MarketingSidebar
         open={sidebarOpen}
         collapsed={sidebarCollapsed}

@@ -6,6 +6,7 @@ import Sidebar from '../../components/super-admin/Sidebar';
 import api from '../../services/api';
 import Header from '../../components/super-admin/Header';
 import SessionTimer from '../../components/SessionTimer';
+import AIChatbot from '../../components/AIChatbot';
 import { useSuperAdminUIStore } from '../../store/uiStore';
 import { useTenantStore } from '../../store/tenantStore';
 import {
@@ -56,6 +57,11 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   const [copied, setCopied] = useState(false);
   const [isProvisioning, setIsProvisioning] = useState(false);
 
+  // Email validation checking states
+  const [emailCheckErr, setEmailCheckErr] = useState('');
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
+
   // Generate credentials when modal opens
   useEffect(() => {
     if (showAddTenantModal) {
@@ -71,9 +77,44 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       setAdminPhone('');
       setPlan('Starter');
       setStatus('Active');
+      setEmailCheckErr('');
+      setEmailAvailable(null);
+      setCheckingEmail(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAddTenantModal]);
+
+  async function handleEmailBlur() {
+    const trimmed = adminEmail.trim();
+    if (!trimmed) {
+      setEmailAvailable(null);
+      setEmailCheckErr('');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(trimmed)) {
+      setEmailAvailable(false);
+      setEmailCheckErr('Please enter a valid admin email address.');
+      return;
+    }
+
+    setCheckingEmail(true);
+    setEmailCheckErr('');
+    try {
+      const response = await api.get(`/auth/check-email?email=${encodeURIComponent(trimmed)}`);
+      const available = response.data?.data?.available;
+      setEmailAvailable(available);
+      if (!available) {
+        setEmailCheckErr('This email is already in use. Try a different one.');
+      } else {
+        setEmailCheckErr('');
+      }
+    } catch (err: any) {
+      console.error('Email check failed:', err);
+    } finally {
+      setCheckingEmail(false);
+    }
+  }
 
   function handleCopy() {
     navigator.clipboard.writeText(generatedPwd);
@@ -91,6 +132,11 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(adminEmail.trim())) {
       alert('Please enter a valid admin email address (e.g. name@company.com).');
+      return;
+    }
+
+    if (emailAvailable === false) {
+      setEmailCheckErr('This email is already in use. Try a different one.');
       return;
     }
 
@@ -139,6 +185,11 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       setShowAddTenantModal(false);
     } catch (err: any) {
       console.error('Failed to provision tenant in database / send email:', err);
+      if (err.response?.status === 409) {
+        setEmailCheckErr('This email is already in use. Try a different one.');
+        setEmailAvailable(false);
+        return;
+      }
       const msg = err.response?.data?.message || 'Failed to provision tenant. Please check your SMTP configuration or try again.';
       alert(msg);
     } finally {
@@ -159,6 +210,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SessionTimer />
+      <AIChatbot />
       <Sidebar
         open={sidebarOpen}
         collapsed={sidebarCollapsed}
@@ -277,14 +329,35 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Admin Email *</label>
-                              <input
-                                required
-                                type="email"
-                                value={adminEmail}
-                                onChange={e => setAdminEmail(e.target.value)}
-                                placeholder="e.g. rajesh@acme.com"
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition"
-                              />
+                              <div className="relative">
+                                <input
+                                  required
+                                  type="email"
+                                  value={adminEmail}
+                                  onChange={e => {
+                                    setAdminEmail(e.target.value);
+                                    setEmailAvailable(null);
+                                    setEmailCheckErr('');
+                                  }}
+                                  onBlur={handleEmailBlur}
+                                  placeholder="e.g. rajesh@acme.com"
+                                  className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:ring-2 outline-none transition ${
+                                    emailCheckErr ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-slate-200 focus:border-blue-400 focus:ring-blue-100'
+                                  } pr-10`}
+                                />
+                                {checkingEmail && (
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                                )}
+                                {!checkingEmail && emailAvailable === true && (
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 font-bold text-sm" title="Email available">✓</span>
+                                )}
+                                {!checkingEmail && emailAvailable === false && (
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 font-bold text-sm" title="Email already in use">✗</span>
+                                )}
+                              </div>
+                              {emailCheckErr && (
+                                <p className="text-[11px] text-red-500 mt-1 font-medium">{emailCheckErr}</p>
+                              )}
                             </div>
                             <div>
                               <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Admin Phone</label>
@@ -400,7 +473,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                       </button>
                       <button
                         type="submit"
-                        disabled={isProvisioning}
+                        disabled={isProvisioning || checkingEmail || emailAvailable === false}
                         className="flex-1 px-4 py-2.5 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-blue-700 transition shadow-sm shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isProvisioning ? (

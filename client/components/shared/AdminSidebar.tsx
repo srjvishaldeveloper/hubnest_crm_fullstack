@@ -199,13 +199,13 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
 
           {/* AI Assistant Card */}
           {!collapsed && (
-            <div className="mt-2 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-xl">
+            <div className="mt-2 p-4 bg-gradient-to-br from-orange-500 to-yellow-500 border border-orange-400 rounded-xl">
               <div className="flex items-center gap-1.5 mb-1.5">
-                <Sparkles className="w-4 h-4 text-[#2563EB]" />
-                <p className="text-[11px] font-bold text-[#2563EB] uppercase tracking-wider">AI Assistant</p>
+                <Sparkles className="w-4 h-4 text-orange-50" />
+                <p className="text-[11px] font-bold text-orange-50 uppercase tracking-wider">AI Assistant</p>
               </div>
-              <p className="text-xs text-slate-500 leading-relaxed">Ask anything about CRM metrics & security rules.</p>
-              <button className="w-full mt-3 py-2 bg-[#2563EB] hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm shadow-blue-500/20">
+              <p className="text-xs text-orange-100 leading-relaxed">Ask anything about CRM metrics & security rules.</p>
+              <button className="w-full mt-3 py-2 bg-white text-orange-600 hover:bg-orange-50 text-sm font-bold rounded-lg transition-colors shadow-sm shadow-orange-500/20">
                 Ask AI
               </button>
             </div>

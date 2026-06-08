@@ -4,6 +4,7 @@ async function findByEmailOrAdminId(emailOrAdminId) {
   const result = await query(
     `SELECT u.id, u.tenant_id, u.role_id, u.name, u.email, u.admin_id,
             u.password_hash, u.status, u.created_at, u.updated_at,
+            u.phone, u.photo_url, u.language,
             r.name AS role_name, r.permissions,
             t.schema_name
      FROM users u
@@ -20,6 +21,7 @@ async function findById(id) {
   const result = await query(
     `SELECT u.id, u.tenant_id, u.role_id, u.name, u.email, u.admin_id,
             u.password_hash, u.status, u.created_at, u.updated_at,
+            u.phone, u.photo_url, u.language,
             r.name AS role_name, r.permissions,
             t.schema_name
      FROM users u
@@ -35,6 +37,7 @@ async function findByEmail(email) {
   const result = await query(
     `SELECT u.id, u.tenant_id, u.role_id, u.name, u.email, u.admin_id,
             u.password_hash, u.status, u.created_at, u.updated_at,
+            u.phone, u.photo_url, u.language,
             r.name AS role_name, r.permissions,
             t.schema_name
      FROM users u
@@ -60,4 +63,12 @@ async function updateStatus(userId, status) {
   );
 }
 
-module.exports = { findByEmailOrAdminId, findById, findByEmail, updatePassword, updateStatus };
+async function checkEmailExists(email) {
+  const result = await query(
+    `SELECT id FROM users WHERE email = $1 LIMIT 1`,
+    [email]
+  );
+  return result.rows.length > 0;
+}
+
+module.exports = { findByEmailOrAdminId, findById, findByEmail, updatePassword, updateStatus, checkEmailExists };

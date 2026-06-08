@@ -66,7 +66,7 @@ async function login(emailOrAdminId, password) {
   };
 }
 
-async function verifyOtp(userId, otp) {
+async function verifyOtp(userId, otp, ipAddress = null, userAgent = null) {
   await otpService.verifyOTP(userId, otp);
 
   const user = await findById(userId);
@@ -86,7 +86,7 @@ async function verifyOtp(userId, otp) {
   const accessToken = tokenService.generateAccessToken(tokenPayload);
   const refreshToken = tokenService.generateRefreshToken({ userId: user.id });
 
-  await tokenService.saveRefreshToken(user.id, refreshToken);
+  await tokenService.saveRefreshToken(user.id, refreshToken, ipAddress, userAgent);
   await otpService.deleteOTP(userId);
 
   logger.info(`User authenticated: ${user.id}`);

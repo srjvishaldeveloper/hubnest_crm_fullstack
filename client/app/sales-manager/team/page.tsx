@@ -13,6 +13,7 @@ import {
   smAddExecutive,
   smUpdateMemberTarget,
 } from '../../../services/salesManagerService';
+import api from '../../../services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface TeamMember {
@@ -235,12 +236,35 @@ export default function SalesManagerTeamPage() {
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
 
+  // Email validation checking states
+  const [emailCheckErr, setEmailCheckErr] = useState('');
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
+
   useEffect(() => {
     if (addParam === 'true') {
       setShowAddModal(true);
       router.replace('/sales-manager/team');
     }
   }, [addParam, router]);
+
+  useEffect(() => {
+    if (showAddModal) {
+      setAddForm({
+        name: '',
+        email: '',
+        employeeId: '',
+        mobile: '',
+        password: generatePassword(),
+        autoGenPassword: true,
+        sendCredentials: true,
+      });
+      setEmailCheckErr('');
+      setEmailAvailable(null);
+      setCheckingEmail(false);
+    }
+  }, [showAddModal]);
+
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
@@ -255,6 +279,38 @@ export default function SalesManagerTeamPage() {
     autoGenPassword: false,
     sendCredentials: true,
   });
+
+  const handleEmailBlur = useCallback(async () => {
+    const trimmed = addForm.email.trim();
+    if (!trimmed) {
+      setEmailAvailable(null);
+      setEmailCheckErr('');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(trimmed)) {
+      setEmailAvailable(false);
+      setEmailCheckErr('Please enter a valid email address.');
+      return;
+    }
+
+    setCheckingEmail(true);
+    setEmailCheckErr('');
+    try {
+      const response = await api.get(`/auth/check-email?email=${encodeURIComponent(trimmed)}`);
+      const available = response.data?.data?.available;
+      setEmailAvailable(available);
+      if (!available) {
+        setEmailCheckErr('This email is already in use. Try a different one.');
+      } else {
+        setEmailCheckErr('');
+      }
+    } catch (err: any) {
+      console.error('Email check failed:', err);
+    } finally {
+      setCheckingEmail(false);
+    }
+  }, [addForm.email]);
 
   // Load team
   useEffect(() => {
@@ -328,6 +384,11 @@ export default function SalesManagerTeamPage() {
       setToast({ message: 'Please fill in all required fields.', type: 'error' });
       return;
     }
+    if (emailAvailable === false) {
+      setEmailCheckErr('This email is already in use. Try a different one.');
+      setToast({ message: 'This email is already in use. Try a different one.', type: 'error' });
+      return;
+    }
     setSubmitting(true);
     try {
       await smAddExecutive({
@@ -343,8 +404,14 @@ export default function SalesManagerTeamPage() {
       // Refresh team
       const data = await smGetTeam();
       setMembers(Array.isArray(data) ? data : MOCK_MEMBERS);
-    } catch {
-      setToast({ message: 'Failed to add executive. Please try again.', type: 'error' });
+    } catch (err: any) {
+      if (err.response?.status === 409) {
+        setEmailCheckErr('This email is already in use. Try a different one.');
+        setEmailAvailable(false);
+        setToast({ message: 'This email is already in use. Try a different one.', type: 'error' });
+        return;
+      }
+      setToast({ message: err.response?.data?.message || 'Failed to add executive. Please try again.', type: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -722,11 +789,30 @@ export default function SalesManagerTeamPage() {
                     <input
                       type="email"
                       value={addForm.email}
-                      onChange={e => handleAddChange('email', e.target.value)}
+                      onChange={e => {
+                        handleAddChange('email', e.target.value);
+                        setEmailAvailable(null);
+                        setEmailCheckErr('');
+                      }}
+                      onBlur={handleEmailBlur}
                       placeholder="priya.sharma@jobnest.com"
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-[#0F172A] placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                      className={`w-full pl-10 pr-10 py-2.5 bg-slate-50 border rounded-xl text-sm text-[#0F172A] placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500/30 transition-all ${
+                        emailCheckErr ? 'border-red-400 focus:border-red-400' : 'border-slate-200 focus:border-blue-400'
+                      }`}
                     />
+                    {checkingEmail && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                    )}
+                    {!checkingEmail && emailAvailable === true && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 font-bold text-sm" title="Email available">✓</span>
+                    )}
+                    {!checkingEmail && emailAvailable === false && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 font-bold text-sm" title="Email already in use">✗</span>
+                    )}
                   </div>
+                  {emailCheckErr && (
+                    <p className="text-[10px] text-red-500 mt-1 font-medium">{emailCheckErr}</p>
+                  )}
                 </div>
 
                 {/* Employee ID + Mobile row */}
@@ -826,7 +912,7 @@ export default function SalesManagerTeamPage() {
                 </button>
                 <button
                   onClick={handleSubmit}
-                  disabled={submitting}
+                  disabled={submitting || checkingEmail || emailAvailable === false}
                   className="flex items-center gap-2 px-6 py-2.5 bg-[#2563EB] text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors shadow-md shadow-blue-500/25"
                 >
                   {submitting ? (

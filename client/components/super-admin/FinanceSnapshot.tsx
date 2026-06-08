@@ -36,42 +36,6 @@ function Sparkline({ points, color }: { points: number[]; color: string }) {
   );
 }
 
-const METRICS = [
-  {
-    label: 'Total Revenue',
-    value: '₹24.58L',
-    sub: '+22.4% vs last month',
-    positive: true,
-    points: [80, 95, 88, 110, 125, 140, 138, 165],
-    color: '#10b981',
-    icon: IndianRupee,
-    bgLight: 'bg-emerald-50',
-    borderColor: 'border-emerald-100',
-  },
-  {
-    label: 'Expenses',
-    value: '₹8.12L',
-    sub: '+4.1% vs last month',
-    positive: false,
-    points: [40, 45, 42, 48, 52, 55, 58, 62],
-    color: '#f59e0b',
-    icon: ArrowDownRight,
-    bgLight: 'bg-amber-50',
-    borderColor: 'border-amber-100',
-  },
-  {
-    label: 'Net Profit',
-    value: '₹16.46L',
-    sub: '+31.2% vs last month',
-    positive: true,
-    points: [40, 50, 46, 62, 73, 85, 80, 103],
-    color: '#2563eb',
-    icon: ArrowUpRight,
-    bgLight: 'bg-blue-50',
-    borderColor: 'border-blue-100',
-  },
-];
-
 const container = {
   hidden: { opacity: 0 },
   show: {
@@ -85,7 +49,43 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
-export default function FinanceSnapshot() {
+export default function FinanceSnapshot({ data }: { data?: any }) {
+  const dynamicMetrics = [
+    {
+      label: 'Total Revenue',
+      value: data ? `₹${(data.total_revenue / 100000).toFixed(2)}L` : '₹0',
+      sub: `${data?.revenue_trend || '+0%'} vs last month`,
+      positive: data?.revenue_trend?.startsWith('+') ?? true,
+      points: [80, 95, 88, 110, 125, 140, 138, 165],
+      color: '#10b981',
+      icon: IndianRupee,
+      bgLight: 'bg-emerald-50',
+      borderColor: 'border-emerald-100',
+    },
+    {
+      label: 'Expenses',
+      value: data ? `₹${(data.expenses / 100000).toFixed(2)}L` : '₹0',
+      sub: `${data?.expense_trend || '+0%'} vs last month`,
+      positive: data?.expense_trend?.startsWith('-') ?? true, // Expenses going down is positive
+      points: [40, 45, 42, 48, 52, 55, 58, 62],
+      color: '#f59e0b',
+      icon: ArrowDownRight,
+      bgLight: 'bg-amber-50',
+      borderColor: 'border-amber-100',
+    },
+    {
+      label: 'Net Profit',
+      value: data ? `₹${(data.net_profit / 100000).toFixed(2)}L` : '₹0',
+      sub: `${data?.profit_trend || '+0%'} vs last month`,
+      positive: data?.profit_trend?.startsWith('+') ?? true,
+      points: [40, 50, 46, 62, 73, 85, 80, 103],
+      color: '#2563eb',
+      icon: ArrowUpRight,
+      bgLight: 'bg-blue-50',
+      borderColor: 'border-blue-100',
+    },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -112,7 +112,7 @@ export default function FinanceSnapshot() {
         animate="show"
         className="space-y-3"
       >
-        {METRICS.map((m) => {
+        {dynamicMetrics.map((m) => {
           const Icon = m.icon;
           const TrendIcon = m.positive ? TrendingUp : TrendingDown;
           return (
