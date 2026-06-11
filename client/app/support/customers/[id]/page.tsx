@@ -114,7 +114,7 @@ export default function CustomerDetailPage() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-[#0F172A]">{customer.name}</h1>
+              <h1 className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB]">{customer.name}</h1>
               <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wide
                 ${customer.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-600'}`}
               >
@@ -131,7 +131,7 @@ export default function CustomerDetailPage() {
         </div>
 
         {/* CSAT and quick metrics */}
-        <div className="flex items-center gap-6 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6 shrink-0">
+        <div className="flex items-center gap-6 border-t md:border-t-0 md:border-l border-slate-100 dark:border-[#1f1f1f] pt-4 md:pt-0 md:pl-6 shrink-0">
           <div className="text-center">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">CSAT Score</p>
             <p className="text-2xl font-black text-slate-800 mt-1">⭐ {csat}</p>
@@ -155,7 +155,7 @@ export default function CustomerDetailPage() {
           
           {/* Detailed Info Card */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
-            <h3 className="font-bold text-[#0F172A] text-sm mb-4">Profile Information</h3>
+            <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm mb-4">Profile Information</h3>
             <div className="space-y-3.5 text-xs">
               <div className="flex justify-between border-b border-slate-50 pb-2">
                 <span className="text-slate-400 font-semibold">Customer Since</span>
@@ -178,15 +178,15 @@ export default function CustomerDetailPage() {
 
           {/* Customer Value Analysis */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
-            <h3 className="font-bold text-[#0F172A] text-sm mb-4">Customer Value</h3>
+            <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm mb-4">Customer Value</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
+              <div className="p-3 bg-slate-50 dark:bg-[#161616] border border-slate-100 dark:border-[#1f1f1f] rounded-xl text-center">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Monthly Spend</p>
                 <p className="text-base font-black text-slate-800 mt-1 flex items-center justify-center gap-0.5">
                   <DollarSign className="w-3.5 h-3.5 text-slate-400" /> 3,200
                 </p>
               </div>
-              <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
+              <div className="p-3 bg-slate-50 dark:bg-[#161616] border border-slate-100 dark:border-[#1f1f1f] rounded-xl text-center">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Lifetime Value (LTV)</p>
                 <p className="text-base font-black text-[#2563EB] mt-1 flex items-center justify-center gap-0.5">
                   <DollarSign className="w-3.5 h-3.5 text-blue-400" /> 1,25,000
@@ -197,7 +197,7 @@ export default function CustomerDetailPage() {
 
           {/* Engagement Dials */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4">
-            <h3 className="font-bold text-[#0F172A] text-sm">Engagement & Retention</h3>
+            <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm">Engagement & Retention</h3>
             
             <div className="space-y-3">
               <div>
@@ -222,11 +222,11 @@ export default function CustomerDetailPage() {
             </div>
 
             <div className="pt-2 border-t border-slate-50 grid grid-cols-2 gap-2 text-xs">
-              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+              <div className="bg-slate-50 dark:bg-[#161616] p-2.5 rounded-lg border border-slate-100 dark:border-[#1f1f1f]">
                 <span className="text-[9px] font-bold text-slate-400 uppercase block">Churn Risk</span>
                 <span className="text-xs font-bold text-green-600">Low Risk</span>
               </div>
-              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+              <div className="bg-slate-50 dark:bg-[#161616] p-2.5 rounded-lg border border-slate-100 dark:border-[#1f1f1f]">
                 <span className="text-[9px] font-bold text-slate-400 uppercase block">Activity level</span>
                 <span className="text-xs font-bold text-slate-700">Very High</span>
               </div>
@@ -241,7 +241,7 @@ export default function CustomerDetailPage() {
           {/* Tickets History List */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-[#0F172A] text-sm">Issue Tickets History</h3>
+              <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm">Issue Tickets History</h3>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">All Tickets ({tickets.length})</span>
             </div>
 
@@ -253,10 +253,10 @@ export default function CustomerDetailPage() {
                   <div
                     key={t.id}
                     onClick={() => router.push(`/support/tickets?id=${t.id}`)}
-                    className="p-3 bg-slate-50 hover:bg-slate-100/50 border border-slate-100 rounded-2xl flex items-center justify-between cursor-pointer transition"
+                    className="p-3 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100/50 border border-slate-100 dark:border-[#1f1f1f] rounded-2xl flex items-center justify-between cursor-pointer transition"
                   >
                     <div className="space-y-1">
-                      <p className="text-xs font-bold text-[#0F172A]">#{t.id.slice(0, 8)}: {t.title}</p>
+                      <p className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB]">#{t.id.slice(0, 8)}: {t.title}</p>
                       <div className="flex items-center gap-2 text-[10px] text-slate-450 font-semibold">
                         <span className="text-slate-450">{new Date(t.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                         <span>•</span>
@@ -284,8 +284,8 @@ export default function CustomerDetailPage() {
 
           {/* Interaction timeline logs */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
-            <h3 className="font-bold text-[#0F172A] text-sm mb-4">Recent Interaction Timeline</h3>
-            <div className="relative pl-6 border-l border-slate-100 space-y-6 text-xs">
+            <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm mb-4">Recent Interaction Timeline</h3>
+            <div className="relative pl-6 border-l border-slate-100 dark:border-[#1f1f1f] space-y-6 text-xs">
               {interactionTimeline.map((item, idx) => (
                 <div key={idx} className="relative">
                   {/* Circle indicator on timeline */}

@@ -37,14 +37,14 @@ export default function AdminUserActivityPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-[#1f1f1f] flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900">Audit Trail</h3>
           <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">Live</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/75 border-b border-slate-100">
+              <tr className="bg-slate-50 dark:bg-[#161616]/75 border-b border-slate-100 dark:border-[#1f1f1f]">
                 <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase">User</th>
                 <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Action</th>
                 <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase">IP Address</th>
@@ -54,7 +54,7 @@ export default function AdminUserActivityPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {logs.map((l) => (
-                <tr key={l.id} className="hover:bg-slate-50/50 transition">
+                <tr key={l.id} className="hover:bg-slate-50 dark:bg-[#161616]/50 transition">
                   <td className="px-5 py-3.5">
                     <p className="text-xs font-bold text-slate-700">{l.user}</p>
                     <span className="text-[10px] text-slate-400">{l.role}</span>

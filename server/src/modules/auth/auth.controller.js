@@ -2,10 +2,11 @@ const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const authService = require('./auth.service');
 const emailService = require('../../services/emailService');
+const smsService   = require('../../services/smsService');
 const { sendSuccess, sendError } = require('../../utils/helpers');
-const { query } = require('../../config/database');
+const { pool, query } = require('../../config/database');
 const logger = require('../../utils/logger');
-const { checkEmailExists } = require('../../models/userModel');
+const { checkEmailExists, findByEmail } = require('../../models/userModel');
 
 function validate(req, res) {
   const errors = validationResult(req);
@@ -67,13 +68,61 @@ async function resendOtp(req, res) {
   return sendSuccess(res, result, result.message);
 }
 
+async function googleLogin(req, res) {
+  const { credential } = req.body;
+  if (!credential) return sendError(res, 'Google credential (id_token) is required', 400);
+  const ip = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+  const userAgent = req.headers['user-agent'];
+  const result = await authService.loginWithGoogle(credential, ip, userAgent);
+  return sendSuccess(res, result, 'Google login successful');
+}
+
 async function sendCredentials(req, res) {
-  const { to, adminId, tempPassword, companyName, adminName, type } = req.body;
+  const { to, adminId, tempPassword, companyName, adminName, type, phone } = req.body;
   if (!to || !adminId || !tempPassword || !companyName || !adminName) {
     return sendError(res, 'Missing required fields', 400);
   }
-  await emailService.sendCredentialsEmail(to, adminId, tempPassword, companyName, adminName, type || 'create_tenant');
-  return sendSuccess(res, {}, 'Credentials email sent successfully');
+
+  let emailError = null;
+  let smsError   = null;
+
+  try {
+    await emailService.sendCredentialsEmail(to, adminId, tempPassword, companyName, adminName, type || 'create_tenant');
+  } catch (err) {
+    logger.warn('Credentials email failed', { message: err.message });
+    emailError = err.message;
+  }
+
+  if (phone) {
+    try {
+      const smsResult = await smsService.sendCredentialsSMS(phone, {
+        email: to, password: tempPassword, adminId,
+        companyName, role: type || 'Admin',
+      });
+      if (!smsResult.success) smsError = smsResult.error;
+    } catch (err) {
+      logger.warn('Credentials SMS failed', { message: err.message });
+      smsError = err.message;
+    }
+  }
+
+  return sendSuccess(res, { emailError, smsError }, 'Credentials sent');
+}
+
+async function sendPhoneOtp(req, res) {
+  const { phone } = req.body;
+  if (!phone) return sendError(res, 'Phone number is required', 400);
+  const result = await authService.sendPhoneOtp(phone);
+  return sendSuccess(res, result, result.message);
+}
+
+async function loginWithPhone(req, res) {
+  const { phone, otp } = req.body;
+  if (!phone || !otp) return sendError(res, 'Phone and OTP are required', 400);
+  const ip        = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+  const userAgent = req.headers['user-agent'];
+  const result    = await authService.loginWithPhone(phone, otp, ip, userAgent);
+  return sendSuccess(res, result, 'Phone login successful');
 }
 
 async function createTenant(req, res) {
@@ -87,21 +136,26 @@ async function createTenant(req, res) {
   const sanitizedCompany = companyName.toLowerCase().replace(/[^a-z0-9]/g, '_');
   const schemaName = `tenant_${sanitizedCompany}_${Math.random().toString(36).slice(2, 6)}`;
 
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
+
     // 1. Check if email already exists
-    const emailExists = await checkEmailExists(adminEmail);
-    if (emailExists) {
+    const emailCheck = await client.query('SELECT id FROM users WHERE email = $1 LIMIT 1', [adminEmail]);
+    if (emailCheck.rows.length > 0) {
+      await client.query('ROLLBACK');
       return sendError(res, "This email is already registered in the system. Please use a different email address.", 409);
     }
 
     // Check if Admin ID exists
-    const adminCheck = await query('SELECT id FROM users WHERE admin_id = $1', [adminId]);
+    const adminCheck = await client.query('SELECT id FROM users WHERE admin_id = $1 LIMIT 1', [adminId]);
     if (adminCheck.rows.length > 0) {
+      await client.query('ROLLBACK');
       return sendError(res, 'User with this Admin ID already exists', 400);
     }
 
     // 2. Insert the Tenant
-    const tenantResult = await query(
+    const tenantResult = await client.query(
       `INSERT INTO tenants (name, schema_name, status) 
        VALUES ($1, $2, 'Active') 
        RETURNING id`,
@@ -110,7 +164,7 @@ async function createTenant(req, res) {
     const tenantId = tenantResult.rows[0].id;
 
     // 3. Ensure the 'Admin' role exists in roles table
-    let roleResult = await query('SELECT id FROM roles WHERE name = $1', ['Admin']);
+    let roleResult = await client.query('SELECT id FROM roles WHERE name = $1', ['Admin']);
     let roleId;
     if (roleResult.rows.length === 0) {
       const adminPermissions = {
@@ -120,7 +174,7 @@ async function createTenant(req, res) {
         reports:  { create: true, read: true, update: true, delete: true },
         settings: { create: true, read: true, update: true, delete: true },
       };
-      const insertRole = await query(
+      const insertRole = await client.query(
         `INSERT INTO roles (name, permissions) 
          VALUES ($1, $2) 
          RETURNING id`,
@@ -134,9 +188,9 @@ async function createTenant(req, res) {
     // 4. Create the Admin User in users table
     const passwordHash = await bcrypt.hash(tempPassword, 12);
     const dbStatus = status === 'Blocked' ? 'Suspended' : (status === 'Inactive' ? 'Inactive' : 'Active');
-    await query(
-      `INSERT INTO users (tenant_id, role_id, name, email, admin_id, password_hash, status) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    await client.query(
+      `INSERT INTO users (tenant_id, role_id, name, email, admin_id, password_hash, status, phone) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         tenantId,
         roleId,
@@ -144,12 +198,16 @@ async function createTenant(req, res) {
         adminEmail,
         adminId,
         passwordHash,
-        dbStatus
+        dbStatus,
+        adminPhone || null
       ]
     );
 
-    // 5. Send Email if requested
+    await client.query('COMMIT');
+
+    // 5. Send Email + SMS if requested (outside transaction block)
     let emailError = null;
+    let smsError   = null;
     if (sendCreds) {
       try {
         await emailService.sendCredentialsEmail(adminEmail, adminId, tempPassword, companyName, adminName, 'create_tenant');
@@ -157,12 +215,28 @@ async function createTenant(req, res) {
         logger.warn('Failed to send credentials email', { message: mailErr.message });
         emailError = mailErr.message;
       }
+
+      if (adminPhone) {
+        try {
+          const sr = await smsService.sendCredentialsSMS(adminPhone, {
+            email: adminEmail, password: tempPassword, adminId,
+            companyName, role: 'Admin',
+          });
+          if (!sr.success) smsError = sr.error;
+        } catch (smsErr) {
+          logger.warn('Failed to send credentials SMS', { message: smsErr.message });
+          smsError = smsErr.message;
+        }
+      }
     }
 
-    return sendSuccess(res, { tenantId, adminId, emailError }, 'Tenant and Admin provisioned successfully in database');
+    return sendSuccess(res, { tenantId, adminId, emailError, smsError }, 'Tenant and Admin provisioned successfully in database');
   } catch (err) {
+    await client.query('ROLLBACK');
     logger.error('Failed to provision tenant in database', { message: err.message });
     return sendError(res, err.message || 'Failed to provision tenant', 500);
+  } finally {
+    client.release();
   }
 }
 
@@ -267,7 +341,7 @@ async function getTenantAdmins(req, res) {
        FROM users u
        JOIN roles r ON r.id = u.role_id
        JOIN tenants t ON t.id = u.tenant_id
-       WHERE r.name = 'Admin'`
+       WHERE r.name = 'Admin' AND u.status != 'Archived'`
     );
     const admins = result.rows.map(r => ({
       id: r.id,
@@ -290,28 +364,52 @@ async function getTenantAdmins(req, res) {
 }
 
 async function createUser(req, res) {
-  const { name, email, employeeId, role, department, password, sendCreds } = req.body;
+  const { name, email, phone, employeeId, role, department, password, sendCreds } = req.body;
   const tenantId = req.user.tenant_id;
 
   if (!name || !email || !employeeId || !role) {
     return sendError(res, 'Missing required fields', 400);
   }
 
-  try {
-    // 1. Check if email already exists
-    const emailExists = await checkEmailExists(email);
-    if (emailExists) {
-      return sendError(res, "This email is already registered in the system. Please use a different email address.", 409);
+  // 1. Check duplicate email contextually
+  const existingUser = await findByEmail(email);
+  if (existingUser) {
+    if (existingUser.tenant_id === tenantId) {
+      if (existingUser.status === 'Archived') {
+        return res.status(409).json({
+          success: false,
+          code: 'USER_ARCHIVED',
+          userId: existingUser.id,
+          message: 'This email belongs to an archived user in your company. You can restore them.'
+        });
+      }
+      return res.status(409).json({
+        success: false,
+        code: 'ACTIVE_USER',
+        message: 'This email is already registered in your company.'
+      });
+    } else {
+      return res.status(409).json({
+        success: false,
+        code: 'OTHER_TENANT',
+        message: 'This email is registered with another company.'
+      });
     }
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
     // Check if Employee ID exists
-    const empCheck = await query('SELECT id FROM users WHERE admin_id = $1', [employeeId]);
+    const empCheck = await client.query('SELECT id FROM users WHERE admin_id = $1 LIMIT 1', [employeeId]);
     if (empCheck.rows.length > 0) {
+      await client.query('ROLLBACK');
       return sendError(res, 'User with this Employee ID already exists', 400);
     }
 
     // 2. Resolve Role
-    let roleResult = await query('SELECT id FROM roles WHERE name = $1', [role]);
+    let roleResult = await client.query('SELECT id FROM roles WHERE name = $1', [role]);
     let roleId;
     if (roleResult.rows.length === 0) {
       const defaultPermissions = {
@@ -320,7 +418,7 @@ async function createUser(req, res) {
         reports:  { create: false, read: true, update: false, delete: false },
         settings: { create: false, read: true, update: false, delete: false },
       };
-      const insertRole = await query(
+      const insertRole = await client.query(
         `INSERT INTO roles (name, permissions) 
          VALUES ($1, $2) 
          RETURNING id`,
@@ -333,28 +431,57 @@ async function createUser(req, res) {
 
     // 3. Create User
     const passwordHash = await bcrypt.hash(password || 'Tenant@123!', 12);
-    const result = await query(
-      `INSERT INTO users (tenant_id, role_id, name, email, admin_id, password_hash, status) 
-       VALUES ($1, $2, $3, $4, $5, $6, 'Active') RETURNING id`,
-      [tenantId, roleId, name, email, employeeId, passwordHash]
+    const result = await client.query(
+      `INSERT INTO users (tenant_id, role_id, name, email, admin_id, password_hash, status, phone) 
+       VALUES ($1, $2, $3, $4, $5, $6, 'Active', $7) RETURNING id`,
+      [tenantId, roleId, name, email, employeeId, passwordHash, phone || null]
     );
     const userId = result.rows[0].id;
 
-    // 4. Send Email if requested
+    await client.query('COMMIT');
+
+    // 4. Send Email & SMS if requested (outside transaction)
     if (sendCreds) {
+      const tenantCheck = await query('SELECT name FROM tenants WHERE id = $1', [tenantId]);
+      const companyName = tenantCheck.rows[0]?.name || 'Client CRM';
+      const tempPass = password || 'Tenant@123!';
+
+      // Email credentials
       try {
-        const tenantCheck = await query('SELECT name FROM tenants WHERE id = $1', [tenantId]);
-        const companyName = tenantCheck.rows[0]?.name || 'Client CRM';
-        await emailService.sendCredentialsEmail(email, employeeId, password || 'Tenant@123!', companyName, name, 'create_user');
+        await emailService.sendCredentialsEmail(
+          email,
+          employeeId,
+          tempPass,
+          companyName,
+          name,
+          'create_user',
+          { role, department }
+        );
       } catch (mailErr) {
         logger.warn('Failed to send credentials email', { message: mailErr.message });
+      }
+
+      // SMS credentials (if phone is provided)
+      if (phone) {
+        try {
+          await smsService.sendCredentialsSMS(phone, {
+            email, password: tempPass, adminId: employeeId,
+            companyName, role, userId,
+          });
+          logger.info(`Credentials SMS sent to ${phone} for user ${userId}`);
+        } catch (smsErr) {
+          logger.error(`Failed to send credentials SMS to ${phone}: ${smsErr.message}`);
+        }
       }
     }
 
     return sendSuccess(res, { id: userId, employeeId }, 'User created successfully');
   } catch (err) {
+    await client.query('ROLLBACK');
     logger.error('Failed to create user in database', { message: err.message });
     return sendError(res, err.message || 'Failed to create user', 500);
+  } finally {
+    client.release();
   }
 }
 
@@ -363,10 +490,11 @@ async function getUsers(req, res) {
   try {
     const result = await query(
       `SELECT u.id, u.admin_id, u.name, u.email, u.status, u.created_at,
-              r.name AS role_name
+              r.name AS role_name,
+              (SELECT created_at FROM login_logs WHERE user_id = u.id AND status = 'success' ORDER BY created_at DESC LIMIT 1) AS last_login
        FROM users u
        JOIN roles r ON r.id = u.role_id
-       WHERE u.tenant_id = $1`,
+       WHERE u.tenant_id = $1 AND u.status != 'Archived'`,
       [tenantId]
     );
 
@@ -388,7 +516,7 @@ async function getUsers(req, res) {
       department: getDept(r.role_name),
       status: r.status === 'Suspended' ? 'Blocked' : r.status,
       joinedDate: new Date(r.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-      lastLogin: 'Never',
+      lastLogin: r.last_login ? new Date(r.last_login).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Never',
       avatar: r.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U',
       leadsHandled: 0,
       loginDays: 0,
@@ -415,11 +543,44 @@ async function deleteUser(req, res) {
       return sendError(res, 'User not found or access denied', 404);
     }
 
-    await query('DELETE FROM users WHERE id = $1', [id]);
+    const archivedEmail = `archived_${Date.now()}_${id}@deleted.com`;
+    await query("UPDATE users SET status = 'Archived', email = $2, updated_at = NOW() WHERE id = $1", [id, archivedEmail]);
+
+    // Invalidate active login session tokens
+    const tokenService = require('../../services/tokenService');
+    await tokenService.revokeAllUserTokens(id);
+
+    // Clear Redis OTP keys for the user
+    const otpService = require('../../services/otpService');
+    await otpService.deleteOTP(id);
+
     return sendSuccess(res, { id }, 'User deleted successfully');
   } catch (err) {
     logger.error('Failed to delete user', { message: err.message });
     return sendError(res, err.message || 'Failed to delete user', 500);
+  }
+}
+
+async function restoreUser(req, res) {
+  const { id } = req.params;
+  const tenantId = req.user.tenant_id;
+
+  try {
+    const check = await query('SELECT id FROM users WHERE id = $1 AND tenant_id = $2', [id, tenantId]);
+    if (check.rows.length === 0) {
+      return sendError(res, 'User not found or access denied', 404);
+    }
+
+    await query("UPDATE users SET status = 'Active', updated_at = NOW() WHERE id = $1", [id]);
+
+    // Clear Redis OTP keys for the user
+    const otpService = require('../../services/otpService');
+    await otpService.deleteOTP(id);
+
+    return sendSuccess(res, { id }, 'User restored successfully');
+  } catch (err) {
+    logger.error('Failed to restore user', { message: err.message });
+    return sendError(res, err.message || 'Failed to restore user', 500);
   }
 }
 
@@ -482,8 +643,52 @@ async function checkEmail(req, res) {
     return sendError(res, 'email query parameter is required', 400);
   }
   try {
-    const exists = await checkEmailExists(email);
-    return sendSuccess(res, { available: !exists }, 'Email availability checked');
+    let tenantId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      try {
+        const { verifyAccessToken } = require('../../services/tokenService');
+        const decoded = verifyAccessToken(token);
+        tenantId = decoded.tenantId;
+      } catch (err) {
+        // Ignore token parse error for check email fallback
+      }
+    }
+
+    const existingUser = await findByEmail(email);
+    if (!existingUser) {
+      return sendSuccess(res, { available: true }, 'Email availability checked');
+    }
+
+    if (tenantId) {
+      if (existingUser.tenant_id === tenantId) {
+        if (existingUser.status === 'Archived') {
+          return sendSuccess(res, {
+            available: false,
+            code: 'USER_ARCHIVED',
+            userId: existingUser.id,
+            sameTenant: true,
+          }, 'This email belongs to an archived user in your company.');
+        }
+        return sendSuccess(res, {
+          available: false,
+          code: 'ACTIVE_USER',
+          sameTenant: true,
+        }, 'This email is already registered in your company.');
+      } else {
+        return sendSuccess(res, {
+          available: false,
+          code: 'OTHER_TENANT',
+          sameTenant: false,
+        }, 'This email is registered with another company.');
+      }
+    }
+
+    return sendSuccess(res, {
+      available: false,
+      code: existingUser.status === 'Archived' ? 'USER_ARCHIVED' : 'ACTIVE_USER',
+    }, 'This email is already registered in the system.');
   } catch (err) {
     logger.error('Email check failed', { message: err.message });
     return sendError(res, err.message || 'Failed to check email', 500);
@@ -695,16 +900,19 @@ async function revokeSession(req, res) {
   }
 }
 
-module.exports = { 
-  login, 
-  verifyOtp, 
-  resendOtp, 
-  refresh, 
-  logout, 
-  forgotPassword, 
-  resetPassword, 
-  sendCredentials, 
-  createTenant, 
+module.exports = {
+  login,
+  verifyOtp,
+  resendOtp,
+  refresh,
+  logout,
+  forgotPassword,
+  resetPassword,
+  googleLogin,
+  sendCredentials,
+  sendPhoneOtp,
+  loginWithPhone,
+  createTenant,
   resetTenantAdmin,
   blockTenantAdmin,
   deleteTenantAdmin,
@@ -712,6 +920,7 @@ module.exports = {
   createUser,
   getUsers,
   deleteUser,
+  restoreUser,
   toggleBlockUser,
   resetUserPassword,
   checkEmail,

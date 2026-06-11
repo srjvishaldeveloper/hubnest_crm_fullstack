@@ -3,10 +3,11 @@ const env = require('./env');
 const logger = require('../utils/logger');
 
 const redis = new Redis(env.redisUrl, {
-  retryStrategy: (times) => Math.min(times * 50, 2000),
+  retryStrategy: (times) => Math.min(times * 100, 10000),
   enableReadyCheck: true,
-  maxRetriesPerRequest: 3,
+  maxRetriesPerRequest: 1,
   lazyConnect: false,
+  enableOfflineQueue: false,
 });
 
 redis.on('connect', () => logger.info('Redis connected'));

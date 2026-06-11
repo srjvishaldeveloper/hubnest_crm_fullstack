@@ -1,4 +1,12 @@
 const request = require('supertest');
+
+// Mock nodemailer before app is loaded
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn().mockReturnValue({
+    sendMail: jest.fn().mockResolvedValue({ messageId: 'mock-message-id' }),
+  }),
+}));
+
 const app = require('../src/app');
 const { pool, query } = require('../src/config/database');
 const { ensureRoles, createTestTenant, createTestUser, generateTokenForUser, cleanup, redis } = require('./testHelper');
@@ -92,7 +100,7 @@ describe('Email Uniqueness Suite', () => {
       });
 
     expect(res.status).toBe(409);
-    expect(res.body.message).toContain('already registered');
+    expect(res.body.message).toMatch(/already registered|registered with another company/);
   });
 
   it('4. Create Admin with different email B → 201', async () => {

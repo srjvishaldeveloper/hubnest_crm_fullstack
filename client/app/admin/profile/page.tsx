@@ -42,7 +42,7 @@ export default function AdminProfilePage() {
             </div>
             {/* User Metadata */}
             <div className="text-center sm:text-left pb-1">
-              <h2 className="text-lg font-black text-[#0F172A]">Rajesh Kumar</h2>
+              <h2 className="text-lg font-black text-[#0F172A] dark:text-[#F9FAFB]">Rajesh Kumar</h2>
               <p className="text-xs text-slate-500 font-mono mt-0.5">ADM-1000 • Tenant Administrator</p>
               <div className="flex gap-1.5 mt-2 justify-center sm:justify-start">
                 <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-lg border border-blue-100 uppercase tracking-wide">
@@ -56,7 +56,7 @@ export default function AdminProfilePage() {
           </div>
 
           {/* Profile Completeness Circular Indicator */}
-          <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 p-3 rounded-xl shrink-0 self-center md:self-end">
+          <div className="flex items-center gap-3 bg-slate-50 dark:bg-[#161616] border border-slate-100 dark:border-[#1f1f1f] p-3 rounded-xl shrink-0 self-center md:self-end">
             <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                 <path
@@ -76,10 +76,10 @@ export default function AdminProfilePage() {
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
               </svg>
-              <span className="absolute text-[10px] font-bold text-[#0F172A]">92%</span>
+              <span className="absolute text-[10px] font-bold text-[#0F172A] dark:text-[#F9FAFB]">92%</span>
             </div>
             <div>
-              <p className="text-xs font-bold text-[#0F172A]">Profile Completed</p>
+              <p className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB]">Profile Completed</p>
               <p className="text-[9px] text-slate-500">Add phone fallback for 100%</p>
             </div>
           </div>
@@ -97,15 +97,15 @@ export default function AdminProfilePage() {
             <div className="space-y-3 text-xs">
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Full Name</label>
-                <input type="text" defaultValue="Rajesh Kumar" className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold outline-none focus:border-blue-500" />
+                <input type="text" defaultValue="Rajesh Kumar" className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 dark:bg-[#161616] font-semibold outline-none focus:border-blue-500" />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Email Address</label>
-                <input type="email" defaultValue="rajesh.kumar@jobnest.com" className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold outline-none focus:border-blue-500" />
+                <input type="email" defaultValue="rajesh.kumar@jobnest.com" className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 dark:bg-[#161616] font-semibold outline-none focus:border-blue-500" />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Phone Contact</label>
-                <input type="text" defaultValue="+91 98765 43210" className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold outline-none focus:border-blue-500" />
+                <input type="text" defaultValue="+91 98765 43210" className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 dark:bg-[#161616] font-semibold outline-none focus:border-blue-500" />
               </div>
             </div>
           </div>
@@ -193,7 +193,7 @@ export default function AdminProfilePage() {
           {/* Timeline */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm space-y-4">
             <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Activity Log</h3>
-            <div className="space-y-3.5 border-l border-slate-100 pl-3.5 ml-1">
+            <div className="space-y-3.5 border-l border-slate-100 dark:border-[#1f1f1f] pl-3.5 ml-1">
               {[
                 { action: 'Auto lead assignment strategy modified', time: '14:20 PM' },
                 { action: 'Added user Arun Menon to team Alpha', time: '11:05 AM' },
@@ -212,16 +212,16 @@ export default function AdminProfilePage() {
           <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm space-y-3">
             <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-2 text-center">
-              <button onClick={() => alert('OTP token reset.')} className="p-2 border border-slate-100 hover:bg-blue-50/20 hover:border-blue-200 rounded-xl transition text-[10px] font-bold text-slate-600 uppercase">
+              <button onClick={() => alert('OTP token reset.')} className="p-2 border border-slate-100 dark:border-[#1f1f1f] hover:bg-blue-50/20 hover:border-blue-200 rounded-xl transition text-[10px] font-bold text-slate-600 uppercase">
                 Reset OTP
               </button>
-              <button onClick={() => alert('Log exported.')} className="p-2 border border-slate-100 hover:bg-blue-50/20 hover:border-blue-200 rounded-xl transition text-[10px] font-bold text-slate-600 uppercase">
+              <button onClick={() => alert('Log exported.')} className="p-2 border border-slate-100 dark:border-[#1f1f1f] hover:bg-blue-50/20 hover:border-blue-200 rounded-xl transition text-[10px] font-bold text-slate-600 uppercase">
                 Export Log
               </button>
-              <button onClick={() => alert('Cache cleared.')} className="p-2 border border-slate-100 hover:bg-blue-50/20 hover:border-blue-200 rounded-xl transition text-[10px] font-bold text-slate-600 uppercase">
+              <button onClick={() => alert('Cache cleared.')} className="p-2 border border-slate-100 dark:border-[#1f1f1f] hover:bg-blue-50/20 hover:border-blue-200 rounded-xl transition text-[10px] font-bold text-slate-600 uppercase">
                 Clear Cache
               </button>
-              <button onClick={() => alert('Synced.')} className="p-2 border border-slate-100 hover:bg-blue-50/20 hover:border-blue-200 rounded-xl transition text-[10px] font-bold text-slate-600 uppercase">
+              <button onClick={() => alert('Synced.')} className="p-2 border border-slate-100 dark:border-[#1f1f1f] hover:bg-blue-50/20 hover:border-blue-200 rounded-xl transition text-[10px] font-bold text-slate-600 uppercase">
                 Sync DB
               </button>
             </div>
@@ -237,7 +237,7 @@ export default function AdminProfilePage() {
             {/* 2FA Toggle */}
             <div className="flex justify-between items-center pb-2.5 border-b border-slate-50">
               <div>
-                <span className="text-xs font-bold text-[#0F172A]">OTP 2FA Verification</span>
+                <span className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB]">OTP 2FA Verification</span>
                 <p className="text-[9px] text-slate-400">Require code at system login</p>
               </div>
               <input 
@@ -251,7 +251,7 @@ export default function AdminProfilePage() {
             {/* Sessions node */}
             <div className="space-y-2">
               <p className="text-[9px] font-bold text-slate-400 uppercase">Active Nodes</p>
-              <div className="p-2 border border-slate-100 rounded-xl bg-slate-50/50 flex justify-between items-center text-xs">
+              <div className="p-2 border border-slate-100 dark:border-[#1f1f1f] rounded-xl bg-slate-50 dark:bg-[#161616]/50 flex justify-between items-center text-xs">
                 <div className="truncate">
                   <p className="font-semibold text-slate-700 truncate">Mumbai Node (Chrome)</p>
                   <p className="text-[10px] text-slate-400">Current Session</p>
@@ -295,7 +295,7 @@ export default function AdminProfilePage() {
               { name: 'Admin Contract Agreement.pdf', size: '1.2 MB' },
               { name: 'Verification ID Document.png', size: '2.4 MB' }
             ].map((doc, idx) => (
-              <div key={idx} className="p-2 border border-slate-100 rounded-xl flex items-center justify-between bg-slate-50/50">
+              <div key={idx} className="p-2 border border-slate-100 dark:border-[#1f1f1f] rounded-xl flex items-center justify-between bg-slate-50 dark:bg-[#161616]/50">
                 <div className="truncate pr-1">
                   <p className="text-xs text-slate-700 font-semibold truncate">{doc.name}</p>
                   <p className="text-[9px] text-slate-400">{doc.size}</p>

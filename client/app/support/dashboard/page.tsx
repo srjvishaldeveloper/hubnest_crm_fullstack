@@ -152,7 +152,7 @@ export default function SupportDashboard() {
       {/* Header section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">
+          <h1 className="text-2xl font-bold text-[#0F172A] dark:text-[#F9FAFB] tracking-tight">
             Good Morning, {user?.name || 'Neha'}! 👋
           </h1>
           <p className="text-sm text-slate-500 mt-1">Here is what is happening with your support desk today.</p>
@@ -167,7 +167,7 @@ export default function SupportDashboard() {
           </button>
           <button
             onClick={loadDashboard}
-            className="p-2.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-600 transition"
+            className="p-2.5 bg-white border border-slate-200 hover:bg-slate-50 dark:bg-[#161616] rounded-xl text-slate-600 transition"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -181,7 +181,7 @@ export default function SupportDashboard() {
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Tickets</span>
             <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><ScrollText className="w-4 h-4" /></div>
           </div>
-          <p className="text-2xl font-bold text-[#0F172A] mt-4">{kpis.totalTickets}</p>
+          <p className="text-2xl font-bold text-[#0F172A] dark:text-[#F9FAFB] mt-4">{kpis.totalTickets}</p>
           <p className="text-xs text-green-600 font-semibold mt-1 flex items-center gap-1">
             <TrendingUp className="w-3.5 h-3.5" /> +18.6% vs yesterday
           </p>
@@ -192,7 +192,7 @@ export default function SupportDashboard() {
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Open Tickets</span>
             <div className="p-2 bg-red-50 text-red-600 rounded-xl"><AlertCircle className="w-4 h-4" /></div>
           </div>
-          <p className="text-2xl font-bold text-[#0F172A] mt-4">{kpis.openTickets}</p>
+          <p className="text-2xl font-bold text-[#0F172A] dark:text-[#F9FAFB] mt-4">{kpis.openTickets}</p>
           <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
             <TrendingUp className="w-3.5 h-3.5" /> +12.4% vs yesterday
           </p>
@@ -203,7 +203,7 @@ export default function SupportDashboard() {
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Resolved Tickets</span>
             <div className="p-2 bg-green-50 text-green-600 rounded-xl"><CheckCircle2 className="w-4 h-4" /></div>
           </div>
-          <p className="text-2xl font-bold text-[#0F172A] mt-4">{kpis.resolvedTickets}</p>
+          <p className="text-2xl font-bold text-[#0F172A] dark:text-[#F9FAFB] mt-4">{kpis.resolvedTickets}</p>
           <p className="text-xs text-green-600 font-semibold mt-1 flex items-center gap-1">
             <TrendingUp className="w-3.5 h-3.5" /> +20.8% vs yesterday
           </p>
@@ -214,7 +214,7 @@ export default function SupportDashboard() {
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending Tickets</span>
             <div className="p-2 bg-amber-50 text-amber-600 rounded-xl"><Clock className="w-4 h-4" /></div>
           </div>
-          <p className="text-2xl font-bold text-[#0F172A] mt-4">{kpis.pendingTickets}</p>
+          <p className="text-2xl font-bold text-[#0F172A] dark:text-[#F9FAFB] mt-4">{kpis.pendingTickets}</p>
           <p className="text-xs text-amber-600 font-semibold mt-1 flex items-center gap-1">
             <TrendingUp className="w-3.5 h-3.5" /> +5.6% vs yesterday
           </p>
@@ -225,7 +225,7 @@ export default function SupportDashboard() {
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">SLA Compliance</span>
             <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><ShieldAlert className="w-4 h-4" /></div>
           </div>
-          <p className="text-2xl font-bold text-[#0F172A] mt-4">{kpis.slaCompliance}%</p>
+          <p className="text-2xl font-bold text-[#0F172A] dark:text-[#F9FAFB] mt-4">{kpis.slaCompliance}%</p>
           <p className="text-xs text-green-600 font-semibold mt-1 flex items-center gap-1">
             <TrendingUp className="w-3.5 h-3.5" /> +6.3% vs yesterday
           </p>
@@ -239,7 +239,7 @@ export default function SupportDashboard() {
         <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-[#0F172A] text-base">Priority Tickets (Urgent)</h3>
+              <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-base">Priority Tickets (Urgent)</h3>
               <a href="/support/tickets" className="text-xs text-[#2563EB] font-bold hover:underline">View All</a>
             </div>
             
@@ -248,9 +248,9 @@ export default function SupportDashboard() {
                 <div className="text-center py-6 text-slate-400 text-xs">No urgent priority tickets.</div>
               ) : (
                 data?.priorityTickets.map(t => (
-                  <div key={t.id} className="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100">
+                  <div key={t.id} className="p-3 bg-slate-50 dark:bg-[#161616] rounded-xl flex items-center justify-between border border-slate-100 dark:border-[#1f1f1f]">
                     <div className="space-y-0.5">
-                      <p className="text-xs font-bold text-[#0F172A] truncate max-w-[180px]">{t.title}</p>
+                      <p className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB] truncate max-w-[180px]">{t.title}</p>
                       <span className="text-[10px] text-slate-400 font-medium">#{t.id.slice(0,8)} • {t.customer_name}</span>
                     </div>
                     <div className="text-right">
@@ -269,7 +269,7 @@ export default function SupportDashboard() {
           
           <a
             href="/support/tickets"
-            className="w-full mt-5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl text-center block transition-all"
+            className="w-full mt-5 py-2.5 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl text-center block transition-all"
           >
             View All Priority Tickets
           </a>
@@ -279,7 +279,7 @@ export default function SupportDashboard() {
         <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-[#0F172A] text-base">SLA Tracking</h3>
+              <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-base">SLA Tracking</h3>
               <a href="/support/tickets" className="text-xs text-[#2563EB] font-bold hover:underline">View Details</a>
             </div>
 
@@ -297,7 +297,7 @@ export default function SupportDashboard() {
                   />
                 </svg>
                 <div className="absolute text-center">
-                  <p className="text-xl font-black text-[#0F172A]">{data?.slaTracking.length || 0}</p>
+                  <p className="text-xl font-black text-[#0F172A] dark:text-[#F9FAFB]">{data?.slaTracking.length || 0}</p>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">At Risk</p>
                 </div>
               </div>
@@ -320,7 +320,7 @@ export default function SupportDashboard() {
 
             <div className="space-y-2.5 mt-3">
               {data?.slaTracking.slice(0, 3).map(t => (
-                <div key={t.id} className="flex items-center justify-between text-xs border-b border-slate-100 pb-1.5">
+                <div key={t.id} className="flex items-center justify-between text-xs border-b border-slate-100 dark:border-[#1f1f1f] pb-1.5">
                   <span className="text-slate-500 truncate max-w-[160px]">{t.title}</span>
                   <span className={`font-bold ${t.status === 'Breached' ? 'text-red-500' : 'text-amber-500'}`}>
                     {t.status}
@@ -332,7 +332,7 @@ export default function SupportDashboard() {
 
           <a
             href="/support/tickets"
-            className="w-full mt-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl text-center block transition-all"
+            className="w-full mt-4 py-2.5 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl text-center block transition-all"
           >
             View Full SLA Report
           </a>
@@ -341,7 +341,7 @@ export default function SupportDashboard() {
         {/* Quick Actions Panel */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <h3 className="font-bold text-[#0F172A] text-base mb-4">Quick Actions</h3>
+            <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-base mb-4">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setShowCreateModal(true)}
@@ -397,23 +397,23 @@ export default function SupportDashboard() {
         {/* Agent Performance table */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-[#0F172A] text-base">Agent Performance Overview</h3>
+            <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-base">Agent Performance Overview</h3>
             <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">This Week</span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <tr className="border-b border-slate-100 dark:border-[#1f1f1f] text-xs font-bold text-slate-400 uppercase tracking-wider">
                   <th className="pb-3 font-semibold">Agent</th>
                   <th className="pb-3 font-semibold text-center">Tickets Handled</th>
                   <th className="pb-3 font-semibold text-center">Avg Resolution Time</th>
                   <th className="pb-3 font-semibold text-center">CSAT</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50 text-xs font-medium text-[#0F172A]">
+              <tbody className="divide-y divide-slate-50 text-xs font-medium text-[#0F172A] dark:text-[#F9FAFB]">
                 {data?.agentPerformance.map(a => (
-                  <tr key={a.id} className="hover:bg-slate-50/50 transition">
+                  <tr key={a.id} className="hover:bg-slate-50 dark:bg-[#161616]/50 transition">
                     <td className="py-3.5 flex items-center gap-3">
                       <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
                         {a.name.charAt(0)}
@@ -440,7 +440,7 @@ export default function SupportDashboard() {
         {/* Customer alerts / sentiment alerts */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <h3 className="font-bold text-[#0F172A] text-base mb-4">Customer Alerts</h3>
+            <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-base mb-4">Customer Alerts</h3>
             <div className="space-y-4">
               {data?.customerAlerts.length === 0 ? (
                 <div className="text-center py-8 text-slate-400 text-xs">No customer alert warnings.</div>
@@ -451,7 +451,7 @@ export default function SupportDashboard() {
                       <ShieldAlert className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-[#0F172A]">{c.name}</p>
+                      <p className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB]">{c.name}</p>
                       <p className="text-[10px] text-slate-500 font-medium mt-0.5">{c.issues}</p>
                       <span className="inline-block text-[9px] font-extrabold text-red-600 uppercase tracking-wider mt-1.5">
                         ⚠️ {c.risk}
@@ -465,7 +465,7 @@ export default function SupportDashboard() {
 
           <a
             href="/support/customers"
-            className="w-full mt-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl text-center block transition-all"
+            className="w-full mt-4 py-2.5 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl text-center block transition-all"
           >
             Review Unhappy Customers
           </a>
@@ -477,8 +477,8 @@ export default function SupportDashboard() {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-slate-200/80 w-full max-w-lg shadow-xl overflow-hidden animate-scale-up">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-[#0F172A]">Create New Support Ticket</h3>
+            <div className="p-6 border-b border-slate-100 dark:border-[#1f1f1f] flex items-center justify-between">
+              <h3 className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">Create New Support Ticket</h3>
               <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600 text-sm font-bold">✕</button>
             </div>
             
@@ -545,10 +545,10 @@ export default function SupportDashboard() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+              <div className="pt-4 border-t border-slate-100 dark:border-[#1f1f1f] flex justify-end gap-3">
                 <button
                   type="button" onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-xl font-bold hover:bg-slate-50"
+                  className="px-4 py-2 border border-slate-200 rounded-xl font-bold hover:bg-slate-50 dark:bg-[#161616]"
                 >
                   Cancel
                 </button>

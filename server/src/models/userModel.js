@@ -10,7 +10,7 @@ async function findByEmailOrAdminId(emailOrAdminId) {
      FROM users u
      JOIN roles r ON r.id = u.role_id
      JOIN tenants t ON t.id = u.tenant_id
-     WHERE u.email = $1 OR u.admin_id = $1
+     WHERE u.email = $1 OR u.admin_id = $1 OR u.phone = $1
      LIMIT 1`,
     [emailOrAdminId]
   );
@@ -34,6 +34,7 @@ async function findById(id) {
 }
 
 async function findByEmail(email) {
+  const normalizedEmail = email.trim().toLowerCase();
   const result = await query(
     `SELECT u.id, u.tenant_id, u.role_id, u.name, u.email, u.admin_id,
             u.password_hash, u.status, u.created_at, u.updated_at,
@@ -43,8 +44,11 @@ async function findByEmail(email) {
      FROM users u
      JOIN roles r ON r.id = u.role_id
      JOIN tenants t ON t.id = u.tenant_id
-     WHERE u.email = $1`,
-    [email]
+     WHERE LOWER(u.email) = $1
+       AND LOWER(u.email) NOT LIKE 'archived_%'
+     ORDER BY u.created_at DESC
+     LIMIT 1`,
+    [normalizedEmail]
   );
   return result.rows[0] || null;
 }
@@ -64,11 +68,45 @@ async function updateStatus(userId, status) {
 }
 
 async function checkEmailExists(email) {
+  const normalizedEmail = email.trim().toLowerCase();
   const result = await query(
-    `SELECT id FROM users WHERE email = $1 LIMIT 1`,
-    [email]
+    `SELECT id FROM users WHERE LOWER(email) = $1 LIMIT 1`,
+    [normalizedEmail]
   );
   return result.rows.length > 0;
 }
 
-module.exports = { findByEmailOrAdminId, findById, findByEmail, updatePassword, updateStatus, checkEmailExists };
+async function findByPhone(phone) {
+  const result = await query(
+    `SELECT u.id, u.tenant_id, u.role_id, u.name, u.email, u.admin_id,
+            u.password_hash, u.status, u.created_at, u.updated_at,
+            u.phone, u.phone_number, u.country_code, u.photo_url, u.language,
+            r.name AS role_name, r.permissions,
+            t.schema_name
+     FROM users u
+     JOIN roles r ON r.id = u.role_id
+     JOIN tenants t ON t.id = u.tenant_id
+     WHERE u.phone_number = $1 OR u.phone = $1
+     LIMIT 1`,
+    [phone]
+  );
+  return result.rows[0] || null;
+}
+
+async function updatePhoneVerified(userId) {
+  await query(
+    `UPDATE users SET phone_verified = TRUE, phone_verified_at = NOW(), updated_at = NOW() WHERE id = $1`,
+    [userId]
+  );
+}
+
+module.exports = {
+  findByEmailOrAdminId,
+  findById,
+  findByEmail,
+  findByPhone,
+  updatePassword,
+  updateStatus,
+  updatePhoneVerified,
+  checkEmailExists,
+};

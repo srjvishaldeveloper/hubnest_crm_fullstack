@@ -17,7 +17,7 @@ docker-compose up -d --build
 This will build, migrate, and start the following services:
 - **PostgreSQL Database**: Port `5433` (accessible on host)
 - **Redis Cache**: Port `6379`
-- **Node.js Main Backend**: Port `5000`
+- **Node.js Main Backend & WebSocket Server (Chat)**: Port `5000`
 - **AI Chatbot Microservice (FastAPI)**: Port `8003`
 - **Reports & Analytics Microservice (FastAPI)**: Port `8002`
 
@@ -32,7 +32,20 @@ The frontend website will be live at: **`http://localhost:3000`**
 
 ---
 
-## Method B: Running Locally (Without Docker)
+## Method B: Running Everything with a Single Script (Windows)
+
+I've added a convenience script that automatically starts the frontend, backend, and **all** microservices at the same time in separate command windows.
+
+1. Navigate to the root directory of the project.
+2. Double-click the `start_all.bat` file or run it from the command line:
+   ```cmd
+   .\start_all.bat
+   ```
+This script will open a separate terminal window for the Node.js server, the Next.js client, and each individual microservice inside the `crm_microservices/` directory.
+
+---
+
+## Method C: Running Locally (Without Docker)
 
 If you prefer to run the services natively on your machine, you must start each one individually. Ensure you have **Node.js (v18+)** and **Python (3.10+)** installed.
 
@@ -41,14 +54,14 @@ Ensure you have local instances of PostgreSQL and Redis running on their default
 - **Postgres**: Host: `localhost`, Port: `5433` (or `5432`), DB Name: `crm_db`
 - **Redis**: Host: `localhost`, Port: `6379`
 
-### 2. Start the Node.js Main Backend
+### 2. Start the Node.js Main Backend & WebSocket Server
 Navigate to the `server/` directory, install dependencies, and run:
 ```bash
 cd server
 npm install
 npm run dev
 ```
-The backend API will listen on port **`5000`**.
+The backend API and WebSocket Server for real-time internal chat will both listen on port **`5000`**.
 
 ### 3. Start the AI Chatbot Microservice (FastAPI)
 Navigate to the chatbot folder, create a virtual environment, install requirements, and run:
@@ -99,5 +112,22 @@ The frontend website will be live at: **`http://localhost:3000`**
 
 To check if the microservices and backend are online, you can use these URL health endpoints:
 - **Main Backend API**: `http://localhost:5000/health`
+- **WebSocket Chat Server**: connects via `ws://localhost:5000/chat`
 - **Reports Microservice**: `http://localhost:8002/api/health`
 - **Chatbot Microservice**: `http://localhost:8003/docs` (Swagger UI)
+
+
+---
+
+## Database Documentation (DBDOCS)
+
+To view and host the interactive database documentation, we use dbdocs.
+
+### Start / View the DB Docs
+Run the following commands in the root directory to build and publish the docs:
+``bash
+npm install -g dbdocs
+dbdocs build docs/schema.dbml
+``
+
+This will ask you to log in to dbdocs (via email or github) and then give you a URL (e.g. dbdocs.io/your-username/hubnest_crm) where you can visually inspect all your tables and relationships!

@@ -20,8 +20,8 @@ function ProgressBar({ label, value, max, color }: ProgressBarProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs text-[#64748B] font-medium">{label}</span>
-        <span className="text-xs font-bold text-[#0F172A]">{value.toLocaleString()}</span>
+        <span className="text-xs text-[#64748B] dark:text-[#9CA3AF] font-medium">{label}</span>
+        <span className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB]">{value.toLocaleString()}</span>
       </div>
       <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
         <motion.div
@@ -94,10 +94,10 @@ export default function CRMHealth({ leadPipeline, supportOverview, campaignPerfo
     {
       title: 'Finance Overview',
       icon: IndianRupee,
-      iconColor: '#2563EB',
-      iconBg: 'bg-blue-50',
+      iconColor: '#F59E0B',
+      iconBg: 'bg-amber-50',
       items: [
-        { label: 'Revenue', value: financeOverview?.revenue || 0, max: Math.max(3000, financeOverview?.revenue || 0), color: '#2563EB' },
+        { label: 'Revenue', value: financeOverview?.revenue || 0, max: Math.max(3000, financeOverview?.revenue || 0), color: '#F59E0B' },
         { label: 'Pending', value: financeOverview?.pending || 0, max: Math.max(3000, financeOverview?.revenue || 0), color: '#F59E0B' },
         { label: 'Collections', value: financeOverview?.collected || 0, max: Math.max(3000, financeOverview?.revenue || 0), color: '#10B981' },
       ],
@@ -117,13 +117,13 @@ export default function CRMHealth({ leadPipeline, supportOverview, campaignPerfo
           <motion.div
             key={card.title}
             variants={item}
-            className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
+            className="bg-card rounded-3xl border border-slate-100 dark:border-[#1f1f1f] p-5 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className={`w-10 h-10 ${card.iconBg} rounded-2xl flex items-center justify-center`}>
                 <Icon className="w-5 h-5" style={{ color: card.iconColor }} />
               </div>
-              <h3 className="font-bold text-[#0F172A] text-sm">{card.title}</h3>
+              <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm">{card.title}</h3>
             </div>
             <div className="space-y-3">
               {card.items.map((it) => (

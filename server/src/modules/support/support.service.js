@@ -74,7 +74,7 @@ async function getSupportDashboard(tenantId, userId, roleName) {
        FROM users u
        JOIN roles r ON r.id = u.role_id
        LEFT JOIN support_tickets t ON t.assigned_agent_id = u.id AND t.tenant_id = $1
-       WHERE u.tenant_id = $1 AND r.name IN ('Support Agent', 'Support Manager')
+       WHERE u.tenant_id = $1 AND r.name IN ('Support Agent', 'Support Manager') AND u.status != 'Archived'
        GROUP BY u.id, u.name`,
       [tenantId]
     );

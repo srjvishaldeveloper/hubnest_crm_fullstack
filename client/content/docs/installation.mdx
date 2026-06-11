@@ -1,0 +1,124 @@
+---
+title: Getting Started & Installation
+description: Comprehensive instructions for setting up the local workspace, environment variables, database migrations, and Docker configurations.
+---
+
+### Local Installation Guide
+
+Set up the fullstack HubNest CRM platform on your local development machine. This guide covers local environment setup, PostgreSQL configuration, Docker integration, and service startup.
+
+---
+
+### Prerequisites
+Before starting, verify that your local environment has the following software installed:
+
+| Dependency | Minimum Version | Verification Command |
+| :--- | :--- | :--- |
+| **Node.js** | v20.0.0+ | `node -v` |
+| **npm** | v10.0.0+ | `npm -v` |
+| **PostgreSQL** | v15.0+ | `psql --version` |
+| **Docker** | v24.0.0+ | `docker --version` |
+| **Docker Compose** | v2.20.0+ | `docker-compose --version` |
+
+---
+
+### Step 1: Clone the Repository & Configure Environments
+
+Clone the repository to your local workspace, navigate into it, and duplicate the template environment configuration files:
+
+```bash
+# Clone the repository
+git clone https://github.com/your-org/hubnest_crm_fullstack.git
+cd hubnest_crm_fullstack
+
+# Configure the Backend API Server environment
+cp server/.env.example server/.env
+
+# Configure the Frontend Client environment
+cp client/.env.example client/.env.local
+```
+
+#### Environment Variables Specification
+
+Open the backend `.env` file and set the following parameters:
+
+```bash
+PORT=5000
+NODE_ENV=development
+
+# Database Configuration
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_USER=hubnest_admin
+DB_PASSWORD=SecurePassword123!
+DB_NAME=hubnest_crm
+
+# JWT Session Configuration
+JWT_SECRET=super_secret_jwt_signkey_change_in_production
+JWT_REFRESH_SECRET=super_secret_jwt_refresh_signkey_change_in_production
+
+# Third-Party Integrations
+TWILIO_ACCOUNT_SID=ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_PHONE_NUMBER=+1234567890
+
+RESEND_API_KEY=re_your_resend_api_key
+```
+
+---
+
+### Step 2: Spin Up Docker Infrastructure
+
+We ship with a pre-configured `docker-compose.yml` file that orchestrates the required database and cache containers:
+- **PostgreSQL**: Database server mapped to port `5432`.
+- **Redis**: In-memory caching and queuing server mapped to port `6379`.
+- **pgAdmin**: Database management GUI mapped to port `5050`.
+
+Start the services in detached mode:
+
+```bash
+docker-compose up -d
+```
+
+Verify that all containers are running successfully:
+
+```bash
+docker-compose ps
+```
+
+---
+
+### Step 3: Database Migrations and Seeding
+
+Once the database container is online, initialize the schema structure and apply migrations:
+
+```bash
+cd server
+
+# Install backend dependencies
+npm install
+
+# Run Knex database migrations
+npm run db:migrate
+
+# Seed default roles, super-admin account, and base plans
+npm run db:seed
+```
+
+---
+
+### Step 4: Run Services concurrently
+
+You can launch the Express API backend and Next.js client concurrently for development:
+
+```bash
+# In the server directory (port 5000):
+npm run dev
+
+# Open a new terminal window, navigate to the client, and start development server (port 3000):
+cd ../client
+npm install
+npm run dev
+```
+
+The application will be live on [http://localhost:3000](http://localhost:3000). The API endpoints are accessible on [http://localhost:5000/api](http://localhost:5000/api).

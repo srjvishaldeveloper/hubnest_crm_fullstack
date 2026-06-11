@@ -1,0 +1,73 @@
+---
+title: RBAC & Permissions
+description: Granular security guidelines covering platform-wide user roles, resource permission matrices, and routing middlewares.
+---
+
+### Role-Based Access Control (RBAC)
+
+HubNest CRM implements standard Role-Based Access Control to enforce security boundaries across all corporate tenants. Each tenant workspace defines specific roles with corresponding system permissions.
+
+---
+
+### System Roles Hierarchy
+
+Access permissions follow a strict cascading model where higher-ranking roles inherit capabilities from subordinate roles.
+
+| Role Name | Scope | Key Capabilities |
+| :--- | :--- | :--- |
+| **Super Admin** | Platform-Wide | Global system monitoring, tenant workspace management, subscription pricing, database backups, audit logs. |
+| **Admin** | Tenant Scoped | User invites, role assignments, Twilio/Stripe API key configs, invoice setups, workspace details edits. |
+| **Sales Manager** | Department Scoped | Pipeline configuration, lead auto-assignment triggers, team conversion tracking, sales target adjustments. |
+| **Sales Executive** | User Scoped | Lead drag-and-drop actions, contact logs updates, client email sending, meeting scheduler access. |
+| **Finance Manager** | Department Scoped | Invoice generation, transaction logging, vendor payments management, payroll adjustments. |
+| **Support Manager** | Department Scoped | SLA policy updates, bug severity tracking, ticket routing filters, knowledge base edits. |
+
+---
+
+### API Security Middleware
+
+Route authorization checks are handled at the backend routing level using an Express auth middleware:
+
+```javascript
+// Middleware to assert active user role permissions
+function authorize(rolesAllowed = []) {
+  return (req, res, next) => {
+    const userRole = req.user.role;
+    
+    // Super Admins override all checks
+    if (userRole === 'Super Admin') {
+      return next();
+    }
+    
+    if (rolesAllowed.includes(userRole)) {
+      return next();
+    }
+    
+    return res.status(403).json({
+      success: false,
+      message: 'Access Denied: You do not possess required permissions.'
+    });
+  };
+}
+```
+
+#### Middleware Usage Example:
+```javascript
+const router = require('express').Router();
+
+// Only Sales Managers and Admins can adjust conversion probabilities
+router.put('/leads/probability', authorize(['Admin', 'Sales Manager']), async (req, res) => {
+  // Update logic...
+});
+```
+
+---
+
+### Row-Level Security & Scoping
+Even if a role permits read/write actions (e.g. Sales Executive), users can only access records belonging to their active `tenant_id`. Scoping filters are applied during DB queries:
+```sql
+SELECT * FROM leads 
+WHERE tenant_id = :active_tenant_id 
+  AND (assigned_to = :active_user_id OR :active_user_role IN ('Admin', 'Sales Manager'));
+```
+This query ensures that Sales Executives can only view leads assigned directly to them, while managers and admins can inspect all leads in the tenant's pipeline.

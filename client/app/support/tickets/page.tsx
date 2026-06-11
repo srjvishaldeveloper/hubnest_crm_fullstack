@@ -200,7 +200,7 @@ function TicketsContent() {
       {/* Top action/filters bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">Tickets Queue</h1>
+          <h1 className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB] tracking-tight">Tickets Queue</h1>
           <p className="text-xs text-slate-500">Manage and resolve customer support tickets efficiently.</p>
         </div>
         
@@ -255,7 +255,7 @@ function TicketsContent() {
         
         {/* Left Side Queue List */}
         <div className={`${selectedId ? 'lg:col-span-7' : 'lg:col-span-12'} bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden transition-all duration-300`}>
-          <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+          <div className="p-4 bg-slate-50 dark:bg-[#161616] border-b border-slate-100 dark:border-[#1f1f1f] flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">All Tickets ({total})</span>
             {selectedId && (
               <button
@@ -270,7 +270,7 @@ function TicketsContent() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50">
+                <tr className="border-b border-slate-100 dark:border-[#1f1f1f] text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-[#161616]/50">
                   <th className="p-4 font-semibold">Ticket ID / Submitter</th>
                   <th className="p-4 font-semibold">Issue Details</th>
                   <th className="p-4 font-semibold">Priority</th>
@@ -279,7 +279,7 @@ function TicketsContent() {
                   <th className="p-4 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50 text-xs font-medium text-[#0F172A]">
+              <tbody className="divide-y divide-slate-50 text-xs font-medium text-[#0F172A] dark:text-[#F9FAFB]">
                 {loadingList ? (
                   <tr>
                     <td colSpan={6} className="text-center py-12">
@@ -300,10 +300,10 @@ function TicketsContent() {
                       <tr
                         key={t.id}
                         onClick={() => setSelectedId(t.id)}
-                        className={`hover:bg-slate-50/65 transition-all cursor-pointer ${active ? 'bg-blue-50/40 border-l-4 border-l-[#2563EB]' : ''}`}
+                        className={`hover:bg-slate-50 dark:bg-[#161616]/65 transition-all cursor-pointer ${active ? 'bg-blue-50/40 border-l-4 border-l-[#2563EB]' : ''}`}
                       >
                         <td className="p-4">
-                          <p className="font-bold text-[#0F172A]">#{t.id.slice(0, 8)}</p>
+                          <p className="font-bold text-[#0F172A] dark:text-[#F9FAFB]">#{t.id.slice(0, 8)}</p>
                           <p className="text-[10px] text-slate-400 font-semibold">{t.customer_name}</p>
                         </td>
                         <td className="p-4">
@@ -347,14 +347,14 @@ function TicketsContent() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50"
+                className="px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 dark:bg-[#161616] disabled:opacity-50"
               >
                 Previous
               </button>
               <button
                 onClick={() => setPage(p => p + 1)}
                 disabled={tickets.length < 20}
-                className="px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50"
+                className="px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 dark:bg-[#161616] disabled:opacity-50"
               >
                 Next
               </button>
@@ -367,13 +367,13 @@ function TicketsContent() {
           <div className="lg:col-span-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm flex flex-col h-[700px] overflow-hidden sticky top-6 animate-scale-up">
             
             {/* Control Pane Header */}
-            <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between shrink-0">
+            <div className="p-4 bg-slate-50 dark:bg-[#161616] border-b border-slate-100 dark:border-[#1f1f1f] flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-blue-100 text-[#2563EB] rounded-xl flex items-center justify-center font-bold">
                   #{selectedTicket?.id.slice(0, 4)}
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-[#0F172A] truncate max-w-[220px]">{selectedTicket?.title}</h3>
+                  <h3 className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB] truncate max-w-[220px]">{selectedTicket?.title}</h3>
                   <p className="text-[10px] text-slate-400 font-semibold">{selectedTicket?.customer_name} ({selectedTicket?.customer_email})</p>
                 </div>
               </div>
@@ -386,7 +386,7 @@ function TicketsContent() {
             </div>
 
             {/* Conversation Log Thread */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/40 scrollbar-thin">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-[#161616]/40 scrollbar-thin">
               {loadingDetail ? (
                 <div className="h-full flex items-center justify-center">
                   <RefreshCw className="w-6 h-6 text-[#2563EB] animate-spin" />
@@ -419,7 +419,7 @@ function TicketsContent() {
                             ? 'bg-amber-50 text-amber-800 border border-amber-100 rounded-tr-none'
                             : isAgent
                               ? 'bg-[#2563EB] text-white rounded-tr-none'
-                              : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none shadow-sm'}`}
+                              : 'bg-white text-slate-800 border border-slate-100 dark:border-[#1f1f1f] rounded-tl-none shadow-sm'}`}
                         >
                           {msg.message}
                         </div>
@@ -432,7 +432,7 @@ function TicketsContent() {
             </div>
 
             {/* Controls Box (Status, Priority, Reassign Agent) */}
-            <div className="p-3 bg-slate-50 border-y border-slate-100 grid grid-cols-3 gap-2 shrink-0">
+            <div className="p-3 bg-slate-50 dark:bg-[#161616] border-y border-slate-100 dark:border-[#1f1f1f] grid grid-cols-3 gap-2 shrink-0">
               <div>
                 <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Status</label>
                 <select
@@ -476,25 +476,25 @@ function TicketsContent() {
             </div>
 
             {/* Smart Reply Suggestions */}
-            <div className="px-4 py-2 border-b border-slate-100 flex gap-2 overflow-x-auto shrink-0 bg-white select-none scrollbar-none">
+            <div className="px-4 py-2 border-b border-slate-100 dark:border-[#1f1f1f] flex gap-2 overflow-x-auto shrink-0 bg-white select-none scrollbar-none">
               <span className="text-[9px] text-blue-600 font-bold bg-blue-50 px-2 py-1.5 rounded-lg shrink-0 flex items-center gap-1">
                 <Sparkles className="w-3 h-3" /> Smart Replies:
               </span>
               <button
                 onClick={() => handleSmartReply('Hi, I am looking into this issue and will update you shortly.')}
-                className="text-[10px] text-slate-600 bg-slate-50 hover:bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 font-semibold shrink-0"
+                className="text-[10px] text-slate-600 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 font-semibold shrink-0"
               >
                 Checking now
               </button>
               <button
                 onClick={() => handleSmartReply('Please confirm the email registered with the tenant organization.')}
-                className="text-[10px] text-slate-600 bg-slate-50 hover:bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 font-semibold shrink-0"
+                className="text-[10px] text-slate-600 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 font-semibold shrink-0"
               >
                 Confirm email
               </button>
               <button
                 onClick={() => handleSmartReply('This issue has been resolved. Please log out and log back in to test.')}
-                className="text-[10px] text-slate-600 bg-slate-50 hover:bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 font-semibold shrink-0"
+                className="text-[10px] text-slate-600 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 font-semibold shrink-0"
               >
                 Issue resolved
               </button>
@@ -503,7 +503,7 @@ function TicketsContent() {
             {/* Reply Input Box */}
             <div className="p-4 bg-white shrink-0">
               <div className="flex border border-slate-200 rounded-2xl overflow-hidden focus-within:border-blue-500 transition">
-                <div className="bg-slate-50 border-r border-slate-200 flex flex-col justify-start p-1.5">
+                <div className="bg-slate-50 dark:bg-[#161616] border-r border-slate-200 flex flex-col justify-start p-1.5">
                   <button
                     onClick={() => setActiveTab('reply')}
                     title="Send Reply"

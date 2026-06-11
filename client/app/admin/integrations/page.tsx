@@ -39,7 +39,7 @@ export default function AdminIntegrationsPage() {
                   {item.category}
                 </span>
                 <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide ${
-                  item.status === 'Connected' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'
+                  item.status === 'Connected' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 dark:bg-[#161616] text-slate-400'
                 }`}>
                   {item.status}
                 </span>
@@ -48,7 +48,7 @@ export default function AdminIntegrationsPage() {
               <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">{item.desc}</p>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div className="mt-6 pt-4 border-t border-slate-100 dark:border-[#1f1f1f] flex items-center justify-between">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
                 {item.status === 'Connected' ? 'Active' : 'Offline'}
               </span>

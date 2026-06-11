@@ -112,27 +112,27 @@ export default function RoleManagementPage() {
     <div className="space-y-6">
       {/* Back Header */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/users" className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition">
+        <Link href="/admin/users" className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 dark:bg-[#161616] transition">
           <ArrowLeft className="w-4 h-4 text-slate-600" />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-[#0F172A]">Role Management</h1>
-          <p className="text-xs text-[#64748B] mt-0.5">Define access permissions per role level</p>
+          <h1 className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB]">Role Management</h1>
+          <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Define access permissions per role level</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Roles List */}
-        <div className="bg-white rounded-2xl border border-slate-200/60 p-5 space-y-3">
-          <h3 className="text-sm font-bold text-[#0F172A] mb-4">Roles</h3>
+        <div className="bg-white dark:bg-[#161616] rounded-2xl border border-slate-200/60 dark:border-[#1f1f1f] p-5 space-y-3">
+          <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-4">Roles</h3>
           {roles.map(r => (
             <button
               key={r.name}
               onClick={() => setSelectedRole(r)}
               className={`w-full flex items-center justify-between p-3.5 rounded-xl border text-left transition
                 ${selectedRole.name === r.name
-                  ? 'border-[#2563EB] bg-blue-50/20 text-[#0F172A]'
-                  : 'border-slate-100 hover:border-slate-200 text-slate-600'}`}
+                  ? 'border-[#2563EB] bg-blue-50/20 text-[#0F172A] dark:text-[#F9FAFB]'
+                  : 'border-slate-100 dark:border-[#1f1f1f] hover:border-slate-200 dark:hover:border-[#333] text-slate-600 dark:text-slate-400'}`}
             >
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${r.isSystem ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>
@@ -153,10 +153,10 @@ export default function RoleManagementPage() {
         </div>
 
         {/* Permissions Table Editor */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/60 p-6 space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div className="lg:col-span-2 bg-white dark:bg-[#161616] rounded-2xl border border-slate-200/60 dark:border-[#1f1f1f] p-6 space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1f1f1f] pb-4">
             <div>
-              <h3 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
+              <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] flex items-center gap-2">
                 {selectedRole.name} Permissions
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
@@ -173,7 +173,7 @@ export default function RoleManagementPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50">
+                <tr className="border-b border-slate-100 dark:border-[#1f1f1f] bg-slate-50 dark:bg-[#161616]/50">
                   <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase">Module</th>
                   <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase text-center">View</th>
                   <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase text-center">Create</th>
@@ -184,8 +184,8 @@ export default function RoleManagementPage() {
               </thead>
               <tbody>
                 {selectedRole.permissions.map(p => (
-                  <tr key={p.module} className="border-b border-slate-50 hover:bg-slate-50/30">
-                    <td className="px-4 py-3.5 text-xs font-bold text-[#0F172A]">{p.module}</td>
+                  <tr key={p.module} className="border-b border-slate-50 dark:border-[#1f1f1f] hover:bg-slate-50 dark:hover:bg-[#202020] dark:bg-[#161616]/30">
+                    <td className="px-4 py-3.5 text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB]">{p.module}</td>
                     {/* View */}
                     <td className="px-4 py-3.5 text-center">
                       <input
@@ -242,11 +242,11 @@ export default function RoleManagementPage() {
             </table>
           </div>
 
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-            <h4 className="text-xs font-bold text-[#0F172A] mb-2 flex items-center gap-1.5">
+          <div className="bg-slate-50 dark:bg-[#161616] rounded-xl p-4 border border-slate-100 dark:border-[#1f1f1f]">
+            <h4 className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-2 flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-[#2563EB]" /> Live JSONB Output
             </h4>
-            <pre className="text-[10px] font-mono text-slate-600 bg-white p-3 rounded-lg border border-slate-200 overflow-x-auto">
+            <pre className="text-[10px] font-mono text-slate-600 dark:text-slate-300 bg-white dark:bg-[#1f1f1f] p-3 rounded-lg border border-slate-200 dark:border-[#333] overflow-x-auto">
               {JSON.stringify(selectedRole.permissions, null, 2)}
             </pre>
           </div>

@@ -5,20 +5,12 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '../../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard,
-  Users,
-  ShieldCheck,
-  Building2,
-  SlidersHorizontal,
-  BarChart3,
-  ShieldAlert,
-  Settings,
-  Plug,
-  UserCircle,
-  LogOut,
-  X,
-  Briefcase,
-  Sparkles,
+  LayoutDashboard, Users, ShieldCheck, Building2, SlidersHorizontal,
+  BarChart3, ShieldAlert, Settings, Plug, UserCircle, LogOut, X,
+  Briefcase, Sparkles, CreditCard, Tag, TrendingUp, LayoutGrid,
+  DollarSign, FileText, ArrowRightLeft, RefreshCcw, Layers, Mail,
+  Bell, Key, Webhook, ClipboardList, MessageSquare, Bug, PieChart,
+  Activity, Database, Settings2,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -29,30 +21,99 @@ interface SidebarProps {
 
 const NAV_SECTIONS = [
   {
-    title: 'MAIN MENU',
+    title: 'OVERVIEW',
     items: [
       { label: 'Dashboard', href: '/super-admin/dashboard', icon: LayoutDashboard },
-      { label: 'Users', href: '/super-admin/users', icon: Users },
-      { label: 'Admins', href: '/super-admin/admins', icon: ShieldCheck },
-      { label: 'Tenants', href: '/super-admin/tenants', icon: Building2 },
     ]
   },
   {
-    title: 'MANAGEMENT',
+    title: 'TENANT & USERS',
     items: [
-      { label: 'CRM Control', href: '/super-admin/crm', icon: SlidersHorizontal },
-      { label: 'Reports', href: '/super-admin/reports', icon: BarChart3 },
-      { label: 'Security', href: '/super-admin/security', icon: ShieldAlert },
-      { label: 'Audit Logs', href: '/super-admin/audit-logs', icon: ShieldCheck },
+      { label: 'Tenants', href: '/super-admin/tenants', icon: Building2 },
+      { label: 'All Users', href: '/super-admin/users', icon: Users },
+      { label: 'Platform Admins', href: '/super-admin/admins', icon: ShieldCheck },
+    ]
+  },
+  {
+    title: 'SUBSCRIPTIONS',
+    items: [
+      { label: 'Plans & Pricing', href: '/super-admin/subscriptions/plans', icon: CreditCard },
+      { label: 'Coupons & Discounts', href: '/super-admin/subscriptions/coupons', icon: Tag },
+      { label: 'Upgrade Requests', href: '/super-admin/subscriptions/upgrades', icon: TrendingUp },
+    ]
+  },
+  {
+    title: 'RBAC',
+    items: [
+      { label: 'Roles & Permissions', href: '/super-admin/rbac/roles', icon: ShieldCheck },
+      { label: 'Permission Matrix', href: '/super-admin/rbac/permissions', icon: LayoutGrid },
+    ]
+  },
+  {
+    title: 'BILLING & REVENUE',
+    items: [
+      { label: 'Revenue Dashboard', href: '/super-admin/billing/revenue', icon: DollarSign },
+      { label: 'Invoices', href: '/super-admin/billing/invoices', icon: FileText },
+      { label: 'Transactions', href: '/super-admin/billing/transactions', icon: ArrowRightLeft },
+      { label: 'Refunds', href: '/super-admin/billing/refunds', icon: RefreshCcw },
+    ]
+  },
+  {
+    title: 'DEPARTMENTS',
+    items: [
+      { label: 'Department Modules', href: '/super-admin/departments', icon: Layers },
+      { label: 'Career Management', href: '/super-admin/careers', icon: Briefcase },
+    ]
+  },
+  {
+    title: 'MARKETING & COMMS',
+    items: [
+      { label: 'Email Campaigns', href: '/super-admin/marketing/campaigns', icon: Mail },
+      { label: 'Notification Center', href: '/super-admin/communications/notifications', icon: Bell },
+    ]
+  },
+  {
+    title: 'AI & API',
+    items: [
+      { label: 'AI Center', href: '/super-admin/ai-center', icon: Sparkles },
+      { label: 'API Keys', href: '/super-admin/api-management/keys', icon: Key },
+      { label: 'Webhooks', href: '/super-admin/api-management/webhooks', icon: Webhook },
+    ]
+  },
+  {
+    title: 'INTEGRATIONS',
+    items: [
+      { label: 'Integration Hub', href: '/super-admin/integrations', icon: Plug },
+    ]
+  },
+  {
+    title: 'SECURITY & AUDIT',
+    items: [
+      { label: 'Audit Logs', href: '/super-admin/audit-logs', icon: ClipboardList },
+      { label: 'Security Events', href: '/super-admin/security', icon: ShieldAlert },
+    ]
+  },
+  {
+    title: 'SUPPORT',
+    items: [
+      { label: 'Support Tickets', href: '/super-admin/support/tickets', icon: MessageSquare },
+      { label: 'Bug Reports', href: '/super-admin/support/bugs', icon: Bug },
+    ]
+  },
+  {
+    title: 'ANALYTICS',
+    items: [
+      { label: 'Analytics Center', href: '/super-admin/analytics', icon: BarChart3 },
+      { label: 'Reports', href: '/super-admin/reports', icon: PieChart },
     ]
   },
   {
     title: 'SYSTEM',
     items: [
-      { label: 'Integrations', href: '/super-admin/integrations', icon: Plug },
+      { label: 'System Monitor', href: '/super-admin/monitoring', icon: Activity },
+      { label: 'Database Center', href: '/super-admin/database', icon: Database },
+      { label: 'Global Settings', href: '/super-admin/global-settings', icon: Settings2 },
       { label: 'Settings', href: '/super-admin/settings', icon: Settings },
-      { label: 'Global Settings', href: '/super-admin/global-settings', icon: Settings },
-      { label: 'Database', href: '/super-admin/database', icon: BarChart3 },
       { label: 'Profile', href: '/super-admin/profile', icon: UserCircle },
     ]
   },
@@ -69,8 +130,8 @@ export default function Sidebar({ open, collapsed, onClose }: SidebarProps) {
     router.replace('/auth/login');
   }
 
-  const sidebarWidth = collapsed ? 'lg:w-[72px]' : 'lg:w-[280px]';
-  const mobileTranslate = open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0';
+  const sidebarWidth = collapsed ? 'md:w-[72px]' : 'md:w-[280px]';
+  const mobileTranslate = open ? 'translate-x-0' : '-translate-x-full md:translate-x-0';
 
   return (
     <>
@@ -82,26 +143,26 @@ export default function Sidebar({ open, collapsed, onClose }: SidebarProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-30"
+            className="md:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-30"
             onClick={onClose}
           />
         )}
       </AnimatePresence>
 
       <aside
-        className={`fixed top-0 left-0 h-full z-40 flex flex-col
-          bg-white border-r border-slate-200/80
-          transition-all duration-300 ease-in-out shadow-sm
+        className={`fixed top-0 left-0 h-full z-40 flex flex-col transition-all duration-300 ease-in-out
+          bg-card dark:bg-[#0a0a0a] border-r border-slate-200/80 dark:border-[#1f1f1f]
+          shadow-sm
           w-[280px] ${sidebarWidth} ${mobileTranslate}`}
       >
         {/* ── Logo Area ───────────────────────────── */}
-        <div className={`flex items-center gap-3 px-5 h-[72px] border-b border-slate-100 shrink-0 ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}>
-          <div className="w-10 h-10 bg-[#2563EB] rounded-xl flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20">
+        <div className={`flex items-center gap-3 px-5 h-[72px] border-b border-slate-100 dark:border-[#1f1f1f] shrink-0 ${collapsed ? 'md:justify-center md:px-0' : ''}`}>
+          <div className="w-10 h-10 bg-[#F59E0B] rounded-xl flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20">
             <Briefcase className="w-5 h-5 text-white" />
           </div>
-          <div className={`${collapsed ? 'lg:hidden' : ''} overflow-hidden`}>
-            <p className="text-[#0F172A] font-bold text-[15px] tracking-tight whitespace-nowrap">Job Nest CRM</p>
-            <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] font-bold text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded-full">
+          <div className={`${collapsed ? 'md:hidden' : ''} overflow-hidden`}>
+            <p className="text-[#0F172A] dark:text-[#F9FAFB] font-bold text-[15px] tracking-tight whitespace-nowrap">HubNest CRM</p>
+            <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] font-bold text-[#F59E0B] dark:text-[#FBBF24] bg-amber-50 dark:bg-[#F59E0B]/15 px-2 py-0.5 rounded-full">
               <ShieldCheck className="w-3 h-3" />
               Super Admin
             </span>
@@ -109,18 +170,17 @@ export default function Sidebar({ open, collapsed, onClose }: SidebarProps) {
           {/* Close button on mobile */}
           <button
             onClick={onClose}
-            className="lg:hidden ml-auto p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+            className="md:hidden ml-auto p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-
         {/* ── Navigation ──────────────────────────── */}
         <nav className="flex-1 overflow-y-auto scrollbar-thin py-4 px-3 space-y-4">
           {NAV_SECTIONS.map((section) => (
             <div key={section.title} className="space-y-0.5">
-              <p className={`text-slate-400 text-[11px] font-bold uppercase tracking-wider px-2 mb-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
+              <p className={`text-slate-400 text-[11px] font-bold uppercase tracking-wider px-2 mb-1.5 ${collapsed ? 'md:hidden' : ''}`}>
                 {section.title}
               </p>
               {section.items.map((item, index) => {
@@ -139,15 +199,15 @@ export default function Sidebar({ open, collapsed, onClose }: SidebarProps) {
                       title={item.label}
                       className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group
                         ${active
-                          ? 'bg-[#2563EB] text-white shadow-sm shadow-blue-500/20'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-[#0F172A]'
+                          ? 'bg-[#F59E0B] dark:bg-[#F59E0B]/15 text-white dark:text-[#F59E0B] shadow-sm shadow-amber-500/20 dark:shadow-none dark:border-l-[3px] dark:border-[#F59E0B] dark:rounded-r-xl dark:rounded-l-none'
+                          : 'text-slate-600 dark:text-[#9CA3AF] hover:bg-slate-100 dark:hover:bg-[#1C2230] hover:text-[#0F172A] dark:text-[#F9FAFB] dark:hover:text-[#F9FAFB]'
                         }
-                        ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+                        ${collapsed ? 'md:justify-center md:px-0' : ''}`}
                     >
-                      <Icon className={`w-[18px] h-[18px] shrink-0 transition-transform duration-200 group-hover:scale-110 ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                      <span className={`flex-1 whitespace-nowrap ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
+                      <Icon className={`w-[18px] h-[18px] shrink-0 transition-transform duration-200 group-hover:scale-110 ${active ? 'text-white dark:text-[#F59E0B]' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                      <span className={`flex-1 whitespace-nowrap ${collapsed ? 'md:hidden' : ''}`}>{item.label}</span>
                       {active && !collapsed && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/70 shrink-0" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-card/70 shrink-0" />
                       )}
                     </Link>
                   </motion.div>
@@ -163,8 +223,8 @@ export default function Sidebar({ open, collapsed, onClose }: SidebarProps) {
                 <Sparkles className="w-4 h-4 text-orange-50" />
                 <p className="text-[11px] font-bold text-orange-50 uppercase tracking-wider">AI Assistant</p>
               </div>
-              <p className="text-xs text-orange-100 leading-relaxed">Ask anything about your tenants, admins & system health.</p>
-              <button className="w-full mt-3 py-2 bg-white text-orange-600 hover:bg-orange-50 text-sm font-bold rounded-lg transition-colors shadow-sm shadow-orange-500/20">
+              <p className="text-xs text-orange-100 leading-relaxed">Ask anything about your tenants, admins &amp; system health.</p>
+              <button className="w-full mt-3 py-2 bg-card text-orange-600 hover:bg-orange-50 text-sm font-bold rounded-lg transition-colors shadow-sm shadow-orange-500/20">
                 Ask AI
               </button>
             </div>
@@ -172,14 +232,14 @@ export default function Sidebar({ open, collapsed, onClose }: SidebarProps) {
         </nav>
 
         {/* ── Bottom Profile & Logout ──────────────────────── */}
-        <div className="border-t border-slate-100 p-3 shrink-0 space-y-2">
-          <div className={`flex items-center gap-3 p-2 rounded-xl bg-slate-50 ${collapsed ? 'lg:justify-center lg:p-1.5' : ''}`}>
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-400 rounded-full flex items-center justify-center shrink-0 ring-2 ring-blue-100">
+        <div className="border-t border-slate-100 dark:border-[#252B36] p-3 shrink-0 space-y-2">
+          <div className={`flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-[#111111] ${collapsed ? 'md:justify-center md:p-1.5' : ''}`}>
+            <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-400 rounded-full flex items-center justify-center shrink-0 ring-2 ring-amber-100 dark:ring-amber-900/30">
               <span className="text-white font-bold text-xs">{user?.name?.charAt(0).toUpperCase() || 'S'}</span>
             </div>
-            <div className={`overflow-hidden ${collapsed ? 'lg:hidden' : ''}`}>
-              <p className="text-[#0F172A] text-xs font-bold truncate leading-tight">{user?.name || 'Super Admin'}</p>
-              <span className="inline-block text-[9px] font-extrabold text-[#2563EB] bg-blue-50 px-1.5 py-0.5 rounded-md uppercase tracking-wider mt-0.5 leading-none">
+            <div className={`overflow-hidden ${collapsed ? 'md:hidden' : ''}`}>
+              <p className="text-[#0F172A] dark:text-[#F9FAFB] text-xs font-bold truncate leading-tight">{user?.name || 'Super Admin'}</p>
+              <span className="inline-block text-[9px] font-extrabold text-[#F59E0B] dark:text-[#FBBF24] bg-amber-50 dark:bg-[#F59E0B]/15 px-1.5 py-0.5 rounded-md uppercase tracking-wider mt-0.5 leading-none">
                 {user?.role || 'Super Admin'}
               </span>
             </div>
@@ -189,11 +249,11 @@ export default function Sidebar({ open, collapsed, onClose }: SidebarProps) {
             onClick={handleLogout}
             title="Logout"
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold
-              text-red-500 hover:bg-red-50 transition-all duration-200 group
-              ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+              text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all duration-200 group
+              ${collapsed ? 'md:justify-center md:px-0' : ''}`}
           >
             <LogOut className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110 text-red-500" />
-            <span className={collapsed ? 'lg:hidden' : ''}>Logout</span>
+            <span className={collapsed ? 'md:hidden' : ''}>Logout</span>
           </button>
         </div>
       </aside>

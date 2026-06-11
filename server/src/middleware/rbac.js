@@ -22,6 +22,17 @@ function authorize(module, action) {
       if (smModules.includes(module)) return next();
     }
 
+    // Admin has full access to all modules
+    if (req.user.role_name === 'Admin') {
+      return next();
+    }
+
+    // Marketing roles have full access to all marketing modules
+    if (['Marketing Head', 'Marketing Executive'].includes(req.user.role_name)) {
+      const marketingModules = ['campaigns', 'leads', 'reports'];
+      if (marketingModules.includes(module)) return next();
+    }
+
     // Sales Executives always have permission to read/create/update/delete their own leads, tasks, and activities
     if (req.user.role_name === 'Sales Executive') {
       if (['leads', 'tasks', 'activities'].includes(module) && ['read', 'create', 'update', 'delete'].includes(action)) {
@@ -67,6 +78,18 @@ function authorizeSupport(req, res, next) {
 }
 
 /**
+ * Middleware to restrict routes to Finance roles (and Admin/Super Admin) only.
+ */
+function authorizeFinance(req, res, next) {
+  if (!req.user) return sendError(res, 'Unauthorized', 401);
+  const allowed = ['Finance Manager', 'Accountant', 'Auditor', 'Finance Executive', 'Admin', 'Super Admin'];
+  if (!allowed.includes(req.user.role_name)) {
+    return sendError(res, 'Access denied. Finance role required.', 403);
+  }
+  next();
+}
+
+/**
  * Middleware to restrict routes to Super Admin only.
  */
 function authorizeSuperAdmin(req, res, next) {
@@ -77,4 +100,4 @@ function authorizeSuperAdmin(req, res, next) {
   next();
 }
 
-module.exports = { authorize, authorizeSalesManager, authorizeSupport, authorizeSuperAdmin };
+module.exports = { authorize, authorizeSalesManager, authorizeSupport, authorizeFinance, authorizeSuperAdmin };

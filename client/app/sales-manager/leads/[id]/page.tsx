@@ -128,7 +128,7 @@ function stageBadge(stage: string) {
     'Closed Won': 'bg-emerald-50 text-emerald-700 border-emerald-200',
     'Closed Lost': 'bg-red-50 text-red-700 border-red-200',
   };
-  return map[stage] || 'bg-slate-50 text-slate-700 border-slate-200';
+  return map[stage] || 'bg-slate-50 dark:bg-[#161616] text-slate-700 border-slate-200';
 }
 
 function priorityBadge(p: string) {
@@ -137,7 +137,7 @@ function priorityBadge(p: string) {
     'Medium': 'bg-amber-50 text-amber-700 border-amber-200',
     'Low': 'bg-green-50 text-green-700 border-green-200',
   };
-  return map[p] || 'bg-slate-50 text-slate-700 border-slate-200';
+  return map[p] || 'bg-slate-50 dark:bg-[#161616] text-slate-700 border-slate-200';
 }
 
 function activityIcon(type: string) {
@@ -154,7 +154,7 @@ function activityColor(type: string) {
     case 'Call': return 'bg-blue-50 border-blue-200';
     case 'Email': return 'bg-violet-50 border-violet-200';
     case 'Meeting': return 'bg-emerald-50 border-emerald-200';
-    default: return 'bg-slate-50 border-slate-200';
+    default: return 'bg-slate-50 dark:bg-[#161616] border-slate-200';
   }
 }
 
@@ -185,8 +185,8 @@ function ProbabilityRing({ value }: { value: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-xl font-bold text-[#0F172A]">{value}%</span>
-        <span className="text-[9px] font-medium text-[#64748B] leading-tight text-center">convert</span>
+        <span className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB]">{value}%</span>
+        <span className="text-[9px] font-medium text-[#64748B] dark:text-[#9CA3AF] leading-tight text-center">convert</span>
       </div>
     </div>
   );
@@ -447,7 +447,7 @@ export default function LeadDetailPage() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-12 h-12 rounded-full border-4 border-[#2563EB] border-t-transparent animate-spin" />
-          <p className="text-sm text-[#64748B] font-medium">Loading lead details…</p>
+          <p className="text-sm text-[#64748B] dark:text-[#9CA3AF] font-medium">Loading lead details…</p>
         </div>
       </div>
     );
@@ -457,7 +457,7 @@ export default function LeadDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <AlertCircle className="w-12 h-12 text-red-400" />
-        <p className="text-base font-semibold text-[#0F172A]">Lead not found</p>
+        <p className="text-base font-semibold text-[#0F172A] dark:text-[#F9FAFB]">Lead not found</p>
         <button onClick={() => router.back()} className="px-4 py-2 bg-[#2563EB] text-white text-sm font-semibold rounded-xl">Go Back</button>
       </div>
     );
@@ -469,16 +469,16 @@ export default function LeadDetailPage() {
       <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-[#64748B] text-sm font-medium rounded-xl border border-slate-200 hover:bg-slate-50 hover:text-[#0F172A] transition-all shadow-sm"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-[#64748B] dark:text-[#9CA3AF] text-sm font-medium rounded-xl border border-slate-200 hover:bg-slate-50 dark:bg-[#161616] hover:text-[#0F172A] dark:text-[#F9FAFB] transition-all shadow-sm"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
-        <div className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
+        <div className="flex items-center gap-1.5 text-xs text-[#94A3B8] dark:text-[#6B7280]">
           <span>Sales Manager</span>
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="hover:text-[#2563EB] cursor-pointer" onClick={() => router.push('/sales-manager/leads')}>Leads</span>
           <ChevronRight className="w-3.5 h-3.5" />
-          <span className="text-[#0F172A] font-semibold">{lead.name}</span>
+          <span className="text-[#0F172A] dark:text-[#F9FAFB] font-semibold">{lead.name}</span>
         </div>
       </motion.div>
 
@@ -514,20 +514,20 @@ export default function LeadDetailPage() {
             {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h1 className="text-xl font-bold text-[#0F172A]">{lead.name}</h1>
+                <h1 className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB]">{lead.name}</h1>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${stageBadge(lead.stage)}`}>{lead.stage}</span>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${priorityBadge(lead.priority)}`}>
                   {lead.priority} Priority
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-4 mt-1">
-                <span className="flex items-center gap-1.5 text-xs text-[#64748B]">
+                <span className="flex items-center gap-1.5 text-xs text-[#64748B] dark:text-[#9CA3AF]">
                   <Building2 className="w-3.5 h-3.5" /> {lead.company}
                 </span>
-                <span className="flex items-center gap-1.5 text-xs text-[#64748B]">
+                <span className="flex items-center gap-1.5 text-xs text-[#64748B] dark:text-[#9CA3AF]">
                   <Mail className="w-3.5 h-3.5" /> {lead.email}
                 </span>
-                <span className="flex items-center gap-1.5 text-xs text-[#64748B]">
+                <span className="flex items-center gap-1.5 text-xs text-[#64748B] dark:text-[#9CA3AF]">
                   <Phone className="w-3.5 h-3.5" /> {lead.phone}
                 </span>
                 <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
@@ -535,14 +535,14 @@ export default function LeadDetailPage() {
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-3 mt-2">
-                <span className="text-xs text-[#94A3B8]">
-                  <span className="text-[#64748B] font-medium">Assigned:</span> {lead.assignedTo}
+                <span className="text-xs text-[#94A3B8] dark:text-[#6B7280]">
+                  <span className="text-[#64748B] dark:text-[#9CA3AF] font-medium">Assigned:</span> {lead.assignedTo}
                 </span>
-                <span className="text-xs text-[#94A3B8]">
-                  <span className="text-[#64748B] font-medium">Created:</span> {lead.createdAt}
+                <span className="text-xs text-[#94A3B8] dark:text-[#6B7280]">
+                  <span className="text-[#64748B] dark:text-[#9CA3AF] font-medium">Created:</span> {lead.createdAt}
                 </span>
-                <span className="text-xs text-[#94A3B8]">
-                  <span className="text-[#64748B] font-medium">Last Activity:</span> {lead.lastActivity}
+                <span className="text-xs text-[#94A3B8] dark:text-[#6B7280]">
+                  <span className="text-[#64748B] dark:text-[#9CA3AF] font-medium">Last Activity:</span> {lead.lastActivity}
                 </span>
               </div>
             </div>
@@ -550,13 +550,13 @@ export default function LeadDetailPage() {
             {/* Probability Ring */}
             <div className="flex flex-col items-center flex-shrink-0">
               <ProbabilityRing value={lead.conversionProbability} />
-              <p className="text-[10px] text-[#64748B] mt-1 font-medium">Conversion Probability</p>
+              <p className="text-[10px] text-[#64748B] dark:text-[#9CA3AF] mt-1 font-medium">Conversion Probability</p>
             </div>
           </div>
         </div>
 
         {/* Quick Actions Bar */}
-        <div className="border-t border-slate-100 px-6 py-3 flex flex-wrap gap-2 bg-slate-50/50">
+        <div className="border-t border-slate-100 dark:border-[#1f1f1f] px-6 py-3 flex flex-wrap gap-2 bg-slate-50 dark:bg-[#161616]/50">
           <button
             onClick={() => { setShowCallModal(true); handleStartCall(); }}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 text-white text-xs font-semibold rounded-xl hover:bg-blue-700 shadow-sm shadow-blue-500/20 transition-colors"
@@ -596,7 +596,7 @@ export default function LeadDetailPage() {
           <div className="relative">
             <button
               onClick={() => setStatusDropdown(v => !v)}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-[#0F172A] text-xs font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-[#0F172A] dark:text-[#F9FAFB] text-xs font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 dark:bg-[#161616] transition-colors"
             >
               <BarChart3 className="w-3.5 h-3.5 text-[#2563EB]" /> Update Status
               <ChevronRight className={`w-3.5 h-3.5 transition-transform ${statusDropdown ? 'rotate-90' : ''}`} />
@@ -613,7 +613,7 @@ export default function LeadDetailPage() {
                     <button
                       key={stage}
                       onClick={() => { setLead(l => l ? { ...l, stage } : l); setStatusDropdown(false); }}
-                      className={`w-full text-left px-4 py-2.5 text-xs font-medium hover:bg-slate-50 transition-colors flex items-center gap-2 ${lead.stage === stage ? 'text-[#2563EB] font-semibold bg-blue-50/50' : 'text-[#0F172A]'}`}
+                      className={`w-full text-left px-4 py-2.5 text-xs font-medium hover:bg-slate-50 dark:bg-[#161616] transition-colors flex items-center gap-2 ${lead.stage === stage ? 'text-[#2563EB] font-semibold bg-blue-50/50' : 'text-[#0F172A] dark:text-[#F9FAFB]'}`}
                     >
                       {lead.stage === stage && <CheckCircle className="w-3 h-3" />}
                       {stage}
@@ -625,7 +625,7 @@ export default function LeadDetailPage() {
           </div>
           <button
             onClick={() => { setActiveTab('notes'); setNewNote(''); }}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-[#0F172A] text-xs font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-[#0F172A] dark:text-[#F9FAFB] text-xs font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 dark:bg-[#161616] transition-colors"
           >
             <PlusCircle className="w-3.5 h-3.5 text-emerald-600" /> Add Note
           </button>
@@ -640,7 +640,7 @@ export default function LeadDetailPage() {
         className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden"
       >
         {/* Tab bar */}
-        <div className="flex border-b border-slate-100 overflow-x-auto">
+        <div className="flex border-b border-slate-100 dark:border-[#1f1f1f] overflow-x-auto">
           {TABS.map(tab => (
             <button
               key={tab.key}
@@ -648,7 +648,7 @@ export default function LeadDetailPage() {
               className={`flex items-center gap-2 px-5 py-4 text-sm font-semibold whitespace-nowrap transition-all border-b-2 ${
                 activeTab === tab.key
                   ? 'border-[#2563EB] text-[#2563EB] bg-blue-50/50'
-                  : 'border-transparent text-[#64748B] hover:text-[#0F172A] hover:bg-slate-50'
+                  : 'border-transparent text-[#64748B] dark:text-[#9CA3AF] hover:text-[#0F172A] dark:text-[#F9FAFB] hover:bg-slate-50 dark:bg-[#161616]'
               }`}
             >
               {tab.icon} {tab.label}
@@ -670,24 +670,24 @@ export default function LeadDetailPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Contact Details */}
                 <div>
-                  <h3 className="text-sm font-bold text-[#0F172A] mb-4 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-4 flex items-center gap-2">
                     <User className="w-4 h-4 text-[#2563EB]" /> Contact Details
                   </h3>
                   <div className="space-y-3">
                     {[
-                      { icon: <User className="w-4 h-4 text-[#94A3B8]" />, label: 'Full Name', value: lead.name },
-                      { icon: <User className="w-4 h-4 text-[#94A3B8]" />, label: 'Gender', value: lead.gender || 'Male' },
-                      { icon: <Mail className="w-4 h-4 text-[#94A3B8]" />, label: 'Email', value: lead.email },
-                      { icon: <Phone className="w-4 h-4 text-[#94A3B8]" />, label: 'Phone', value: lead.phone },
-                      { icon: <MapPin className="w-4 h-4 text-[#94A3B8]" />, label: 'Address', value: lead.address },
+                      { icon: <User className="w-4 h-4 text-[#94A3B8] dark:text-[#6B7280]" />, label: 'Full Name', value: lead.name },
+                      { icon: <User className="w-4 h-4 text-[#94A3B8] dark:text-[#6B7280]" />, label: 'Gender', value: lead.gender || 'Male' },
+                      { icon: <Mail className="w-4 h-4 text-[#94A3B8] dark:text-[#6B7280]" />, label: 'Email', value: lead.email },
+                      { icon: <Phone className="w-4 h-4 text-[#94A3B8] dark:text-[#6B7280]" />, label: 'Phone', value: lead.phone },
+                      { icon: <MapPin className="w-4 h-4 text-[#94A3B8] dark:text-[#6B7280]" />, label: 'Address', value: lead.address },
                     ].map(item => (
-                      <div key={item.label} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                      <div key={item.label} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#161616] border border-slate-100 dark:border-[#1f1f1f]">
                         <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center flex-shrink-0 mt-0.5">
                           {item.icon}
                         </div>
                         <div>
-                          <p className="text-xs text-[#94A3B8] font-medium">{item.label}</p>
-                          <p className="text-sm font-semibold text-[#0F172A] mt-0.5">{item.value}</p>
+                          <p className="text-xs text-[#94A3B8] dark:text-[#6B7280] font-medium">{item.label}</p>
+                          <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB] mt-0.5">{item.value}</p>
                         </div>
                       </div>
                     ))}
@@ -697,23 +697,23 @@ export default function LeadDetailPage() {
                 {/* Lead Details */}
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-sm font-bold text-[#0F172A] mb-4 flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-4 flex items-center gap-2">
                       <Target className="w-4 h-4 text-[#2563EB]" /> Lead Details
                     </h3>
                     <div className="space-y-3">
                       {[
-                        { label: 'Source', value: lead.source, icon: <Globe className="w-4 h-4 text-[#94A3B8]" /> },
-                        { label: 'Campaign', value: lead.campaign, icon: <Zap className="w-4 h-4 text-[#94A3B8]" /> },
-                        { label: 'Deal Value', value: lead.value, icon: <Tag className="w-4 h-4 text-[#94A3B8]" /> },
-                        { label: 'Assigned To', value: lead.assignedTo, icon: <UserCheck className="w-4 h-4 text-[#94A3B8]" /> },
+                        { label: 'Source', value: lead.source, icon: <Globe className="w-4 h-4 text-[#94A3B8] dark:text-[#6B7280]" /> },
+                        { label: 'Campaign', value: lead.campaign, icon: <Zap className="w-4 h-4 text-[#94A3B8] dark:text-[#6B7280]" /> },
+                        { label: 'Deal Value', value: lead.value, icon: <Tag className="w-4 h-4 text-[#94A3B8] dark:text-[#6B7280]" /> },
+                        { label: 'Assigned To', value: lead.assignedTo, icon: <UserCheck className="w-4 h-4 text-[#94A3B8] dark:text-[#6B7280]" /> },
                       ].map(item => (
-                        <div key={item.label} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                        <div key={item.label} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#161616] border border-slate-100 dark:border-[#1f1f1f]">
                           <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
                             {item.icon}
                           </div>
                           <div>
-                            <p className="text-xs text-[#94A3B8] font-medium">{item.label}</p>
-                            <p className="text-sm font-semibold text-[#0F172A]">{item.value}</p>
+                            <p className="text-xs text-[#94A3B8] dark:text-[#6B7280] font-medium">{item.label}</p>
+                            <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB]">{item.value}</p>
                           </div>
                         </div>
                       ))}
@@ -722,7 +722,7 @@ export default function LeadDetailPage() {
 
                   {/* Company Info */}
                   <div>
-                    <h3 className="text-sm font-bold text-[#0F172A] mb-3 flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-3 flex items-center gap-2">
                       <Building2 className="w-4 h-4 text-[#2563EB]" /> Company Info
                     </h3>
                     <div className="p-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50/30 space-y-2">
@@ -733,8 +733,8 @@ export default function LeadDetailPage() {
                         { label: 'Website', value: lead.website },
                       ].map(item => (
                         <div key={item.label} className="flex items-center justify-between text-sm">
-                          <span className="text-[#94A3B8] font-medium text-xs">{item.label}</span>
-                          <span className="text-[#0F172A] font-semibold text-xs">{item.value}</span>
+                          <span className="text-[#94A3B8] dark:text-[#6B7280] font-medium text-xs">{item.label}</span>
+                          <span className="text-[#0F172A] dark:text-[#F9FAFB] font-semibold text-xs">{item.value}</span>
                         </div>
                       ))}
                     </div>
@@ -747,8 +747,8 @@ export default function LeadDetailPage() {
             {activeTab === 'activity' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-[#0F172A]">Activity History</h3>
-                  <span className="text-xs text-[#64748B] bg-slate-100 px-2.5 py-1 rounded-full">{lead.activities.length} activities</span>
+                  <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Activity History</h3>
+                  <span className="text-xs text-[#64748B] dark:text-[#9CA3AF] bg-slate-100 px-2.5 py-1 rounded-full">{lead.activities.length} activities</span>
                 </div>
 
                 <div className="relative">
@@ -771,15 +771,15 @@ export default function LeadDetailPage() {
                         <div className="flex-1 bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm hover:shadow-md transition-shadow">
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-bold text-[#0F172A]">{act.type}</span>
+                              <span className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">{act.type}</span>
                               <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${outcomeColor(act.outcome)}`}>{act.outcome}</span>
                             </div>
-                            <div className="flex items-center gap-1.5 text-xs text-[#94A3B8] flex-shrink-0">
+                            <div className="flex items-center gap-1.5 text-xs text-[#94A3B8] dark:text-[#6B7280] flex-shrink-0">
                               <Clock className="w-3 h-3" /> {act.date}
                             </div>
                           </div>
-                          <p className="text-xs text-[#64748B] leading-relaxed">{act.notes}</p>
-                          <p className="text-[11px] text-[#94A3B8] mt-2 flex items-center gap-1">
+                          <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] leading-relaxed">{act.notes}</p>
+                          <p className="text-[11px] text-[#94A3B8] dark:text-[#6B7280] mt-2 flex items-center gap-1">
                             <User className="w-3 h-3" /> By {act.author}
                           </p>
                         </div>
@@ -794,19 +794,19 @@ export default function LeadDetailPage() {
             {activeTab === 'notes' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-[#0F172A]">Notes</h3>
-                  <span className="text-xs text-[#64748B] bg-slate-100 px-2.5 py-1 rounded-full">{lead.notes.length} notes</span>
+                  <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Notes</h3>
+                  <span className="text-xs text-[#64748B] dark:text-[#9CA3AF] bg-slate-100 px-2.5 py-1 rounded-full">{lead.notes.length} notes</span>
                 </div>
 
                 {/* Add Note */}
                 <div className="p-4 rounded-2xl border border-[#2563EB]/20 bg-blue-50/30">
-                  <label className="block text-xs font-semibold text-[#64748B] mb-2">Add a Note</label>
+                  <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-2">Add a Note</label>
                   <textarea
                     rows={3}
                     value={newNote}
                     onChange={e => setNewNote(e.target.value)}
                     placeholder="Write your note here…"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] bg-white outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/20 transition-all resize-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] dark:text-[#F9FAFB] bg-white outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/20 transition-all resize-none"
                   />
                   <div className="flex justify-end mt-2">
                     <button
@@ -829,15 +829,15 @@ export default function LeadDetailPage() {
                       transition={{ delay: idx * 0.05 }}
                       className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm"
                     >
-                      <p className="text-sm text-[#0F172A] leading-relaxed">{note.text}</p>
+                      <p className="text-sm text-[#0F172A] dark:text-[#F9FAFB] leading-relaxed">{note.text}</p>
                       <div className="flex items-center justify-between mt-3">
-                        <div className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
+                        <div className="flex items-center gap-1.5 text-xs text-[#94A3B8] dark:text-[#6B7280]">
                           <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-[9px] font-bold">
                             {note.author.split(' ').map(n => n[0]).join('')}
                           </div>
                           {note.author}
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-[#94A3B8]">
+                        <div className="flex items-center gap-1 text-xs text-[#94A3B8] dark:text-[#6B7280]">
                           <Calendar className="w-3 h-3" /> {note.createdAt}
                         </div>
                       </div>
@@ -850,7 +850,7 @@ export default function LeadDetailPage() {
             {/* ──── HISTORY TAB ──── */}
             {activeTab === 'history' && (
               <div className="space-y-4">
-                <h3 className="text-sm font-bold text-[#0F172A]">Assignment History</h3>
+                <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Assignment History</h3>
 
                 <div className="relative">
                   <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-slate-200" />
@@ -868,16 +868,16 @@ export default function LeadDetailPage() {
                         </div>
                         <div className="flex-1 bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm">
                           <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <div className="flex items-center gap-2 text-sm font-bold text-[#0F172A]">
-                              <span className="text-[#64748B] font-medium">{hist.from}</span>
+                            <div className="flex items-center gap-2 text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">
+                              <span className="text-[#64748B] dark:text-[#9CA3AF] font-medium">{hist.from}</span>
                               <ChevronRight className="w-4 h-4 text-amber-500" />
                               <span>{hist.to}</span>
                             </div>
-                            <div className="flex items-center gap-1 text-xs text-[#94A3B8]">
+                            <div className="flex items-center gap-1 text-xs text-[#94A3B8] dark:text-[#6B7280]">
                               <Calendar className="w-3 h-3" /> {hist.date}
                             </div>
                           </div>
-                          <p className="text-xs text-[#64748B] leading-relaxed">{hist.reason}</p>
+                          <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] leading-relaxed">{hist.reason}</p>
                         </div>
                       </motion.div>
                     ))}
@@ -907,25 +907,25 @@ export default function LeadDetailPage() {
               className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between p-5 border-b border-slate-100">
+              <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-[#1f1f1f]">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
                     <UserCheck className="w-4 h-4 text-amber-600" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-[#0F172A]">Reassign Lead</h3>
-                    <p className="text-xs text-[#64748B]">{lead.name} • {lead.company}</p>
+                    <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Reassign Lead</h3>
+                    <p className="text-xs text-[#64748B] dark:text-[#9CA3AF]">{lead.name} • {lead.company}</p>
                   </div>
                 </div>
                 <button onClick={() => setShowAssignModal(false)} className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
-                  <X className="w-4 h-4 text-[#64748B]" />
+                  <X className="w-4 h-4 text-[#64748B] dark:text-[#9CA3AF]" />
                 </button>
               </div>
 
               <div className="p-5 space-y-4">
                 {/* Select assignee */}
                 <div>
-                  <label className="block text-xs font-semibold text-[#64748B] mb-2">Select Team Member</label>
+                  <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-2">Select Team Member</label>
                   <div className="space-y-2">
                     {team.map(member => (
                       <button
@@ -934,15 +934,15 @@ export default function LeadDetailPage() {
                         className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
                           selectedAssignee === member.id
                             ? 'border-[#2563EB] bg-blue-50/50 shadow-sm'
-                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:bg-[#161616]'
                         }`}
                       >
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                           {member.avatar}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[#0F172A]">{member.name}</p>
-                          <p className="text-xs text-[#64748B]">{member.performance.leadsHandled} leads • {member.performance.conversionRate}% conversion</p>
+                          <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB]">{member.name}</p>
+                          <p className="text-xs text-[#64748B] dark:text-[#9CA3AF]">{member.performance.leadsHandled} leads • {member.performance.conversionRate}% conversion</p>
                         </div>
                         {member.id === lead.assignedToId && (
                           <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Current</span>
@@ -957,13 +957,13 @@ export default function LeadDetailPage() {
 
                 {/* Note */}
                 <div>
-                  <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Assignment Note (optional)</label>
+                  <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Assignment Note (optional)</label>
                   <textarea
                     rows={2}
                     value={assignNote}
                     onChange={e => setAssignNote(e.target.value)}
                     placeholder="Reason for reassignment…"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] bg-slate-50 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/20 transition-all resize-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] dark:text-[#F9FAFB] bg-slate-50 dark:bg-[#161616] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/20 transition-all resize-none"
                   />
                 </div>
 
@@ -971,7 +971,7 @@ export default function LeadDetailPage() {
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={() => setShowAssignModal(false)}
-                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-[#64748B] hover:bg-slate-50 transition-colors"
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-[#64748B] dark:text-[#9CA3AF] hover:bg-slate-50 dark:bg-[#161616] transition-colors"
                   >
                     Cancel
                   </button>
@@ -1087,7 +1087,7 @@ export default function LeadDetailPage() {
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
               className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200"
             >
-              <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-emerald-600 text-white">
+              <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-[#1f1f1f] bg-emerald-600 text-white">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
                     <MessageSquare className="w-4.5 h-4.5 text-white" />
@@ -1104,20 +1104,20 @@ export default function LeadDetailPage() {
 
               <div className="p-5 space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#64748B] mb-2">Message Body</label>
+                  <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-2">Message Body</label>
                   <textarea
                     rows={4}
                     value={whatsappText}
                     onChange={e => setWhatsappText(e.target.value)}
                     placeholder="Type WhatsApp message..."
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm text-[#0F172A] outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm text-[#0F172A] dark:text-[#F9FAFB] outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all resize-none"
                   />
                 </div>
 
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowWhatsAppModal(false)}
-                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-[#64748B] hover:bg-slate-50 transition-colors"
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-[#64748B] dark:text-[#9CA3AF] hover:bg-slate-50 dark:bg-[#161616] transition-colors"
                   >
                     Cancel
                   </button>
@@ -1146,7 +1146,7 @@ export default function LeadDetailPage() {
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
               className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200"
             >
-              <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-violet-700 text-white">
+              <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-[#1f1f1f] bg-violet-700 text-white">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
                     <Send className="w-4.5 h-4.5 text-white" />
@@ -1163,31 +1163,31 @@ export default function LeadDetailPage() {
 
               <div className="p-5 space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Subject</label>
+                  <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Subject</label>
                   <input
                     type="text"
                     value={emailSubject}
                     onChange={e => setEmailSubject(e.target.value)}
                     placeholder="Enter email subject..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] dark:text-[#F9FAFB] outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-500/20 transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Message</label>
+                  <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Message</label>
                   <textarea
                     rows={6}
                     value={emailBody}
                     onChange={e => setEmailBody(e.target.value)}
                     placeholder="Write email body..."
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm text-[#0F172A] outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-500/20 transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm text-[#0F172A] dark:text-[#F9FAFB] outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-500/20 transition-all resize-none"
                   />
                 </div>
 
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowEmailModal(false)}
-                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-[#64748B] hover:bg-slate-50 transition-colors"
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-[#64748B] dark:text-[#9CA3AF] hover:bg-slate-50 dark:bg-[#161616] transition-colors"
                   >
                     Cancel
                   </button>
@@ -1217,7 +1217,7 @@ export default function LeadDetailPage() {
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
               className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200"
             >
-              <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-emerald-600 text-white">
+              <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-[#1f1f1f] bg-emerald-600 text-white">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
                     <Edit2 className="w-4.5 h-4.5 text-white" />
@@ -1235,67 +1235,67 @@ export default function LeadDetailPage() {
               <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Name</label>
+                    <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Name</label>
                     <input
                       type="text" value={editForm.name}
                       onChange={e => setEditForm(v => ({ ...v, name: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] dark:text-[#F9FAFB] outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Company</label>
+                    <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Company</label>
                     <input
                       type="text" value={editForm.company}
                       onChange={e => setEditForm(v => ({ ...v, company: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] dark:text-[#F9FAFB] outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Email</label>
+                    <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Email</label>
                     <input
                       type="email" value={editForm.email}
                       onChange={e => setEditForm(v => ({ ...v, email: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] dark:text-[#F9FAFB] outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Phone</label>
+                    <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Phone</label>
                     <input
                       type="text" value={editForm.phone}
                       onChange={e => setEditForm(v => ({ ...v, phone: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] dark:text-[#F9FAFB] outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Deal Value</label>
+                    <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Deal Value</label>
                     <input
                       type="text" value={editForm.value}
                       onChange={e => setEditForm(v => ({ ...v, value: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] dark:text-[#F9FAFB] outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Source</label>
+                    <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Source</label>
                     <input
                       type="text" value={editForm.source}
                       onChange={e => setEditForm(v => ({ ...v, source: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] dark:text-[#F9FAFB] outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Campaign</label>
+                    <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Campaign</label>
                     <input
                       type="text" value={editForm.campaign}
                       onChange={e => setEditForm(v => ({ ...v, campaign: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] dark:text-[#F9FAFB] outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Priority</label>
+                    <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Priority</label>
                     <select
                       value={editForm.priority}
                       onChange={e => setEditForm(v => ({ ...v, priority: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] dark:text-[#F9FAFB] outline-none"
                     >
                       <option>High</option>
                       <option>Medium</option>
@@ -1303,45 +1303,45 @@ export default function LeadDetailPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Gender</label>
+                    <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Gender</label>
                     <select
                       value={editForm.gender}
                       onChange={e => setEditForm(v => ({ ...v, gender: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] dark:text-[#F9FAFB] outline-none"
                     >
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Industry</label>
+                    <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Industry</label>
                     <input
                       type="text" value={editForm.industry}
                       onChange={e => setEditForm(v => ({ ...v, industry: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] dark:text-[#F9FAFB] outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Employees</label>
+                    <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Employees</label>
                     <input
                       type="text" value={editForm.employees}
                       onChange={e => setEditForm(v => ({ ...v, employees: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] dark:text-[#F9FAFB] outline-none"
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Address</label>
+                    <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Address</label>
                     <textarea
                       rows={2} value={editForm.address}
                       onChange={e => setEditForm(v => ({ ...v, address: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] outline-none resize-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-[#0F172A] dark:text-[#F9FAFB] outline-none resize-none"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="p-5 border-t border-slate-100 flex gap-2">
-                <button onClick={() => setShowEditModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-500 hover:bg-slate-50">Cancel</button>
+              <div className="p-5 border-t border-slate-100 dark:border-[#1f1f1f] flex gap-2">
+                <button onClick={() => setShowEditModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-500 hover:bg-slate-50 dark:bg-[#161616]">Cancel</button>
                 <button onClick={handleSaveDetails} disabled={updatingLead} className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-50">
                   {updatingLead ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -1362,7 +1362,7 @@ export default function LeadDetailPage() {
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
               className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200"
             >
-              <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-[#2563EB] text-white">
+              <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-[#1f1f1f] bg-[#2563EB] text-white">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
                     <Calendar className="w-4.5 h-4.5 text-white" />
@@ -1379,21 +1379,21 @@ export default function LeadDetailPage() {
 
               <div className="p-5 space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Date & Time</label>
+                  <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Date & Time</label>
                   <input
                     type="datetime-local"
                     value={followupDate}
                     onChange={e => setFollowupDate(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] dark:text-[#F9FAFB] outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Action Type</label>
+                  <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Action Type</label>
                   <select
                     value={followupType}
                     onChange={e => setFollowupType(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] dark:text-[#F9FAFB] outline-none"
                   >
                     <option>Call</option>
                     <option>Email</option>
@@ -1402,20 +1402,20 @@ export default function LeadDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Follow-up Notes</label>
+                  <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Follow-up Notes</label>
                   <textarea
                     rows={3}
                     value={followupNotes}
                     onChange={e => setFollowupNotes(e.target.value)}
                     placeholder="Enter notes for this schedule..."
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm text-[#0F172A] outline-none resize-none"
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm text-[#0F172A] dark:text-[#F9FAFB] outline-none resize-none"
                   />
                 </div>
 
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowFollowupModal(false)}
-                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-[#64748B] hover:bg-slate-50 transition-colors"
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-[#64748B] dark:text-[#9CA3AF] hover:bg-slate-50 dark:bg-[#161616] transition-colors"
                   >
                     Cancel
                   </button>

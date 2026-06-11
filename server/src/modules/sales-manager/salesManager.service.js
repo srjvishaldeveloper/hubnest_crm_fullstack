@@ -1,21 +1,22 @@
-const { query } = require('../../config/database');
+const { pool, query } = require('../../config/database');
 const bcrypt = require('bcryptjs');
-const { checkEmailExists } = require('../../models/userModel');
+const { checkEmailExists, findByEmail } = require('../../models/userModel');
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
-async function getOrCreateTeam(tenantId, managerId) {
-  const existing = await query(
+async function getOrCreateTeam(tenantId, managerId, client = null) {
+  const queryExecutor = client ? client.query.bind(client) : query;
+  const existing = await queryExecutor(
     `SELECT id FROM teams WHERE tenant_id = $1 AND manager_id = $2 LIMIT 1`,
     [tenantId, managerId]
   );
   if (existing.rows[0]) return existing.rows[0].id;
 
   // Get manager name for default team name
-  const mgr = await query(`SELECT name FROM users WHERE id = $1`, [managerId]);
+  const mgr = await queryExecutor(`SELECT name FROM users WHERE id = $1`, [managerId]);
   const teamName = `${mgr.rows[0]?.name || 'Manager'}'s Team`;
 
-  const created = await query(
+  const created = await queryExecutor(
     `INSERT INTO teams (tenant_id, manager_id, name) VALUES ($1, $2, $3) RETURNING id`,
     [tenantId, managerId, teamName]
   );
@@ -34,7 +35,7 @@ async function getManagerDashboard(tenantId, managerId) {
     `SELECT u.id FROM users u
      JOIN team_members tm ON tm.user_id = u.id
      JOIN teams t ON t.id = tm.team_id
-     WHERE t.tenant_id = $1 AND t.manager_id = $2`,
+     WHERE t.tenant_id = $1 AND t.manager_id = $2 AND u.status != 'Archived'`,
     [tenantId, managerId]
   );
   const memberIds = teamResult.rows.map(r => r.id);
@@ -188,7 +189,7 @@ async function getTeamMembers(tenantId, managerId) {
      LEFT JOIN LATERAL (
        SELECT COUNT(*) AS cnt FROM activities a WHERE a.user_id = u.id AND a.type = 'Email' AND a.created_at::date = CURRENT_DATE
      ) act_emails ON TRUE
-     WHERE teams_t.tenant_id = $1 AND teams_t.manager_id = $2
+     WHERE teams_t.tenant_id = $1 AND teams_t.manager_id = $2 AND u.status != 'Archived'
      GROUP BY u.id, u.name, u.email, u.admin_id, u.status, u.created_at,
               st.target_amount, st.achieved_amount, st.target_leads, st.converted_leads,
               act_calls.cnt, act_emails.cnt
@@ -266,63 +267,87 @@ async function getMemberDetail(tenantId, managerId, memberId) {
 async function addExecutive(tenantId, managerId, data) {
   const { name, email, employeeId, password, mobile, sendCreds } = data;
 
-  // Check duplicates
-  const emailExists = await checkEmailExists(email);
-  if (emailExists) {
-    throw Object.assign(
-      new Error("This email is already registered in the system. Please use a different email address."),
-      { statusCode: 409 }
-    );
+  // 1. Check duplicate email contextually
+  const existingUser = await findByEmail(email);
+  if (existingUser) {
+    if (existingUser.tenant_id === tenantId) {
+      if (existingUser.status === 'Archived') {
+        throw Object.assign(
+          new Error("This email belongs to an archived user in your company. You can restore them."),
+          { statusCode: 409, code: 'USER_ARCHIVED', userId: existingUser.id }
+        );
+      }
+      throw Object.assign(
+        new Error("This email is already registered in your company."),
+        { statusCode: 409, code: 'ACTIVE_USER' }
+      );
+    } else {
+      throw Object.assign(
+        new Error("This email is registered with another company."),
+        { statusCode: 409, code: 'OTHER_TENANT' }
+      );
+    }
   }
 
-  const dupEmp = await query(
-    `SELECT id FROM users WHERE admin_id = $1`,
-    [employeeId]
-  );
-  if (dupEmp.rows.length > 0) {
-    throw Object.assign(
-      new Error('User with this Employee ID already exists'),
-      { statusCode: 400 }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const dupEmp = await client.query(
+      `SELECT id FROM users WHERE admin_id = $1 LIMIT 1`,
+      [employeeId]
     );
-  }
+    if (dupEmp.rows.length > 0) {
+      throw Object.assign(
+        new Error('User with this Employee ID already exists'),
+        { statusCode: 400 }
+      );
+    }
 
-  // Get or create Sales Executive role
-  let roleResult = await query(`SELECT id FROM roles WHERE name = 'Sales Executive'`);
-  let roleId;
-  if (roleResult.rows.length === 0) {
-    const execPerms = {
-      leads: { create: true, read: true, update: true, delete: false },
-      tasks: { create: true, read: true, update: true, delete: true },
-      activities: { create: true, read: true, update: true, delete: false },
-    };
-    const ins = await query(
-      `INSERT INTO roles (name, permissions) VALUES ('Sales Executive', $1) RETURNING id`,
-      [JSON.stringify(execPerms)]
+    // Get or create Sales Executive role
+    let roleResult = await client.query(`SELECT id FROM roles WHERE name = 'Sales Executive'`);
+    let roleId;
+    if (roleResult.rows.length === 0) {
+      const execPerms = {
+        leads: { create: true, read: true, update: true, delete: false },
+        tasks: { create: true, read: true, update: true, delete: true },
+        activities: { create: true, read: true, update: true, delete: false },
+      };
+      const ins = await client.query(
+        `INSERT INTO roles (name, permissions) VALUES ('Sales Executive', $1) RETURNING id`,
+        [JSON.stringify(execPerms)]
+      );
+      roleId = ins.rows[0].id;
+    } else {
+      roleId = roleResult.rows[0].id;
+    }
+
+    const pwd = password || 'HubNest@123!';
+    const passwordHash = await bcrypt.hash(pwd, 12);
+
+    // Create user
+    const userResult = await client.query(
+      `INSERT INTO users (tenant_id, role_id, name, email, admin_id, password_hash, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'Active') RETURNING id`,
+      [tenantId, roleId, name, email, employeeId, passwordHash]
     );
-    roleId = ins.rows[0].id;
-  } else {
-    roleId = roleResult.rows[0].id;
+    const userId = userResult.rows[0].id;
+
+    // Add to manager's team
+    const teamId = await getOrCreateTeam(tenantId, managerId, client);
+    await client.query(
+      `INSERT INTO team_members (team_id, user_id, tenant_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+      [teamId, userId, tenantId]
+    );
+
+    await client.query('COMMIT');
+    return { userId, employeeId, name, email, teamId };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
   }
-
-  const pwd = password || 'HubNest@123!';
-  const passwordHash = await bcrypt.hash(pwd, 12);
-
-  // Create user
-  const userResult = await query(
-    `INSERT INTO users (tenant_id, role_id, name, email, admin_id, password_hash, status)
-     VALUES ($1, $2, $3, $4, $5, $6, 'Active') RETURNING id`,
-    [tenantId, roleId, name, email, employeeId, passwordHash]
-  );
-  const userId = userResult.rows[0].id;
-
-  // Add to manager's team
-  const teamId = await getOrCreateTeam(tenantId, managerId);
-  await query(
-    `INSERT INTO team_members (team_id, user_id, tenant_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
-    [teamId, userId, tenantId]
-  );
-
-  return { userId, employeeId, name, email, teamId };
 }
 
 async function updateExecutiveTarget(tenantId, managerId, memberId, data) {

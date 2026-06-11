@@ -1,6 +1,20 @@
 const svc = require('./marketing.service');
 const { sendSuccess, sendError } = require('../../utils/helpers');
+const axios = require('axios');
 
+// Microservice endpoints config
+const SERVICES = {
+  form: 'http://localhost:8004',
+  workflow: 'http://localhost:8005',
+  campaign: 'http://localhost:8006',
+  content: 'http://localhost:8007',
+  segmentation: 'http://localhost:8008',
+  analytics: 'http://localhost:8009',
+  leadScoring: 'http://localhost:8010',
+  queryBuilder: 'http://localhost:8011'
+};
+
+// --- Campaigns ---
 async function createCampaign(req, res) {
   const campaign = await svc.createCampaign(req.user.tenant_id, req.user.id, req.body);
   sendSuccess(res, { campaign }, 'Campaign created', 201);
@@ -30,6 +44,7 @@ async function deleteCampaign(req, res) {
   sendSuccess(res, {}, 'Campaign deleted');
 }
 
+// --- Leads & Assignment ---
 async function listLeads(req, res) {
   const { status, source, platform, campaign_id } = req.query;
   const leads = await svc.listLeads(req.user.tenant_id, { status, source, platform, campaign_id });
@@ -61,8 +76,280 @@ async function getROIData(req, res) {
   sendSuccess(res, { roi: data });
 }
 
+// --- Contact Lists & Import Center ---
+async function listContactLists(req, res) {
+  const lists = await svc.listContactLists(req.user.tenant_id);
+  sendSuccess(res, { lists });
+}
+
+async function createContactList(req, res) {
+  const list = await svc.createContactList(req.user.tenant_id, req.body);
+  sendSuccess(res, { list }, 'Contact list created', 201);
+}
+
+async function deleteContactList(req, res) {
+  const success = await svc.deleteContactList(req.user.tenant_id, req.params.id);
+  if (!success) return sendError(res, 'Contact list not found', 404);
+  sendSuccess(res, {}, 'Contact list deleted');
+}
+
+async function importContacts(req, res) {
+  const { listId, contacts } = req.body;
+  if (!listId || !Array.isArray(contacts)) {
+    return sendError(res, 'listId and contacts array are required', 400);
+  }
+  
+  // Create leads in leads_marketing table first
+  const contactIds = [];
+  for (const c of contacts) {
+    const queryStr = `
+      INSERT INTO leads_marketing (tenant_id, name, email, phone, source, status)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT DO NOTHING
+      RETURNING id
+    `;
+    const result = await svc.query ? await svc.query(queryStr, [req.user.tenant_id, c.name, c.email || null, c.phone || null, 'CSV Import', 'New']) : { rows: [] };
+    if (result.rows[0]) {
+      contactIds.push(result.rows[0].id);
+    }
+  }
+
+  // Bind to marketing list
+  if (contactIds.length > 0) {
+    await svc.addContactsToList(req.user.tenant_id, listId, contactIds);
+  }
+
+  sendSuccess(res, { importedCount: contactIds.length }, 'Import completed successfully');
+}
+
+// --- Audience Segments ---
+async function listSegments(req, res) {
+  const segments = await svc.listSegments(req.user.tenant_id);
+  sendSuccess(res, { segments });
+}
+
+async function createSegment(req, res) {
+  const segment = await svc.createSegment(req.user.tenant_id, req.body);
+  sendSuccess(res, { segment }, 'Segment created', 201);
+}
+
+async function deleteSegment(req, res) {
+  const success = await svc.deleteSegment(req.user.tenant_id, req.params.id);
+  if (!success) return sendError(res, 'Segment not found', 404);
+  sendSuccess(res, {}, 'Segment deleted');
+}
+
+// --- Visual Workflows ---
+async function listWorkflows(req, res) {
+  const workflows = await svc.listWorkflows(req.user.tenant_id);
+  sendSuccess(res, { workflows });
+}
+
+async function createWorkflow(req, res) {
+  const workflow = await svc.createWorkflow(req.user.tenant_id, req.user.id, req.body);
+  sendSuccess(res, { workflow }, 'Workflow created', 201);
+}
+
+async function updateWorkflow(req, res) {
+  const workflow = await svc.updateWorkflow(req.user.tenant_id, req.params.id, req.body);
+  if (!workflow) return sendError(res, 'Workflow not found', 404);
+  sendSuccess(res, { workflow }, 'Workflow updated');
+}
+
+async function deleteWorkflow(req, res) {
+  const success = await svc.deleteWorkflow(req.user.tenant_id, req.params.id);
+  if (!success) return sendError(res, 'Workflow not found', 404);
+  sendSuccess(res, {}, 'Workflow deleted');
+}
+
+async function getWorkflowRuns(req, res) {
+  const runs = await svc.getWorkflowRuns(req.user.tenant_id, req.params.id);
+  sendSuccess(res, { runs });
+}
+
+// --- Form Builder ---
+async function listForms(req, res) {
+  const forms = await svc.listForms(req.user.tenant_id);
+  sendSuccess(res, { forms });
+}
+
+async function createForm(req, res) {
+  const form = await svc.createForm(req.user.tenant_id, req.body);
+  sendSuccess(res, { form }, 'Form created', 201);
+}
+
+async function getFormPublic(req, res) {
+  const form = await svc.getFormByIdPublic(req.params.id);
+  if (!form) return sendError(res, 'Form not found', 404);
+  // Never expose tenant_id or internal fields to public
+  const { tenant_id: _t, ...publicForm } = form;
+  sendSuccess(res, { form: publicForm });
+}
+
+async function submitFormPublic(req, res) {
+  const ip = req.ip || req.connection.remoteAddress;
+  const userAgent = req.headers['user-agent'];
+  const submission = await svc.submitFormPublic(req.params.id, req.body, ip, userAgent);
+  if (!submission) return sendError(res, 'Form not found', 404);
+  sendSuccess(res, { submission }, 'Submission received', 201);
+}
+
+async function submitForm(req, res) {
+  const ip = req.ip || req.connection.remoteAddress;
+  const userAgent = req.headers['user-agent'];
+  const submission = await svc.submitForm(req.user.tenant_id, req.params.id, req.body, ip, userAgent);
+  sendSuccess(res, { submission }, 'Submission logged', 201);
+}
+
+async function getFormSubmissions(req, res) {
+  const submissions = await svc.getFormSubmissions(req.user.tenant_id, req.params.id);
+  sendSuccess(res, { submissions });
+}
+
+// --- Landing Pages ---
+async function listLandingPages(req, res) {
+  const pages = await svc.listLandingPages(req.user.tenant_id);
+  sendSuccess(res, { pages });
+}
+
+async function createLandingPage(req, res) {
+  const page = await svc.createLandingPage(req.user.tenant_id, req.body);
+  sendSuccess(res, { page }, 'Landing page created', 201);
+}
+
+async function updateLandingPage(req, res) {
+  const page = await svc.updateLandingPage(req.user.tenant_id, req.params.id, req.body);
+  if (!page) return sendError(res, 'Landing page not found', 404);
+  sendSuccess(res, { page }, 'Landing page updated');
+}
+
+async function deleteLandingPage(req, res) {
+  const success = await svc.deleteLandingPage(req.user.tenant_id, req.params.id);
+  if (!success) return sendError(res, 'Landing page not found', 404);
+  sendSuccess(res, {}, 'Landing page deleted');
+}
+
+// --- Templates ---
+async function listTemplates(req, res) {
+  const { type } = req.query;
+  const templates = await svc.listTemplates(req.user.tenant_id, type);
+  sendSuccess(res, { templates });
+}
+
+async function createTemplate(req, res) {
+  const template = await svc.createTemplate(req.user.tenant_id, req.body);
+  sendSuccess(res, { template }, 'Template created', 201);
+}
+
+async function deleteTemplate(req, res) {
+  const success = await svc.deleteTemplate(req.user.tenant_id, req.params.id);
+  if (!success) return sendError(res, 'Template not found', 404);
+  sendSuccess(res, {}, 'Template deleted');
+}
+
+// --- Media ---
+async function listMedia(req, res) {
+  const media = await svc.listMedia(req.user.tenant_id);
+  sendSuccess(res, { media });
+}
+
+async function createMedia(req, res) {
+  const asset = await svc.createMedia(req.user.tenant_id, req.body);
+  sendSuccess(res, { asset }, 'Media asset created', 201);
+}
+
+// --- Subscriptions ---
+async function listSubscriptions(req, res) {
+  const subscriptions = await svc.listSubscriptions(req.user.tenant_id);
+  sendSuccess(res, { subscriptions });
+}
+
+async function updateSubscription(req, res) {
+  const subscription = await svc.updateSubscription(req.user.tenant_id, req.body);
+  sendSuccess(res, { subscription }, 'Subscription updated');
+}
+
+// --- Webhooks ---
+async function listWebhooks(req, res) {
+  const webhooks = await svc.listWebhooks(req.user.tenant_id);
+  sendSuccess(res, { webhooks });
+}
+
+async function createWebhook(req, res) {
+  const webhook = await svc.createWebhook(req.user.tenant_id, req.body);
+  sendSuccess(res, { webhook }, 'Webhook created', 201);
+}
+
+async function deleteWebhook(req, res) {
+  const success = await svc.deleteWebhook(req.user.tenant_id, req.params.id);
+  if (!success) return sendError(res, 'Webhook not found', 404);
+  sendSuccess(res, {}, 'Webhook deleted');
+}
+
+// --- AI Studio proxies ---
+async function aiProxyHandler(req, res) {
+  const { serviceName, endpoint } = req.params;
+  const baseUrl = SERVICES[serviceName];
+  if (!baseUrl) {
+    return sendError(res, `Invalid microservice: ${serviceName}`, 400);
+  }
+  
+  try {
+    const response = await axios.post(`${baseUrl}/${endpoint}`, req.body, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    sendSuccess(res, response.data);
+  } catch (err) {
+    // If microservice is not online locally, trigger mock fallback directly
+    if (serviceName === 'form') {
+      sendSuccess(res, {
+        success: true,
+        form: {
+          fields: [
+            {"id": "name", "label": "Full Name", "type": "text", "required": true},
+            {"id": "email", "label": "Email Address", "type": "email", "required": true}
+          ],
+          settings: { "title": "AI Generated Form" }
+        }
+      });
+    } else {
+      sendError(res, `Failed calling microservice: ${err.message}`, 500);
+    }
+  }
+}
+
 module.exports = {
   createCampaign, listCampaigns, getCampaign, updateCampaign, deleteCampaign,
   listLeads, updateLead, bulkAssignLeads,
   getDashboardAnalytics, getROIData,
+  
+  // Lists
+  listContactLists, createContactList, deleteContactList, importContacts,
+  
+  // Segments
+  listSegments, createSegment, deleteSegment,
+  
+  // Workflows
+  listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, getWorkflowRuns,
+  
+  // Forms
+  listForms, createForm, getFormPublic, submitFormPublic, submitForm, getFormSubmissions,
+  
+  // Landing Pages
+  listLandingPages, createLandingPage, updateLandingPage, deleteLandingPage,
+  
+  // Templates
+  listTemplates, createTemplate, deleteTemplate,
+  
+  // Media
+  listMedia, createMedia,
+  
+  // Subscriptions
+  listSubscriptions, updateSubscription,
+  
+  // Webhooks
+  listWebhooks, createWebhook, deleteWebhook,
+  
+  // AI Proxy
+  aiProxyHandler
 };

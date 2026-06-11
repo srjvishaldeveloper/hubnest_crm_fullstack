@@ -83,7 +83,7 @@ export default function SupportProfilePage() {
           {user?.name?.charAt(0).toUpperCase() || 'N'}
         </div>
         <div className="text-center sm:text-left space-y-1">
-          <h1 className="text-xl font-black text-[#0F172A]">{user?.name || 'Neha Verma'}</h1>
+          <h1 className="text-xl font-black text-[#0F172A] dark:text-[#F9FAFB]">{user?.name || 'Neha Verma'}</h1>
           <p className="text-xs text-slate-400 font-semibold">Employee ID: #{user?.adminId || 'SUP-0253'}</p>
           <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-2">
             <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 uppercase tracking-wider">
@@ -104,7 +104,7 @@ export default function SupportProfilePage() {
           
           {/* Info Edit Form */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
-            <h3 className="font-bold text-[#0F172A] text-sm mb-4">Personal Information</h3>
+            <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm mb-4">Personal Information</h3>
             <form className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold text-slate-650">
               <div className="space-y-1">
                 <label className="text-slate-400">Full Name</label>
@@ -143,7 +143,7 @@ export default function SupportProfilePage() {
           {/* Security & Password reset section */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
             <div>
-              <h3 className="font-bold text-[#0F172A] text-sm mb-4">Security Rules</h3>
+              <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm mb-4">Security Rules</h3>
               
               <div className="space-y-4 text-xs font-medium text-slate-600">
                 <div className="flex items-center justify-between border-b border-slate-50 pb-3">
@@ -182,11 +182,11 @@ export default function SupportProfilePage() {
             </div>
 
             {/* Active session audits */}
-            <div className="border-t border-slate-100 pt-5 space-y-3">
-              <h4 className="font-bold text-[#0F172A] text-xs uppercase tracking-wider">Active Device Sessions</h4>
+            <div className="border-t border-slate-100 dark:border-[#1f1f1f] pt-5 space-y-3">
+              <h4 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-xs uppercase tracking-wider">Active Device Sessions</h4>
               
               <div className="space-y-2 text-xs font-semibold text-slate-600">
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
+                <div className="p-3 bg-slate-50 dark:bg-[#161616] border border-slate-100 dark:border-[#1f1f1f] rounded-xl flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Globe className="w-4 h-4 text-slate-400" />
                     <div>
@@ -197,7 +197,7 @@ export default function SupportProfilePage() {
                   <span className="text-[9px] font-extrabold bg-green-50 text-green-700 px-2 py-0.5 rounded uppercase">Active</span>
                 </div>
 
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
+                <div className="p-3 bg-slate-50 dark:bg-[#161616] border border-slate-100 dark:border-[#1f1f1f] rounded-xl flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Smartphone className="w-4 h-4 text-slate-400" />
                     <div>
@@ -218,7 +218,7 @@ export default function SupportProfilePage() {
           
           {/* Performance scorecard */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4">
-            <h3 className="font-bold text-[#0F172A] text-sm flex items-center gap-1.5"><Activity className="w-4 h-4 text-[#2563EB]" /> Support KPIs</h3>
+            <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm flex items-center gap-1.5"><Activity className="w-4 h-4 text-[#2563EB]" /> Support KPIs</h3>
             
             <div className="space-y-3 text-xs font-semibold text-slate-500">
               <div className="flex justify-between border-b border-slate-50 pb-2">
@@ -242,7 +242,7 @@ export default function SupportProfilePage() {
 
           {/* Workload balancer panel */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4">
-            <h3 className="font-bold text-[#0F172A] text-sm flex items-center gap-1.5"><Zap className="w-4 h-4 text-amber-500" /> Workload Summary</h3>
+            <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm flex items-center gap-1.5"><Zap className="w-4 h-4 text-amber-500" /> Workload Summary</h3>
             
             <div className="space-y-3">
               <div>

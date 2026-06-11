@@ -3,6 +3,7 @@ const { pool, runMigrations } = require('./config/database');
 const redis = require('./config/redis');
 const env = require('./config/env');
 const logger = require('./utils/logger');
+const { initChatSocket } = require('./modules/chat/chat.socket');
 
 async function bootstrap() {
   try {
@@ -17,6 +18,9 @@ async function bootstrap() {
     const server = app.listen(env.port, '0.0.0.0', () => {
       logger.info(`JOB NEST CRM Backend listening on port ${env.port} [${env.nodeEnv}]`);
     });
+
+    // Initialize Chat WebSockets
+    initChatSocket(server);
 
     // Graceful shutdown handler
     const gracefulShutdown = async (signal) => {

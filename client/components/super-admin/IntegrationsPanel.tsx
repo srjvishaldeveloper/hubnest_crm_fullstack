@@ -144,17 +144,17 @@ export default function IntegrationsPanel() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-white rounded-3xl border border-slate-100 p-5 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-300"
+        className="bg-card rounded-3xl border border-slate-100 dark:border-[#1f1f1f] p-5 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-300"
       >
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="font-bold text-[#0F172A] text-base flex items-center gap-2">
-              <Plug className="w-4 h-4 text-[#2563EB]" />
+            <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-base flex items-center gap-2">
+              <Plug className="w-4 h-4 text-[#F59E0B]" />
               Integrations
             </h3>
-            <p className="text-xs text-[#64748B] mt-0.5">Third-party service connections and status</p>
+            <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Third-party service connections and status</p>
           </div>
-          <button className="text-xs text-[#2563EB] font-semibold hover:underline">Manage</button>
+          <button className="text-xs text-[#F59E0B] font-semibold hover:underline">Manage</button>
         </div>
 
         {loading ? (
@@ -181,14 +181,14 @@ export default function IntegrationsPanel() {
                   key={integration.key}
                   variants={item}
                   onClick={() => openConfigModal(integration.key)}
-                  className="flex items-center gap-3 p-3.5 rounded-2xl border border-slate-100 hover:border-slate-300 hover:shadow-md transition-all duration-200 group cursor-pointer active:scale-[0.99]"
+                  className="flex items-center gap-3 p-3.5 rounded-2xl border border-slate-100 dark:border-[#1f1f1f] hover:border-slate-300 hover:shadow-md transition-all duration-200 group cursor-pointer active:scale-[0.99]"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-blue-50 transition-colors">
-                    <Icon className="w-5 h-5 text-[#64748B] group-hover:text-[#2563EB] transition-colors" />
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-[#161616] flex items-center justify-center shrink-0 group-hover:bg-amber-50 transition-colors">
+                    <Icon className="w-5 h-5 text-[#64748B] dark:text-[#9CA3AF] group-hover:text-[#F59E0B] transition-colors" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[#0F172A] truncate">{meta.label}</p>
-                    <p className="text-[11px] text-[#94A3B8] truncate">{meta.description}</p>
+                    <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB] truncate">{meta.label}</p>
+                    <p className="text-[11px] text-[#94A3B8] dark:text-[#6B7280] truncate">{meta.description}</p>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className={`w-2 h-2 rounded-full ${config.dot} ${statusVal === 'connected' ? 'animate-pulse' : ''}`} />
@@ -219,21 +219,21 @@ export default function IntegrationsPanel() {
               initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}
-              className="relative w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl z-10 border border-slate-100 overflow-hidden"
+              className="relative w-full max-w-md bg-card rounded-3xl p-6 shadow-2xl z-10 border border-slate-100 dark:border-[#1f1f1f] overflow-hidden"
             >
               <button
                 onClick={() => setSelectedKey(null)}
-                className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 transition-colors h-8 w-8 rounded-full hover:bg-slate-50 flex items-center justify-center"
+                className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 transition-colors h-8 w-8 rounded-full hover:bg-slate-50 dark:bg-[#161616] flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>
 
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-[#2563EB]">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-[#F59E0B]">
                   <Settings className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-[#0F172A]">
+                  <h4 className="text-base font-bold text-[#0F172A] dark:text-[#F9FAFB]">
                     Configure {METADATA[selectedKey]?.label || selectedKey}
                   </h4>
                   <p className="text-xs text-slate-500 mt-0.5">
@@ -254,7 +254,7 @@ export default function IntegrationsPanel() {
               <form onSubmit={handleSaveConfig} className="space-y-4">
                 {INTEGRATION_FIELDS[selectedKey]?.map((field) => (
                   <div key={field.key}>
-                    <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">
+                    <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">
                       {field.label}
                     </label>
                     <input
@@ -262,20 +262,20 @@ export default function IntegrationsPanel() {
                       value={formData[field.key] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
                       placeholder={field.placeholder}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-500 transition-colors bg-slate-50/50"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-amber-400 transition-colors bg-slate-50 dark:bg-[#161616]/50"
                       required
                     />
                   </div>
                 )) || <p className="text-xs text-slate-400 italic">No credentials needed for this integration.</p>}
 
                 <div className="pt-2">
-                  <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">
+                  <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">
                     Integration Status
                   </label>
                   <select
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 dark:bg-[#161616]/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-amber-400"
                   >
                     <option value="connected">Connected (Active)</option>
                     <option value="disconnected">Disconnected (Inactive)</option>
@@ -287,14 +287,14 @@ export default function IntegrationsPanel() {
                   <button
                     type="button"
                     onClick={() => setSelectedKey(null)}
-                    className="flex-1 py-2.5 px-4 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-50 transition-colors"
+                    className="flex-1 py-2.5 px-4 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-50 dark:bg-[#161616] transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="flex-1 py-2.5 px-4 bg-[#2563EB] text-white text-xs font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    className="flex-1 py-2.5 px-4 bg-[#F59E0B] text-white text-xs font-semibold rounded-xl hover:bg-amber-600 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
                   >
                     {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     Save Configuration

@@ -22,6 +22,13 @@ router.post('/refresh',                           refreshTokenValidator,   ctrl.
 router.post('/logout',                                                     ctrl.logout);
 router.post('/forgot-password', otpRateLimiter,   forgotPasswordValidator, ctrl.forgotPassword);
 router.post('/reset-password',                    resetPasswordValidator,  ctrl.resetPassword);
+
+// Google OAuth login (no OTP step — Google already verified the identity)
+router.post('/google',          loginRateLimiter,                          ctrl.googleLogin);
+
+// Phone-based login (OTP via SMS)
+router.post('/send-phone-otp',  otpRateLimiter,                            ctrl.sendPhoneOtp);
+router.post('/login-phone',     otpRateLimiter,                            ctrl.loginWithPhone);
 // Super Admin only — all tenant management endpoints require authentication
 router.post('/send-credentials',   authenticate, authorizeSuperAdmin, ctrl.sendCredentials);
 router.post('/create-tenant',      authenticate, authorizeSuperAdmin, ctrl.createTenant);
@@ -42,6 +49,7 @@ router.post('/revoke-session',      authenticate, ctrl.revokeSession);
 router.post('/create-user',         authenticate, ctrl.createUser);
 router.get('/users',               authenticate, ctrl.getUsers);
 router.delete('/users/:id',        authenticate, ctrl.deleteUser);
+router.post('/users/:id/restore',   authenticate, ctrl.restoreUser);
 router.post('/users/toggle-block', authenticate, ctrl.toggleBlockUser);
 router.post('/users/:id/reset-password', authenticate, ctrl.resetUserPassword);
 

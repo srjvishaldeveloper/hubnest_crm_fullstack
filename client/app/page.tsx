@@ -56,14 +56,14 @@ export default function LandingPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <span className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <span className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
       <Navbar />
       <HeroSection />
       <TrustSection />

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../store/authStore';
 import SessionTimer from '../../components/SessionTimer';
+import ThemeToggle from '../../components/shared/ThemeToggle';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -23,10 +24,10 @@ export default function DashboardPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-200">
       <SessionTimer />
       {/* Top Navigation */}
-      <header className="bg-white border-b border-gray-200 shadow-sm">
+      <header className="bg-white dark:bg-[#111111] border-b border-slate-200 dark:border-[#1f1f1f] shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -36,22 +37,23 @@ export default function DashboardPage() {
                     d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
               </div>
-              <span className="font-bold text-gray-900 text-lg">JOB NEST CRM</span>
+              <span className="font-bold text-slate-900 dark:text-white text-lg">HubNest CRM</span>
             </div>
 
             <div className="flex items-center gap-4">
+              <ThemeToggle />
               <div className="hidden sm:flex flex-col items-end">
-                <span className="text-sm font-medium text-gray-900">{user.name}</span>
-                <span className="text-xs text-gray-500">{user.role}</span>
+                <span className="text-sm font-medium text-slate-900 dark:text-white">{user.name}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">{user.role}</span>
               </div>
-              <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-700 font-bold text-sm">
+              <div className="w-9 h-9 bg-blue-100 dark:bg-blue-500/20 rounded-full flex items-center justify-center">
+                <span className="text-blue-700 dark:text-blue-400 font-bold text-sm">
                   {user.name.charAt(0).toUpperCase()}
                 </span>
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-600 transition px-3 py-1.5 rounded-lg hover:bg-red-50"
+                className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -67,32 +69,32 @@ export default function DashboardPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Banner */}
-        <div className="bg-gradient-to-r from-blue-800 to-blue-600 rounded-2xl p-6 mb-8 text-white">
+        <div className="bg-gradient-to-r from-blue-700 to-blue-500 rounded-2xl p-6 mb-8 text-white">
           <h1 className="text-2xl font-bold mb-1">Welcome back, {user.name.split(' ')[0]}!</h1>
-          <p className="text-blue-200 text-sm">You are logged in as <span className="font-semibold text-white">{user.role}</span></p>
+          <p className="text-blue-100 text-sm">You are logged in as <span className="font-semibold text-white">{user.role}</span></p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
-            { label: 'Total Jobs', value: '—', icon: '💼', color: 'blue' },
-            { label: 'Active Users', value: '—', icon: '👥', color: 'green' },
-            { label: 'Tenants', value: '—', icon: '🏢', color: 'purple' },
-            { label: 'Reports', value: '—', icon: '📊', color: 'orange' },
+            { label: 'Total Jobs', value: '—', icon: '💼' },
+            { label: 'Active Users', value: '—', icon: '👥' },
+            { label: 'Tenants', value: '—', icon: '🏢' },
+            { label: 'Reports', value: '—', icon: '📊' },
           ].map((stat) => (
-            <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+            <div key={stat.label} className="bg-white dark:bg-[#161616] rounded-xl border border-slate-200 dark:border-[#1f1f1f] p-5 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-2xl">{stat.icon}</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-              <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{stat.label}</p>
             </div>
           ))}
         </div>
 
         {/* User Info Card */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Account Information</h2>
+        <div className="bg-white dark:bg-[#161616] rounded-xl border border-slate-200 dark:border-[#1f1f1f] shadow-sm p-6">
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Account Information</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               { label: 'Full Name', value: user.name },
@@ -103,16 +105,16 @@ export default function DashboardPage() {
               { label: 'Status', value: 'Active' },
             ].map((item) => (
               <div key={item.label} className="flex flex-col">
-                <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">{item.label}</span>
-                <span className="text-sm font-medium text-gray-900 mt-0.5 truncate">{item.value}</span>
+                <span className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide">{item.label}</span>
+                <span className="text-sm font-medium text-slate-900 dark:text-white mt-0.5 truncate">{item.value}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Phase note */}
-        <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-          <p className="text-amber-800 text-sm font-medium">
+        <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl">
+          <p className="text-amber-800 dark:text-amber-400 text-sm font-medium">
             Phase 1 Complete — Auth + RBAC + Multi-tenancy foundation is active.
             Phase 2 will add job management, candidate pipeline, and tenant admin modules.
           </p>

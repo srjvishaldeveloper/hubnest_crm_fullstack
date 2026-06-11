@@ -150,7 +150,7 @@ export default function TasksPage() {
           <p className="text-xs text-slate-500 mt-0.5">Focus on completing follow-ups today.</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => router.push('/sales/tasks/calendar')} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition">
+          <button onClick={() => router.push('/sales/tasks/calendar')} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 dark:bg-[#161616] text-slate-700 text-xs font-semibold rounded-xl transition">
             <CalendarDays className="w-4 h-4" /> Calendar
           </button>
           <button onClick={() => setIsPanelOpen(true)} className="flex items-center gap-1.5 px-4 py-2 bg-[#2563EB] hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-md shadow-blue-500/10">
@@ -233,7 +233,7 @@ export default function TasksPage() {
                 className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
+                  <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-[#161616] flex items-center justify-center shrink-0 border border-slate-100 dark:border-[#1f1f1f]">
                     {task.type === 'Call' && <Phone className="w-4.5 h-4.5 text-green-600" />}
                     {task.type === 'Meeting' && <CheckSquare className="w-4.5 h-4.5 text-blue-600" />}
                     {task.type === 'Follow-up' && <Bell className="w-4.5 h-4.5 text-violet-600" />}
@@ -306,7 +306,7 @@ export default function TasksPage() {
               className="bg-white w-full max-w-md h-full relative z-10 border-l border-slate-200 flex flex-col shadow-2xl p-6"
             >
               {/* Panel Header */}
-              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-[#1f1f1f]">
                 <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Schedule Task</h3>
                 <button onClick={() => setIsPanelOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-xl transition text-slate-400 hover:text-slate-600">
                   <X className="w-4.5 h-4.5" />

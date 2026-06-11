@@ -46,13 +46,13 @@ export default function AdminBulkOperationsPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
-        <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-[#1f1f1f] flex justify-between items-center">
           <h3 className="text-sm font-bold text-slate-900">Operation Logs</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/75 border-b border-slate-100">
+              <tr className="bg-slate-50 dark:bg-[#161616]/75 border-b border-slate-100 dark:border-[#1f1f1f]">
                 <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Operation Name</th>
                 <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Type</th>
                 <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Records Affected</th>
@@ -62,7 +62,7 @@ export default function AdminBulkOperationsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {tasks.map((t) => (
-                <tr key={t.id} className="hover:bg-slate-50/50 transition">
+                <tr key={t.id} className="hover:bg-slate-50 dark:bg-[#161616]/50 transition">
                   <td className="px-5 py-3.5 text-xs font-bold text-slate-700">{t.name}</td>
                   <td className="px-5 py-3.5 text-xs text-slate-500 font-semibold">{t.type}</td>
                   <td className="px-5 py-3.5 text-xs text-slate-400 font-mono font-medium">{t.count}</td>

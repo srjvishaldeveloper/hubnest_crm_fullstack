@@ -1,5 +1,13 @@
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
+
+// Global mock for nodemailer to prevent actual SMTP requests in tests
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn().mockReturnValue({
+    sendMail: jest.fn().mockResolvedValue({ messageId: 'mock-message-id' }),
+  }),
+}));
+
 const { query } = require('../src/config/database');
 const tokenService = require('../src/services/tokenService');
 const redis = require('../src/config/redis');

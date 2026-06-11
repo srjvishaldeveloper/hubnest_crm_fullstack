@@ -45,7 +45,7 @@ const item = {
 
 export default function RecentActivities({ data }: RecentActivitiesProps) {
   const activitiesToRender = data && data.length > 0 ? data : [
-    { icon: 'UserPlus', text: 'New user Sarah Johnson registered', time: '2 min ago', color: '#2563EB', bg: 'bg-blue-50' },
+    { icon: 'UserPlus', text: 'New user Sarah Johnson registered', time: '2 min ago', color: '#F59E0B', bg: 'bg-amber-50' },
     { icon: 'Target', text: 'Lead "Acme Corp" moved to negotiation stage', time: '15 min ago', color: '#8B5CF6', bg: 'bg-purple-50' },
     { icon: 'Megaphone', text: 'Campaign "Summer Sale 2026" launched', time: '1 hour ago', color: '#EC4899', bg: 'bg-pink-50' },
     { icon: 'Ticket', text: 'Ticket #4821 resolved by Admin Mike', time: '2 hours ago', color: '#10B981', bg: 'bg-emerald-50' },
@@ -58,17 +58,17 @@ export default function RecentActivities({ data }: RecentActivitiesProps) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-white rounded-3xl border border-slate-100 p-5 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-300"
+      className="bg-card rounded-3xl border border-slate-100 dark:border-[#1f1f1f] p-5 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-300"
     >
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h3 className="font-bold text-[#0F172A] text-base flex items-center gap-2">
-            <Clock className="w-4 h-4 text-[#64748B]" />
+          <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-base flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[#64748B] dark:text-[#9CA3AF]" />
             Recent Activity
           </h3>
-          <p className="text-xs text-[#64748B] mt-0.5">Latest events across the platform</p>
+          <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Latest events across the platform</p>
         </div>
-        <button className="text-xs text-[#2563EB] font-semibold hover:underline">View All</button>
+        <button className="text-xs text-[#F59E0B] font-semibold hover:underline">View All</button>
       </div>
 
       {/* Timeline */}
@@ -94,8 +94,8 @@ export default function RecentActivities({ data }: RecentActivitiesProps) {
                   <Icon className="w-4 h-4" style={{ color: a.color }} />
                 </div>
                 <div className="flex-1 min-w-0 pt-0.5">
-                  <p className="text-sm text-[#0F172A] leading-snug group-hover:text-[#2563EB] transition-colors">{a.text}</p>
-                  <p className="text-[11px] text-[#94A3B8] mt-0.5">{a.time}</p>
+                  <p className="text-sm text-[#0F172A] dark:text-[#F9FAFB] leading-snug group-hover:text-[#F59E0B] transition-colors">{a.text}</p>
+                  <p className="text-[11px] text-[#94A3B8] dark:text-[#6B7280] mt-0.5">{a.time}</p>
                 </div>
               </motion.div>
             );

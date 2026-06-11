@@ -1,5 +1,6 @@
 const { query } = require('../../config/database');
 
+// --- Campaigns Extension ---
 async function listCampaigns(tenantId, { status, platform } = {}) {
   let sql = `SELECT * FROM campaigns WHERE tenant_id = $1`;
   const params = [tenantId];
@@ -24,21 +25,22 @@ async function getCampaignById(tenantId, id) {
 }
 
 async function createCampaign(tenantId, userId, data) {
-  const { name, type, platform, budget_daily, budget_total, start_date, end_date, status, target_audience, content } = data;
+  const { name, type, platform, budget_daily, budget_total, start_date, end_date, status, target_audience, content, parent_campaign_id, channels, schedule_config, ab_test_config } = data;
   const result = await query(
     `INSERT INTO campaigns (tenant_id, name, type, platform, budget_daily, budget_total,
-       start_date, end_date, status, target_audience, content, created_by)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+       start_date, end_date, status, target_audience, content, created_by, parent_campaign_id, channels, schedule_config, ab_test_config)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
      RETURNING *`,
     [tenantId, name, type, platform, budget_daily || 0, budget_total || 0,
      start_date || null, end_date || null, status || 'Draft',
-     JSON.stringify(target_audience || {}), JSON.stringify(content || {}), userId]
+     JSON.stringify(target_audience || {}), JSON.stringify(content || {}), userId,
+     parent_campaign_id || null, channels || [], JSON.stringify(schedule_config || {}), JSON.stringify(ab_test_config || {})]
   );
   return result.rows[0];
 }
 
 async function updateCampaign(tenantId, id, data) {
-  const fields = ['name','type','platform','budget_daily','budget_total','start_date','end_date','status','target_audience','content'];
+  const fields = ['name','type','platform','budget_daily','budget_total','start_date','end_date','status','target_audience','content','parent_campaign_id','channels','schedule_config','ab_test_config'];
   const updates = [];
   const params = [];
   fields.forEach(f => {
@@ -66,6 +68,388 @@ async function deleteCampaign(tenantId, id) {
   return !!result.rows[0];
 }
 
+// --- Contact Lists & Imports ---
+async function listContactLists(tenantId) {
+  const result = await query(
+    `SELECT l.*, COUNT(lc.lead_id) AS contact_count 
+     FROM marketing_contact_lists l
+     LEFT JOIN marketing_list_contacts lc ON lc.list_id = l.id
+     WHERE l.tenant_id = $1
+     GROUP BY l.id ORDER BY l.created_at DESC`,
+    [tenantId]
+  );
+  return result.rows;
+}
+
+async function createContactList(tenantId, { name, description }) {
+  const result = await query(
+    `INSERT INTO marketing_contact_lists (tenant_id, name, description)
+     VALUES ($1, $2, $3) RETURNING *`,
+    [tenantId, name, description]
+  );
+  return result.rows[0];
+}
+
+async function deleteContactList(tenantId, id) {
+  const result = await query(
+    `DELETE FROM marketing_contact_lists WHERE id = $1 AND tenant_id = $2 RETURNING id`,
+    [id, tenantId]
+  );
+  return !!result.rows[0];
+}
+
+async function addContactsToList(tenantId, listId, contactIds) {
+  for (const contactId of contactIds) {
+    await query(
+      `INSERT INTO marketing_list_contacts (list_id, lead_id)
+       VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [listId, contactId]
+    );
+  }
+  return { success: true, count: contactIds.length };
+}
+
+// --- Audience Segments ---
+async function listSegments(tenantId) {
+  const result = await query(
+    `SELECT * FROM marketing_segments WHERE tenant_id = $1 ORDER BY created_at DESC`,
+    [tenantId]
+  );
+  return result.rows;
+}
+
+async function createSegment(tenantId, { name, description, criteria }) {
+  const result = await query(
+    `INSERT INTO marketing_segments (tenant_id, name, description, criteria)
+     VALUES ($1, $2, $3, $4) RETURNING *`,
+    [tenantId, name, description, JSON.stringify(criteria)]
+  );
+  return result.rows[0];
+}
+
+async function deleteSegment(tenantId, id) {
+  const result = await query(
+    `DELETE FROM marketing_segments WHERE id = $1 AND tenant_id = $2 RETURNING id`,
+    [id, tenantId]
+  );
+  return !!result.rows[0];
+}
+
+// --- Visual Workflows & Automations ---
+async function listWorkflows(tenantId) {
+  const result = await query(
+    `SELECT w.*, COUNT(r.id) AS active_runs 
+     FROM marketing_workflows w
+     LEFT JOIN marketing_workflow_runs r ON r.workflow_id = w.id AND r.status = 'Running'
+     WHERE w.tenant_id = $1
+     GROUP BY w.id ORDER BY w.created_at DESC`,
+    [tenantId]
+  );
+  return result.rows;
+}
+
+async function createWorkflow(tenantId, userId, { name, description, trigger_config, nodes, edges, status }) {
+  const result = await query(
+    `INSERT INTO marketing_workflows (tenant_id, name, description, trigger_config, nodes, edges, status, created_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+    [tenantId, name, description, JSON.stringify(trigger_config || {}), JSON.stringify(nodes || []), JSON.stringify(edges || []), status || 'Draft', userId]
+  );
+  return result.rows[0];
+}
+
+async function updateWorkflow(tenantId, id, data) {
+  const fields = ['name', 'description', 'trigger_config', 'nodes', 'edges', 'status'];
+  const updates = [];
+  const params = [];
+  fields.forEach(f => {
+    if (data[f] !== undefined) {
+      params.push(typeof data[f] === 'object' ? JSON.stringify(data[f]) : data[f]);
+      updates.push(`${f} = $${params.length}`);
+    }
+  });
+  if (!updates.length) return null;
+  params.push(id, tenantId);
+  const result = await query(
+    `UPDATE marketing_workflows SET ${updates.join(', ')}, updated_at = NOW()
+     WHERE id = $${params.length - 1} AND tenant_id = $${params.length}
+     RETURNING *`,
+    params
+  );
+  return result.rows[0] || null;
+}
+
+async function deleteWorkflow(tenantId, id) {
+  const result = await query(
+    `DELETE FROM marketing_workflows WHERE id = $1 AND tenant_id = $2 RETURNING id`,
+    [id, tenantId]
+  );
+  return !!result.rows[0];
+}
+
+// --- Workflow Runs ---
+async function triggerWorkflowRun(tenantId, workflowId, leadId, initialNodeId) {
+  const result = await query(
+    `INSERT INTO marketing_workflow_runs (tenant_id, workflow_id, lead_id, current_node_id, status)
+     VALUES ($1, $2, $3, $4, 'Running') RETURNING *`,
+    [tenantId, workflowId, leadId, initialNodeId]
+  );
+  return result.rows[0];
+}
+
+async function getWorkflowRuns(tenantId, workflowId) {
+  const result = await query(
+    `SELECT r.*, l.name AS lead_name, l.email AS lead_email
+     FROM marketing_workflow_runs r
+     JOIN leads_marketing l ON l.id = r.lead_id
+     WHERE r.tenant_id = $1 AND r.workflow_id = $2
+     ORDER BY r.created_at DESC`,
+    [tenantId, workflowId]
+  );
+  return result.rows;
+}
+
+// --- Dynamic Forms Builder ---
+async function listForms(tenantId) {
+  const result = await query(
+    `SELECT f.*, COUNT(s.id) AS submission_count,
+            MAX(s.created_at) AS last_submission
+     FROM marketing_forms f
+     LEFT JOIN marketing_form_submissions s ON s.form_id = f.id
+     WHERE f.tenant_id = $1
+     GROUP BY f.id ORDER BY f.created_at DESC`,
+    [tenantId]
+  );
+  // Surface type from settings for frontend compatibility
+  return result.rows.map((row) => ({
+    ...row,
+    type: row.settings?.type || row.type || 'Lead Capture',
+  }));
+}
+
+async function getFormById(tenantId, id) {
+  const result = await query(
+    `SELECT * FROM marketing_forms WHERE id = $1 AND tenant_id = $2`,
+    [id, tenantId]
+  );
+  return result.rows[0] || null;
+}
+
+async function getFormByIdPublic(id) {
+  const result = await query(
+    `SELECT id, name, description, fields, settings, tenant_id FROM marketing_forms WHERE id = $1`,
+    [id]
+  );
+  return result.rows[0] || null;
+}
+
+async function submitFormPublic(formId, submissionData, ipAddress, userAgent) {
+  // Look up tenant_id from the form itself
+  const form = await getFormByIdPublic(formId);
+  if (!form) return null;
+  const result = await query(
+    `INSERT INTO marketing_form_submissions (tenant_id, form_id, submission_data, ip_address, user_agent)
+     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [form.tenant_id, formId, JSON.stringify(submissionData), ipAddress, userAgent]
+  );
+  // Autocreate lead
+  const { name, email, phone } = submissionData;
+  if (name) {
+    await query(
+      `INSERT INTO leads_marketing (tenant_id, name, email, phone, source, status)
+       VALUES ($1, $2, $3, $4, 'Form Submission', 'New') ON CONFLICT DO NOTHING`,
+      [form.tenant_id, name, email || null, phone || null]
+    );
+  }
+  return result.rows[0];
+}
+
+async function createForm(tenantId, { name, description, type, fields, settings }) {
+  const mergedSettings = { ...(settings || {}), type: type || 'Lead Capture' };
+  const result = await query(
+    `INSERT INTO marketing_forms (tenant_id, name, description, fields, settings)
+     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [tenantId, name, description, JSON.stringify(fields || []), JSON.stringify(mergedSettings)]
+  );
+  const row = result.rows[0];
+  // Surface type at the top level for frontend compatibility
+  if (row && row.settings?.type) row.type = row.settings.type;
+  return row;
+}
+
+async function deleteForm(tenantId, id) {
+  const result = await query(
+    `DELETE FROM marketing_forms WHERE id = $1 AND tenant_id = $2 RETURNING id`,
+    [id, tenantId]
+  );
+  return !!result.rows[0];
+}
+
+async function submitForm(tenantId, formId, submissionData, ipAddress, userAgent) {
+  const result = await query(
+    `INSERT INTO marketing_form_submissions (tenant_id, form_id, submission_data, ip_address, user_agent)
+     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [tenantId, formId, JSON.stringify(submissionData), ipAddress, userAgent]
+  );
+  return result.rows[0];
+}
+
+async function getFormSubmissions(tenantId, formId) {
+  const result = await query(
+    `SELECT * FROM marketing_form_submissions WHERE tenant_id = $1 AND form_id = $2 ORDER BY created_at DESC`,
+    [tenantId, formId]
+  );
+  return result.rows;
+}
+
+// --- Landing Pages ---
+async function listLandingPages(tenantId) {
+  const result = await query(
+    `SELECT * FROM marketing_landing_pages WHERE tenant_id = $1 ORDER BY created_at DESC`,
+    [tenantId]
+  );
+  return result.rows;
+}
+
+async function createLandingPage(tenantId, { title, slug, content, seo_settings, custom_domain, status }) {
+  const result = await query(
+    `INSERT INTO marketing_landing_pages (tenant_id, title, slug, content, seo_settings, custom_domain, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [tenantId, title, slug, JSON.stringify(content || {}), JSON.stringify(seo_settings || {}), custom_domain || null, status || 'Draft']
+  );
+  return result.rows[0];
+}
+
+async function updateLandingPage(tenantId, id, data) {
+  const fields = ['title', 'slug', 'content', 'seo_settings', 'custom_domain', 'status'];
+  const updates = [];
+  const params = [];
+  fields.forEach(f => {
+    if (data[f] !== undefined) {
+      params.push(typeof data[f] === 'object' ? JSON.stringify(data[f]) : data[f]);
+      updates.push(`${f} = $${params.length}`);
+    }
+  });
+  if (!updates.length) return null;
+  params.push(id, tenantId);
+  const result = await query(
+    `UPDATE marketing_landing_pages SET ${updates.join(', ')}, updated_at = NOW()
+     WHERE id = $${params.length - 1} AND tenant_id = $${params.length}
+     RETURNING *`,
+    params
+  );
+  return result.rows[0] || null;
+}
+
+async function deleteLandingPage(tenantId, id) {
+  const result = await query(
+    `DELETE FROM marketing_landing_pages WHERE id = $1 AND tenant_id = $2 RETURNING id`,
+    [id, tenantId]
+  );
+  return !!result.rows[0];
+}
+
+// --- Templates ---
+async function listTemplates(tenantId, type) {
+  let sql = `SELECT * FROM marketing_templates WHERE tenant_id = $1`;
+  const params = [tenantId];
+  if (type) {
+    params.push(type);
+    sql += ` AND type = $2`;
+  }
+  sql += ` ORDER BY created_at DESC`;
+  const result = await query(sql, params);
+  return result.rows;
+}
+
+async function createTemplate(tenantId, { name, type, content }) {
+  const result = await query(
+    `INSERT INTO marketing_templates (tenant_id, name, type, content)
+     VALUES ($1, $2, $3, $4) RETURNING *`,
+    [tenantId, name, type, content]
+  );
+  return result.rows[0];
+}
+
+async function deleteTemplate(tenantId, id) {
+  const result = await query(
+    `DELETE FROM marketing_templates WHERE id = $1 AND tenant_id = $2 RETURNING id`,
+    [id, tenantId]
+  );
+  return !!result.rows[0];
+}
+
+// --- Media Assets ---
+async function listMedia(tenantId) {
+  const result = await query(
+    `SELECT * FROM marketing_media WHERE tenant_id = $1 ORDER BY created_at DESC`,
+    [tenantId]
+  );
+  return result.rows;
+}
+
+async function createMedia(tenantId, { file_name, file_url, file_size, mime_type }) {
+  const result = await query(
+    `INSERT INTO marketing_media (tenant_id, file_name, file_url, file_size, mime_type)
+     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [tenantId, file_name, file_url, file_size, mime_type]
+  );
+  return result.rows[0];
+}
+
+// --- Subscription Status ---
+async function listSubscriptions(tenantId) {
+  const result = await query(
+    `SELECT s.*, l.name AS lead_name, l.email AS lead_email 
+     FROM marketing_subscriptions s
+     JOIN leads_marketing l ON l.id = s.lead_id
+     WHERE s.tenant_id = $1 ORDER BY s.updated_at DESC`,
+    [tenantId]
+  );
+  return result.rows;
+}
+
+async function updateSubscription(tenantId, { lead_id, channel, status, reason }) {
+  const result = await query(
+    `INSERT INTO marketing_subscriptions (tenant_id, lead_id, channel, status, reason, unsubscribed_at)
+     VALUES ($1, $2, $3, $4, $5, CASE WHEN $4 = 'Unsubscribed' THEN NOW() ELSE NULL END)
+     ON CONFLICT (lead_id, channel) DO UPDATE SET 
+       status = EXCLUDED.status,
+       reason = EXCLUDED.reason,
+       unsubscribed_at = CASE WHEN EXCLUDED.status = 'Unsubscribed' THEN NOW() ELSE NULL END,
+       updated_at = NOW()
+     RETURNING *`,
+    [tenantId, lead_id, channel, status, reason || null]
+  );
+  return result.rows[0];
+}
+
+// --- Webhooks ---
+async function listWebhooks(tenantId) {
+  const result = await query(
+    `SELECT * FROM marketing_webhooks WHERE tenant_id = $1 ORDER BY created_at DESC`,
+    [tenantId]
+  );
+  return result.rows;
+}
+
+async function createWebhook(tenantId, { url, events, secret }) {
+  const result = await query(
+    `INSERT INTO marketing_webhooks (tenant_id, url, events, secret)
+     VALUES ($1, $2, $3, $4) RETURNING *`,
+    [tenantId, url, events || [], secret || '']
+  );
+  return result.rows[0];
+}
+
+async function deleteWebhook(tenantId, id) {
+  const result = await query(
+    `DELETE FROM marketing_webhooks WHERE id = $1 AND tenant_id = $2 RETURNING id`,
+    [id, tenantId]
+  );
+  return !!result.rows[0];
+}
+
+// --- Core Leads Marketing Mapping ---
 async function listLeads(tenantId, { status, source, platform, campaign_id } = {}) {
   let sql = `SELECT l.*, c.name AS campaign_name
              FROM leads_marketing l
@@ -141,7 +525,35 @@ async function getROIData(tenantId) {
 }
 
 module.exports = {
+  // Campaigns
   listCampaigns, getCampaignById, createCampaign, updateCampaign, deleteCampaign,
   listLeads, updateLead, bulkAssignLeads,
   getDashboardAnalytics, getROIData,
+  
+  // Lists
+  listContactLists, createContactList, deleteContactList, addContactsToList,
+  
+  // Segments
+  listSegments, createSegment, deleteSegment,
+  
+  // Workflows
+  listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, triggerWorkflowRun, getWorkflowRuns,
+  
+  // Forms
+  listForms, getFormById, getFormByIdPublic, createForm, deleteForm, submitForm, submitFormPublic, getFormSubmissions,
+  
+  // Landing Pages
+  listLandingPages, createLandingPage, updateLandingPage, deleteLandingPage,
+  
+  // Templates
+  listTemplates, createTemplate, deleteTemplate,
+  
+  // Media
+  listMedia, createMedia,
+  
+  // Subscriptions
+  listSubscriptions, updateSubscription,
+  
+  // Webhooks
+  listWebhooks, createWebhook, deleteWebhook,
 };

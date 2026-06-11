@@ -235,8 +235,8 @@ function KPICard({ label, value, trend, icon: Icon, iconBg, iconColor, delay }: 
           {Math.abs(trend)}%
         </span>
       </div>
-      <p className="text-2xl font-bold text-[#0F172A] mb-1 group-hover:text-[#2563EB] transition-colors">{value}</p>
-      <p className="text-xs text-[#64748B] font-medium">{label}</p>
+      <p className="text-2xl font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-1 group-hover:text-[#2563EB] transition-colors">{value}</p>
+      <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] font-medium">{label}</p>
     </motion.div>
   );
 }
@@ -406,10 +406,10 @@ export default function SalesManagerDashboard() {
       >
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
+            <h2 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] flex items-center gap-2">
               <Activity className="w-4 h-4 text-[#2563EB]" /> Sales Pipeline
             </h2>
-            <p className="text-xs text-[#64748B] mt-0.5">{pipeline.reduce((s, p) => s + p.count, 0)} total leads tracked across all stages</p>
+            <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">{pipeline.reduce((s, p) => s + p.count, 0)} total leads tracked across all stages</p>
           </div>
           <button className="flex items-center gap-1.5 text-xs font-semibold text-[#2563EB] hover:underline">
             View All <ChevronRight className="w-3.5 h-3.5" />
@@ -452,8 +452,8 @@ export default function SalesManagerDashboard() {
         transition={{ delay: 0.25, duration: 0.4 }}
         className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden"
       >
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-[#1f1f1f] flex items-center justify-between">
+          <h2 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] flex items-center gap-2">
             <Users className="w-4 h-4 text-[#2563EB]" /> Team Performance
           </h2>
           <button className="flex items-center gap-1 text-xs font-semibold text-[#2563EB] hover:underline">
@@ -463,9 +463,9 @@ export default function SalesManagerDashboard() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/50">
+              <tr className="border-b border-slate-100 dark:border-[#1f1f1f] bg-slate-50 dark:bg-[#161616]/50">
                 {['Executive', 'Target', 'Achieved', 'Conversion %', 'Status'].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">{h}</th>
+                  <th key={h} className="px-5 py-3 text-left text-[10px] font-semibold text-[#64748B] dark:text-[#9CA3AF] uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -478,17 +478,17 @@ export default function SalesManagerDashboard() {
                     key={m.id}
                     initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 + i * 0.07 }}
-                    className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors"
+                    className="border-b border-slate-50 hover:bg-slate-50 dark:bg-[#161616]/60 transition-colors"
                   >
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2.5">
                         <AvatarCircle name={m.name} size={34} gradient={
                           ['from-blue-500 to-cyan-400','from-amber-500 to-orange-400','from-emerald-500 to-teal-400','from-sky-500 to-blue-600','from-rose-500 to-pink-400'][i % 5]
                         } />
-                        <span className="text-sm font-semibold text-[#0F172A]">{m.name}</span>
+                        <span className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB]">{m.name}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-[#64748B] font-medium">{formatRupees(m.target)}</td>
+                    <td className="px-5 py-3.5 text-sm text-[#64748B] dark:text-[#9CA3AF] font-medium">{formatRupees(m.target)}</td>
                     <td className="px-5 py-3.5 min-w-[140px]">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -528,8 +528,8 @@ export default function SalesManagerDashboard() {
           transition={{ delay: 0.3, duration: 0.4 }}
           className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden"
         >
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-[#1f1f1f] flex items-center justify-between">
+            <h2 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-emerald-500" /> Today's Tasks & Follow-ups
             </h2>
             <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100">{tasks.length}</span>
@@ -540,18 +540,18 @@ export default function SalesManagerDashboard() {
                 key={task.id}
                 initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.35 + i * 0.07 }}
-                className="px-5 py-3.5 flex items-center gap-3 hover:bg-slate-50/60 transition-colors group"
+                className="px-5 py-3.5 flex items-center gap-3 hover:bg-slate-50 dark:bg-[#161616]/60 transition-colors group"
               >
                 <TaskTypeBadge type={task.type} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[#0F172A] truncate group-hover:text-[#2563EB] transition-colors">{task.leadName}</p>
-                  <p className="text-xs text-[#64748B] truncate">{task.assignedExec}</p>
+                  <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB] truncate group-hover:text-[#2563EB] transition-colors">{task.leadName}</p>
+                  <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] truncate">{task.assignedExec}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <span className="text-xs font-semibold text-[#64748B]">{task.time}</span>
+                  <span className="text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF]">{task.time}</span>
                   <div className="flex items-center gap-1">
                     <PriorityDot priority={task.priority} />
-                    <span className="text-[10px] text-[#64748B]">{task.priority}</span>
+                    <span className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">{task.priority}</span>
                   </div>
                 </div>
               </motion.div>
@@ -565,8 +565,8 @@ export default function SalesManagerDashboard() {
           transition={{ delay: 0.35, duration: 0.4 }}
           className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden"
         >
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-[#1f1f1f] flex items-center justify-between">
+            <h2 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] flex items-center gap-2">
               <Star className="w-4 h-4 text-amber-500" /> Priority Hot Leads
             </h2>
             <button className="flex items-center gap-1 text-xs font-semibold text-[#2563EB] hover:underline">
@@ -579,15 +579,15 @@ export default function SalesManagerDashboard() {
                 key={lead.id}
                 initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 + i * 0.07 }}
-                className="px-5 py-3.5 flex items-center gap-3 hover:bg-slate-50/60 transition-colors group"
+                className="px-5 py-3.5 flex items-center gap-3 hover:bg-slate-50 dark:bg-[#161616]/60 transition-colors group"
               >
                 <AvatarCircle name={lead.name} size={36} gradient={
                   ['from-rose-500 to-pink-400','from-orange-500 to-amber-400','from-teal-500 to-cyan-400','from-sky-500 to-blue-400','from-emerald-500 to-teal-400'][i % 5]
                 } />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[#0F172A] truncate">{lead.name}</p>
+                  <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB] truncate">{lead.name}</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[11px] font-medium text-[#64748B] bg-slate-100 px-1.5 py-0.5 rounded">{lead.assignedExec.split(' ')[0]}</span>
+                    <span className="text-[11px] font-medium text-[#64748B] dark:text-[#9CA3AF] bg-slate-100 px-1.5 py-0.5 rounded">{lead.assignedExec.split(' ')[0]}</span>
                     {lead.value && <span className="text-[11px] font-semibold text-emerald-600">{lead.value}</span>}
                   </div>
                 </div>
@@ -609,9 +609,9 @@ export default function SalesManagerDashboard() {
         transition={{ delay: 0.4, duration: 0.4 }}
         className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6"
       >
-        <h2 className="text-sm font-bold text-[#0F172A] mb-5 flex items-center gap-2">
+        <h2 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-5 flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-[#2563EB]" /> Activity Overview
-          <span className="ml-2 text-xs font-normal text-[#64748B]">· This Week</span>
+          <span className="ml-2 text-xs font-normal text-[#64748B] dark:text-[#9CA3AF]">· This Week</span>
         </h2>
         <div className="grid grid-cols-3 gap-4">
           {[
@@ -629,8 +629,8 @@ export default function SalesManagerDashboard() {
               <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center mb-3 float-anim" style={{ animationDelay: `${i * 0.5}s` }}>
                 <item.icon className="w-5 h-5" style={{ color: item.color }} />
               </div>
-              <p className="text-3xl font-bold text-[#0F172A]" style={{ color: item.color }}>{item.value}</p>
-              <p className="text-xs font-semibold text-[#64748B] mt-1">{item.label}</p>
+              <p className="text-3xl font-bold text-[#0F172A] dark:text-[#F9FAFB]" style={{ color: item.color }}>{item.value}</p>
+              <p className="text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mt-1">{item.label}</p>
             </motion.div>
           ))}
         </div>
@@ -687,7 +687,7 @@ export default function SalesManagerDashboard() {
           transition={{ delay: 0.5, duration: 0.4 }}
           className="xl:col-span-2 bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 flex flex-col"
         >
-          <h2 className="text-sm font-bold text-[#0F172A] mb-5 flex items-center gap-2">
+          <h2 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-5 flex items-center gap-2">
             <Zap className="w-4 h-4 text-cyan-500" /> Quick Actions
           </h2>
           <div className="flex flex-col gap-3 flex-1">

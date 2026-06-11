@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -280,7 +280,7 @@ function Avatar({ name, size = 32, gender, leadId }: { name: string; size?: numb
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-export default function LeadsPage() {
+function LeadsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const addParam = searchParams.get('add');
@@ -1630,7 +1630,7 @@ export default function LeadsPage() {
           style={{ background: '#fff', borderRadius: 18, border: '1.5px solid rgba(226,232,240,0.8)', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginBottom: 18 }}>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+            <table className="table-to-cards" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
               <thead>
                 <tr style={{ background: 'linear-gradient(135deg,#F8FAFC,#F1F5F9)', borderBottom: '1.5px solid #E2E8F0' }}>
                   <th style={{ padding: '14px 16px', textAlign: 'left', width: 40 }}>
@@ -1653,12 +1653,12 @@ export default function LeadsPage() {
                       onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = '#FAFBFF'; }}
                       onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = isSelected ? 'rgba(37,99,235,0.03)' : '#fff'; }}>
 
-                      <td style={{ padding: '14px 16px' }}>
+                      <td data-label="Select" style={{ padding: '14px 16px' }}>
                         <input type="checkbox" checked={isSelected} onChange={() => toggleLead(lead._id)}
                           style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#2563EB' }} />
                       </td>
 
-                      <td style={{ padding: '14px 16px' }}>
+                      <td data-label="Lead / Company" style={{ padding: '14px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           <Avatar name={lead.name} size={36} />
                           <div>
@@ -1668,7 +1668,7 @@ export default function LeadsPage() {
                         </div>
                       </td>
 
-                      <td style={{ padding: '14px 16px' }}>
+                      <td data-label="Phone / Email" style={{ padding: '14px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <Phone size={13} color="#94A3B8" />
                           <span style={{ fontSize: 13, color: '#475569' }}>{lead.phone ?? '—'}</span>
@@ -1681,7 +1681,7 @@ export default function LeadsPage() {
                         )}
                       </td>
 
-                      <td style={{ padding: '14px 16px' }}>
+                      <td data-label="Assigned To" style={{ padding: '14px 16px' }}>
                         {lead.assignedTo ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <Avatar name={lead.assignedTo.name} size={26} />
@@ -1692,14 +1692,14 @@ export default function LeadsPage() {
                         )}
                       </td>
 
-                      <td style={{ padding: '14px 16px' }}><StatusBadge status={lead.status} /></td>
-                      <td style={{ padding: '14px 16px' }}><PriorityBadge priority={lead.priority} /></td>
+                      <td data-label="Status" style={{ padding: '14px 16px' }}><StatusBadge status={lead.status} /></td>
+                      <td data-label="Priority" style={{ padding: '14px 16px' }}><PriorityBadge priority={lead.priority} /></td>
 
-                      <td style={{ padding: '14px 16px' }}>
+                      <td data-label="Last Activity" style={{ padding: '14px 16px' }}>
                         <span style={{ fontSize: 13, color: '#64748B' }}>{formatDate(lead.lastActivity ?? lead.createdAt)}</span>
                       </td>
 
-                      <td style={{ padding: '14px 16px' }}>
+                      <td data-label="Actions" style={{ padding: '14px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={e => e.stopPropagation()}>
                           <button onClick={() => setSelectedLeadId(lead._id)}
                             title="View Lead"
@@ -2530,5 +2530,17 @@ export default function LeadsPage() {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
+  );
+}
+
+export default function LeadsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <span className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+      </div>
+    }>
+      <LeadsPageContent />
+    </Suspense>
   );
 }

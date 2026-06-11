@@ -22,14 +22,14 @@ function StatCard({ label, value, icon: Icon, color, bg }: {
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl border border-slate-200/60 p-5 flex items-center gap-4 hover:shadow-md transition-shadow"
+      className="bg-card rounded-2xl border border-slate-200/60 p-5 flex items-center gap-4 hover:shadow-md transition-shadow"
     >
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${bg}`}>
         <Icon className={`w-5 h-5 ${color}`} />
       </div>
       <div>
-        <p className="text-2xl font-bold text-[#0F172A]">{value}</p>
-        <p className="text-xs text-[#64748B] font-medium">{label}</p>
+        <p className="text-2xl font-bold text-[#0F172A] dark:text-[#F9FAFB]">{value}</p>
+        <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] font-medium">{label}</p>
       </div>
     </motion.div>
   );
@@ -161,21 +161,21 @@ export default function AdminsPage() {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Admins" value={stats.total} icon={Users} color="text-blue-600" bg="bg-blue-50" />
+        <StatCard label="Total Admins" value={stats.total} icon={Users} color="text-[#F59E0B]" bg="bg-amber-50" />
         <StatCard label="Active" value={stats.active} icon={UserCheck} color="text-emerald-600" bg="bg-emerald-50" />
         <StatCard label="Inactive" value={stats.inactive} icon={UserX} color="text-amber-600" bg="bg-amber-50" />
         <StatCard label="Blocked" value={stats.blocked} icon={ShieldOff} color="text-red-600" bg="bg-red-50" />
       </div>
 
       {/* Header + Actions */}
-      <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-card dark:bg-[#111111] rounded-2xl border border-slate-200/60 dark:border-[#1f1f1f] overflow-hidden">
+        <div className="p-5 border-b border-slate-100 dark:border-[#1f1f1f] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold text-[#0F172A]">Admins</h1>
-            <span className="px-2.5 py-0.5 bg-blue-50 text-[#2563EB] text-xs font-bold rounded-full">{sortedAndFiltered.length}</span>
+            <h1 className="text-lg font-bold text-[#0F172A] dark:text-[#ededed]">Admins</h1>
+            <span className="px-2.5 py-0.5 bg-amber-50 dark:bg-amber-500/15 text-[#F59E0B] text-xs font-bold rounded-full">{sortedAndFiltered.length}</span>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={() => setShowAddTenantModal(true)} className="flex items-center gap-1.5 px-4 py-2 bg-[#2563EB] text-white text-xs font-semibold rounded-xl hover:bg-blue-700 transition shadow-sm shadow-blue-500/20">
+            <button onClick={() => setShowAddTenantModal(true)} className="flex items-center gap-1.5 px-4 py-2 bg-[#3B82F6] dark:bg-[#F59E0B] text-white text-xs font-semibold rounded-xl hover:bg-blue-600 dark:hover:bg-amber-600 transition shadow-sm shadow-blue-500/20 dark:shadow-amber-500/20">
               <Plus className="w-4 h-4" /> Add Admin
             </button>
             
@@ -184,7 +184,7 @@ export default function AdminsPage() {
               <select
                 value={sortBy}
                 onChange={e => setSortBy(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white hover:bg-slate-50 transition outline-none text-slate-700"
+                className="appearance-none pl-3 pr-8 py-2 rounded-xl border border-slate-200 dark:border-[#1f1f1f] text-xs font-semibold bg-card hover:bg-slate-50 dark:bg-[#161616] dark:hover:bg-[#161616] transition outline-none text-slate-700 dark:text-[#ededed]"
               >
                 <option value="name-asc">Sort: Name (A-Z)</option>
                 <option value="name-desc">Sort: Name (Z-A)</option>
@@ -199,7 +199,7 @@ export default function AdminsPage() {
               <select
                 value={companyFilter}
                 onChange={e => setCompanyFilter(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white hover:bg-slate-50 transition outline-none text-slate-700"
+                className="appearance-none pl-3 pr-8 py-2 rounded-xl border border-slate-200 dark:border-[#1f1f1f] text-xs font-semibold bg-card hover:bg-slate-50 dark:bg-[#161616] dark:hover:bg-[#161616] transition outline-none text-slate-700 dark:text-[#ededed]"
               >
                 <option value="All">All Companies</option>
                 {uniqueCompanies.map(c => (
@@ -214,7 +214,7 @@ export default function AdminsPage() {
               <select
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value as AdminStatus | 'All')}
-                className="appearance-none pl-8 pr-8 py-2 rounded-xl border border-slate-200 text-xs font-medium bg-white hover:border-slate-300 transition outline-none"
+                className="appearance-none pl-8 pr-8 py-2 rounded-xl border border-slate-200 dark:border-[#1f1f1f] text-xs font-medium bg-card text-slate-700 dark:text-[#ededed] hover:border-slate-300 dark:hover:border-[#333] transition outline-none"
               >
                 <option value="All">All Status</option>
                 <option value="Active">Active</option>
@@ -232,7 +232,7 @@ export default function AdminsPage() {
                   : sortedAndFiltered;
                 exportToCSV(dataToExport, 'admins_list');
               }}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium hover:bg-slate-50 transition text-slate-600 bg-white"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-[#1f1f1f] text-xs font-medium hover:bg-slate-50 dark:bg-[#161616] dark:hover:bg-[#161616] transition text-slate-600 dark:text-[#ededed] bg-white dark:bg-[#111111]"
             >
               <Download className="w-3.5 h-3.5" /> Export
             </button>
@@ -240,15 +240,15 @@ export default function AdminsPage() {
         </div>
 
         {/* Search */}
-        <div className="px-5 py-3 border-b border-slate-100">
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-2 max-w-md hover:border-blue-300 transition">
+        <div className="px-5 py-3 border-b border-slate-100 dark:border-[#1f1f1f]">
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#0a0a0a] border border-slate-200/60 dark:border-[#1f1f1f] rounded-xl px-3 py-2 max-w-md hover:border-amber-300 dark:hover:border-amber-500/50 transition">
             <Search className="w-4 h-4 text-slate-400" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by name, email, company, or admin ID..."
-              className="bg-transparent text-sm outline-none w-full placeholder:text-slate-400"
+              className="bg-transparent text-sm outline-none w-full text-slate-900 dark:text-[#ededed] placeholder:text-slate-400 dark:placeholder:text-[#6B7280]"
             />
           </div>
         </div>
@@ -257,17 +257,17 @@ export default function AdminsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-slate-100">
+              <tr className="border-b border-slate-100 dark:border-[#1f1f1f]">
                 <th className="px-5 py-3 w-10">
                   <input 
                     type="checkbox"
                     checked={sortedAndFiltered.length > 0 && selectedIds.length === sortedAndFiltered.length}
                     onChange={e => handleSelectAll(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-[#2563EB] focus:ring-blue-100" 
+                    className="w-4 h-4 rounded border-slate-300 text-[#F59E0B] focus:ring-amber-100" 
                   />
                 </th>
                 {['Name', 'Admin ID', 'Company', 'Email', 'Phone', 'Plan', 'Status', 'Joined Date', 'Last Login', 'Actions'].map(h => (
-                  <th key={h} className="px-5 py-3 text-[10px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  <th key={h} className="px-5 py-3 text-[10px] font-semibold text-slate-500 dark:text-[#a3a3a3] uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -278,51 +278,51 @@ export default function AdminsPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: i * 0.02 }}
-                  className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
+                  className="border-b border-slate-50 dark:border-[#1f1f1f]/50 hover:bg-slate-50 dark:bg-[#161616]/50 dark:hover:bg-[#161616] transition-colors"
                 >
                   <td className="px-5 py-3">
                     <input 
                       type="checkbox"
                       checked={selectedIds.includes(admin.id)}
                       onChange={e => handleSelectOne(admin.id, e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-300 text-[#2563EB] focus:ring-blue-100" 
+                      className="w-4 h-4 rounded border-slate-300 text-[#F59E0B] focus:ring-amber-100" 
                     />
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-amber-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
                         {admin.avatar}
                       </div>
-                      <span className="text-sm font-medium text-[#0F172A] whitespace-nowrap">{admin.name}</span>
+                      <span className="text-sm font-medium text-[#0F172A] dark:text-[#ededed] whitespace-nowrap">{admin.name}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-3 text-xs text-slate-600 font-mono">{admin.adminId}</td>
-                  <td className="px-5 py-3 text-xs text-slate-700 whitespace-nowrap">
+                  <td className="px-5 py-3 text-xs text-slate-600 dark:text-[#a3a3a3] font-mono">{admin.adminId}</td>
+                  <td className="px-5 py-3 text-xs text-slate-700 dark:text-[#ededed] whitespace-nowrap">
                     <div className="flex items-center gap-1.5">
                       <Building2 className="w-3.5 h-3.5 text-slate-400" />
                       <span>{admin.company}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-3 text-xs text-slate-600">{admin.email}</td>
-                  <td className="px-5 py-3 text-xs text-slate-600 whitespace-nowrap">{admin.phone}</td>
+                  <td className="px-5 py-3 text-xs text-slate-600 dark:text-[#a3a3a3]">{admin.email}</td>
+                  <td className="px-5 py-3 text-xs text-slate-600 dark:text-[#a3a3a3] whitespace-nowrap">{admin.phone}</td>
                   <td className="px-5 py-3">
-                    <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[11px] font-semibold rounded-lg">{admin.plan}</span>
+                    <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-[#F59E0B] text-[11px] font-semibold rounded-lg">{admin.plan}</span>
                   </td>
                   <td className="px-5 py-3"><StatusBadge status={admin.status} /></td>
-                  <td className="px-5 py-3 text-xs text-slate-500 whitespace-nowrap">{admin.joinedDate}</td>
-                  <td className="px-5 py-3 text-xs text-slate-500 whitespace-nowrap">{admin.lastLogin}</td>
+                  <td className="px-5 py-3 text-xs text-slate-500 dark:text-[#6B7280] whitespace-nowrap">{admin.joinedDate}</td>
+                  <td className="px-5 py-3 text-xs text-slate-500 dark:text-[#6B7280] whitespace-nowrap">{admin.lastLogin}</td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-1">
-                      <Link href={`/super-admin/admins/${admin.id}`} className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition" title="View">
+                      <Link href={`/super-admin/admins/${admin.id}`} className="p-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-[#161616] text-slate-400 hover:text-[#F59E0B] transition" title="View">
                         <Eye className="w-3.5 h-3.5" />
                       </Link>
-                      <button onClick={() => router.push(`/super-admin/tenants/${admin.id}?edit=true`)} className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition" title="Edit">
+                      <button onClick={() => router.push(`/super-admin/tenants/${admin.id}?edit=true`)} className="p-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-[#161616] text-slate-400 hover:text-[#F59E0B] transition" title="Edit">
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => handleBlock(admin)} className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-400 hover:text-amber-600 transition" title="Block">
+                      <button onClick={() => handleBlock(admin)} className="p-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-[#161616] text-slate-400 hover:text-amber-600 transition" title="Block">
                         <Ban className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => handleDelete(admin)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition" title="Delete">
+                      <button onClick={() => handleDelete(admin)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition" title="Delete">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>

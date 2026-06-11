@@ -152,7 +152,7 @@ export default function LeadsPage() {
           <p className="text-xs text-slate-500 mt-0.5">Total Assigned: {filtered.length} leads</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 flex-1 sm:w-56 focus-within:border-blue-500 transition">
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#161616] border border-slate-200 rounded-xl px-3 py-2 flex-1 sm:w-56 focus-within:border-blue-500 transition">
             <Search className="w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
@@ -177,7 +177,7 @@ export default function LeadsPage() {
             className={`flex-1 px-4 py-2.5 text-xs font-semibold rounded-xl transition whitespace-nowrap ${
               activeTab === tab
                 ? 'bg-[#2563EB] text-white shadow-sm'
-                : 'text-slate-500 hover:bg-slate-50'
+                : 'text-slate-500 hover:bg-slate-50 dark:bg-[#161616]'
             }`}
           >
             {tab === 'Hot' ? 'Hot 🔥' : tab}
@@ -226,7 +226,7 @@ export default function LeadsPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100">
+                <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100 dark:border-[#1f1f1f]">
                   <div className="text-left sm:text-right shrink-0">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Last Contact</span>
                     <p className="text-[10px] font-semibold text-slate-700 mt-0.5">
@@ -234,13 +234,13 @@ export default function LeadsPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-slate-700 transition" title="Call">
+                    <button className="p-1.5 hover:bg-slate-50 dark:bg-[#161616] rounded-lg text-slate-400 hover:text-slate-700 transition" title="Call">
                       <Phone className="w-3.5 h-3.5" />
                     </button>
-                    <button className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-green-600 transition" title="WhatsApp">
+                    <button className="p-1.5 hover:bg-slate-50 dark:bg-[#161616] rounded-lg text-slate-400 hover:text-green-600 transition" title="WhatsApp">
                       <MessageSquare className="w-3.5 h-3.5" />
                     </button>
-                    <button className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-[#2563EB] transition" title="View Details">
+                    <button className="p-1.5 hover:bg-slate-50 dark:bg-[#161616] rounded-lg text-slate-400 hover:text-[#2563EB] transition" title="View Details">
                       <Eye className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -263,7 +263,7 @@ export default function LeadsPage() {
           {selectedLead ? (
             <div className="flex-1 flex flex-col">
               {/* Slide Header */}
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="p-4 border-b border-slate-100 dark:border-[#1f1f1f] flex items-center justify-between bg-slate-50 dark:bg-[#161616]">
                 <div className="min-w-0">
                   <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lead Detail</h3>
                   <h4 className="text-sm font-bold text-slate-800 mt-1 truncate">{selectedLead.name}</h4>
@@ -275,7 +275,7 @@ export default function LeadsPage() {
               </div>
 
               {/* Slider Tabs */}
-              <div className="flex border-b border-slate-100 text-center text-xs">
+              <div className="flex border-b border-slate-100 dark:border-[#1f1f1f] text-center text-xs">
                 <button
                   onClick={() => setDetailTab('details')}
                   className={`flex-1 py-2.5 font-bold border-b-2 transition
@@ -298,7 +298,7 @@ export default function LeadsPage() {
                   <div className="space-y-4">
                     {/* Basic Info */}
                     <div className="space-y-2">
-                      <p className="font-bold text-slate-800 pb-1 border-b border-slate-100">Basic Info</p>
+                      <p className="font-bold text-slate-800 pb-1 border-b border-slate-100 dark:border-[#1f1f1f]">Basic Info</p>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide block">Email</span>
@@ -320,7 +320,7 @@ export default function LeadsPage() {
                     </div>
 
                     {/* Edit Form Fields */}
-                    <div className="space-y-3 pt-2 border-t border-slate-100">
+                    <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-[#1f1f1f]">
                       <p className="font-bold text-slate-800">Lead Status & Priority</p>
                       
                       <div>
@@ -379,7 +379,7 @@ export default function LeadsPage() {
                     </div>
 
                     {/* Win probability bar */}
-                    <div className="pt-2 border-t border-slate-100">
+                    <div className="pt-2 border-t border-slate-100 dark:border-[#1f1f1f]">
                       <div className="flex justify-between text-[10px] text-slate-500 font-bold mb-1">
                         <span>Win Probability (AI)</span>
                         <span>{selectedLead.conversion_probability || 50}%</span>
@@ -391,7 +391,7 @@ export default function LeadsPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <p className="font-bold text-slate-800 pb-1 border-b border-slate-100">Timeline Activity</p>
+                    <p className="font-bold text-slate-800 pb-1 border-b border-slate-100 dark:border-[#1f1f1f]">Timeline Activity</p>
                     <div className="relative border-l border-slate-200 pl-4 ml-2 space-y-4">
                       {activities.map((act, idx) => (
                         <div key={idx} className="relative">
@@ -433,11 +433,11 @@ export default function LeadsPage() {
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-xs pb-1 border-b border-slate-100">
+          <div className="flex items-center justify-between text-xs pb-1 border-b border-slate-100 dark:border-[#1f1f1f]">
             <span className="font-bold text-slate-500 uppercase tracking-wider">Converted Leads</span>
             <span className="font-extrabold text-green-600">12 Leads</span>
           </div>
-          <div className="flex items-center justify-between text-xs pb-1 border-b border-slate-100">
+          <div className="flex items-center justify-between text-xs pb-1 border-b border-slate-100 dark:border-[#1f1f1f]">
             <span className="font-bold text-slate-500 uppercase tracking-wider">Lost Leads</span>
             <span className="font-extrabold text-slate-400">4 Leads</span>
           </div>
@@ -458,7 +458,7 @@ export default function LeadsPage() {
             <span className="text-xl font-extrabold text-slate-800">₹8,520</span>
             <span className="text-[10px] text-slate-400">average CPL</span>
           </div>
-          <button onClick={() => router.push('/sales/dashboard')} className="w-full mt-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition">
+          <button onClick={() => router.push('/sales/dashboard')} className="w-full mt-3 py-1.5 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition">
             View Analytics Report
           </button>
         </div>
@@ -477,7 +477,7 @@ export default function LeadsPage() {
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl relative z-10 space-y-4"
             >
-              <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-[#1f1f1f]">
                 <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Create Manual Lead</h3>
                 <button onClick={() => setIsAddModalOpen(false)} className="p-1 hover:bg-slate-100 rounded-xl transition text-slate-400 hover:text-slate-600">
                   <X className="w-4 h-4" />

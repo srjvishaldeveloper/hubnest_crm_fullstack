@@ -51,12 +51,12 @@ export default function MarketingLeadsSegmentsPage() {
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{item.date}</span>
               </div>
               <h3 className="text-sm font-bold text-slate-900 mt-3.5">{item.name}</h3>
-              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed font-mono text-[10px] bg-slate-50 p-2 rounded-lg border border-slate-100">
+              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed font-mono text-[10px] bg-slate-50 dark:bg-[#161616] p-2 rounded-lg border border-slate-100 dark:border-[#1f1f1f]">
                 {item.criteria}
               </p>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end">
+            <div className="mt-6 pt-4 border-t border-slate-100 dark:border-[#1f1f1f] flex items-center justify-end">
               <button className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700">
                 View Leads
               </button>
@@ -68,7 +68,7 @@ export default function MarketingLeadsSegmentsPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-slate-200/60 w-full max-w-md overflow-hidden shadow-xl">
-            <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-[#1f1f1f] flex justify-between items-center bg-slate-50 dark:bg-[#161616]">
               <h3 className="text-sm font-bold text-slate-900">Create Lead Segment</h3>
               <button onClick={() => setShowModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition">
                 <X className="w-4 h-4" />

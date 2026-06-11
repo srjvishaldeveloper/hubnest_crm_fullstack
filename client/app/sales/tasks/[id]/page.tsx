@@ -101,7 +101,7 @@ export default function TaskDetailPage({ params }: PageProps) {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-55 bg-slate-50 p-3.5 rounded-xl">
+        <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-55 bg-slate-50 dark:bg-[#161616] p-3.5 rounded-xl">
           <div>
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide block">Scheduled At</span>
             <span className="font-semibold text-slate-800">{new Date(task.scheduled_at).toLocaleString()}</span>
@@ -113,7 +113,7 @@ export default function TaskDetailPage({ params }: PageProps) {
         </div>
 
         {/* Lead Details Card */}
-        <div className="space-y-3 pt-3 border-t border-slate-100">
+        <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-[#1f1f1f]">
           <h4 className="font-bold text-slate-800">Associated Lead Info</h4>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -132,7 +132,7 @@ export default function TaskDetailPage({ params }: PageProps) {
         </div>
 
         {/* Notes Form */}
-        <div className="space-y-2 pt-3 border-t border-slate-100">
+        <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-[#1f1f1f]">
           <label className="font-bold text-slate-800 block">Task Notes & Outcome</label>
           <textarea
             rows={4}
@@ -144,7 +144,7 @@ export default function TaskDetailPage({ params }: PageProps) {
         </div>
 
         {/* Action Controls */}
-        <div className="flex gap-2.5 pt-4 border-t border-slate-100">
+        <div className="flex gap-2.5 pt-4 border-t border-slate-100 dark:border-[#1f1f1f]">
           <button
             onClick={() => handleUpdateStatus('Done')}
             className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm shadow-green-500/10"

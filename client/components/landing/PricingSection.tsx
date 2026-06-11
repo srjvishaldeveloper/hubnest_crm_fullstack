@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { Check, Zap, Building2 } from 'lucide-react';
 
 const PLANS = [
   {
@@ -12,6 +12,7 @@ const PLANS = [
     period: '/mo',
     featured: false,
     cta: 'Choose Starter',
+    icon: Check,
     features: [
       'Up to 5 users',
       '1,000 leads',
@@ -26,6 +27,7 @@ const PLANS = [
     period: '/mo',
     featured: true,
     cta: 'Choose Pro',
+    icon: Zap,
     features: [
       'Up to 25 users',
       'Unlimited leads',
@@ -41,6 +43,7 @@ const PLANS = [
     period: '',
     featured: false,
     cta: 'Choose Enterprise',
+    icon: Building2,
     features: [
       'Unlimited users',
       'Custom roles',
@@ -53,7 +56,7 @@ const PLANS = [
 
 export default function PricingSection() {
   return (
-    <section id="pricing" className="bg-white py-14">
+    <section id="pricing" className="bg-[#F8FAFC] dark:bg-[#0a0a0a] py-20 transition-colors duration-200">
       <div className="mx-auto w-full max-w-[90%] xl:max-w-[85%] 2xl:max-w-[1600px] px-4 sm:px-8 lg:px-16">
 
         {/* Header */}
@@ -62,18 +65,22 @@ export default function PricingSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-10"
+          className="text-center mb-14"
         >
-          <h2 className="text-4xl sm:text-5xl font-serif text-slate-900">
+          <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold tracking-widest uppercase px-4 py-2 rounded-full mb-6">
+            <Zap className="w-3.5 h-3.5" />
+            Simple Pricing
+          </div>
+          <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-[#ededed] tracking-tight">
             Simple, scalable pricing
           </h2>
-          <p className="mt-4 text-slate-500 text-lg">
+          <p className="mt-4 text-slate-600 dark:text-[#737373] text-lg">
             Pick a plan and upgrade as you grow.
           </p>
         </motion.div>
 
         {/* Plans */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-start mt-6">
           {PLANS.map((plan, i) => (
             <motion.div
               key={plan.name}
@@ -81,38 +88,43 @@ export default function PricingSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1, duration: 0.55 }}
-              className={`relative rounded-2xl p-8 flex flex-col ${
+              className={`relative rounded-2xl flex flex-col transition-all duration-300 ${
                 plan.featured
-                  ? 'border-2 border-blue-600 shadow-lg shadow-blue-100'
-                  : 'border border-slate-200'
+                  ? 'bg-white dark:bg-[#111111] border-2 border-orange-500/50 shadow-[0_0_40px_rgba(249,115,22,0.12)] pt-10 px-8 pb-8'
+                  : 'bg-white dark:bg-[#111111] border border-slate-200 dark:border-[#1f1f1f] hover:border-slate-300 dark:hover:border-[#2a2a2a] hover:shadow-[0_0_20px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_0_20px_rgba(0,0,0,0.5)] shadow-sm dark:shadow-none p-8'
               }`}
             >
               {/* Most Popular badge */}
               {plan.featured && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                  <span className="bg-blue-600 text-white text-[11px] font-semibold px-4 py-1 rounded-full">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
+                  <span className="bg-orange-500 text-slate-900 dark:text-white text-xs font-black px-5 py-1.5 rounded-full whitespace-nowrap border-2 border-[#111] shadow-lg shadow-orange-500/40">
                     Most Popular
                   </span>
                 </div>
               )}
 
+              {/* Gradient top line for featured */}
+              {plan.featured && (
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-orange-500 to-green-400 rounded-t-2xl" />
+              )}
+
               {/* Plan header */}
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-slate-900">{plan.name}</h3>
-                <p className="text-slate-500 text-sm mt-1">{plan.desc}</p>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-[#ededed]">{plan.name}</h3>
+                <p className="text-slate-600 dark:text-[#737373] text-sm mt-1">{plan.desc}</p>
               </div>
 
               {/* Price */}
               <div className="mb-6">
-                <span className={`leading-none tracking-tight ${
+                <span className={`leading-none tracking-tight text-slate-900 dark:text-[#ededed] ${
                   plan.price === 'Custom'
-                    ? 'text-4xl font-serif text-slate-900'
-                    : 'text-4xl font-bold text-slate-900'
+                    ? 'text-4xl font-bold'
+                    : 'text-4xl font-black'
                 }`}>
                   {plan.price}
                 </span>
                 {plan.period && (
-                  <span className="text-slate-400 text-base ml-1">{plan.period}</span>
+                  <span className="text-slate-500 dark:text-[#555] text-base ml-1">{plan.period}</span>
                 )}
               </div>
 
@@ -120,8 +132,10 @@ export default function PricingSection() {
               <ul className="space-y-3 mb-8 flex-1">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span className="text-sm text-slate-600">{f}</span>
+                    <div className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${plan.featured ? 'bg-orange-500/20' : 'bg-green-500/15'}`}>
+                      <Check className={`w-2.5 h-2.5 ${plan.featured ? 'text-orange-400' : 'text-green-400'}`} />
+                    </div>
+                    <span className="text-sm text-slate-600 dark:text-[#a3a3a3]">{f}</span>
                   </li>
                 ))}
               </ul>
@@ -129,10 +143,10 @@ export default function PricingSection() {
               {/* CTA */}
               <Link
                 href="/auth/login"
-                className={`block text-center text-sm font-semibold py-3 rounded-xl transition-colors ${
+                className={`block text-center text-sm font-bold py-3 rounded-xl transition-all duration-200 ${
                   plan.featured
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+                    ? 'bg-orange-500 hover:bg-orange-600 text-slate-900 dark:text-white shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30 hover:-translate-y-0.5'
+                    : 'bg-slate-50 dark:bg-[#1a1a1a] border border-slate-200 dark:border-[#222] text-slate-600 dark:text-[#a3a3a3] hover:bg-slate-100 dark:hover:bg-[#1f1f1f] hover:text-slate-900 dark:hover:text-[#ededed] hover:border-slate-300 dark:hover:border-[#333]'
                 }`}
               >
                 {plan.cta}

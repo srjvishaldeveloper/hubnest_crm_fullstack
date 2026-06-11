@@ -50,6 +50,16 @@ async function login(payload: LoginPayload): Promise<LoginResponse> {
   return data.data;
 }
 
+async function sendPhoneOtp(phone: string): Promise<{ userId: string; maskedPhone: string; message: string }> {
+  const { data } = await api.post<{ data: { userId: string; maskedPhone: string; message: string } }>('/auth/send-phone-otp', { phone });
+  return data.data;
+}
+
+async function loginWithPhone(phone: string, otp: string): Promise<VerifyOtpResponse> {
+  const { data } = await api.post<{ data: VerifyOtpResponse }>('/auth/login-phone', { phone, otp });
+  return data.data;
+}
+
 async function verifyOtp(payload: VerifyOtpPayload): Promise<VerifyOtpResponse> {
   const { data } = await api.post<{ data: VerifyOtpResponse }>('/auth/verify-otp', payload);
   return data.data;
@@ -81,4 +91,9 @@ async function resetPassword(payload: ResetPasswordPayload): Promise<{ message: 
   return { message: data.message };
 }
 
-export const authService = { login, verifyOtp, resendOtp, refreshToken, logout, forgotPassword, resetPassword };
+async function googleLogin(credential: string): Promise<VerifyOtpResponse> {
+  const { data } = await api.post<{ data: VerifyOtpResponse }>('/auth/google', { credential });
+  return data.data;
+}
+
+export const authService = { login, verifyOtp, resendOtp, refreshToken, logout, forgotPassword, resetPassword, sendPhoneOtp, loginWithPhone, googleLogin };

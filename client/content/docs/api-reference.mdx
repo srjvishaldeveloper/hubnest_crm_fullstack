@@ -1,0 +1,133 @@
+---
+title: API Reference
+description: Complete developer documentation for integrating with the HubNest CRM REST API backend.
+---
+
+### Developer API Overview
+
+All API endpoints are hosted on `https://api.hubnest.com/v1/`. Requests must carry the `Content-Type: application/json` header, and response bodies are formatted as JSON.
+
+---
+
+### Authentication
+
+API authentication is enforced via JWT access tokens. You must include your key in the `Authorization` header:
+
+```http
+Authorization: Bearer YOUR_ACCESS_TOKEN
+```
+
+To request a token, authenticate using your credentials:
+
+#### Request Endpoint
+`POST /api/auth/login`
+
+#### Request JSON Body
+```json
+{
+  "emailOrAdminId": "admin@company.com",
+  "password": "SecurePassword123!"
+}
+```
+
+#### Response JSON Payload
+```json
+{
+  "success": true,
+  "accessToken": "eyJhbGciOiJIUzI1NiIsIn...",
+  "user": {
+    "id": 42,
+    "email": "admin@company.com",
+    "role": "Admin"
+  }
+}
+```
+
+---
+
+### Core Endpoints Reference
+
+#### 1. Create a Lead
+`POST /api/leads`
+
+- **Required Permissions**: `Admin`, `Sales Manager`, `Sales Executive`
+
+##### Request JSON Body
+```json
+{
+  "name": "Jane Doe",
+  "email": "jane.doe@enterprise.com",
+  "phone": "+15550199",
+  "company": "Enterprise Corp",
+  "priority": "Hot"
+}
+```
+
+##### Response JSON Payload
+```json
+{
+  "success": true,
+  "lead": {
+    "id": 1420,
+    "tenant_id": 1,
+    "name": "Jane Doe",
+    "email": "jane.doe@enterprise.com",
+    "phone": "+15550199",
+    "company": "Enterprise Corp",
+    "priority": "Hot",
+    "status": "New",
+    "created_at": "2026-06-08T17:00:00Z"
+  }
+}
+```
+
+#### 2. Fetch Invoices
+`GET /api/finance/invoices`
+
+- **Required Permissions**: `Admin`, `Finance Manager`
+- **Query Parameters**:
+  - `status` (Optional) - Filter by `Draft`, `Sent`, `Paid`, `Overdue`, `Cancelled`.
+  - `page` (Optional) - Page index (defaults to `1`).
+  - `limit` (Optional) - Records per page (defaults to `20`).
+
+##### Request Example
+`GET /api/finance/invoices?status=Sent&page=1&limit=2`
+
+##### Response JSON Payload
+```json
+{
+  "success": true,
+  "invoices": [
+    {
+      "id": 412,
+      "number": "INV-2026-0012",
+      "tenant_id": 1,
+      "amount": 1499.00,
+      "status": "Sent",
+      "due_date": "2026-06-30"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 2,
+    "totalCount": 14
+  }
+}
+```
+
+---
+
+### Rate Limiting
+
+The API server enforces rate limiting to prevent denial-of-service attempts. Rate limiting keys are stored in Redis:
+- **Default Limit**: 100 requests per minute per IP address.
+- **Developer API Keys**: 1,000 requests per minute.
+- **Overlimit Response**: `429 Too Many Requests` status code carrying a Retry-After header.
+
+```json
+{
+  "success": false,
+  "error": "Too Many Requests",
+  "message": "Rate limit exceeded. Please retry in 42 seconds."
+}
+```

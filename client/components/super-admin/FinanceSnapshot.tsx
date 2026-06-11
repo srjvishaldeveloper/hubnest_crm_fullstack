@@ -79,29 +79,38 @@ export default function FinanceSnapshot({ data }: { data?: any }) {
       sub: `${data?.profit_trend || '+0%'} vs last month`,
       positive: data?.profit_trend?.startsWith('+') ?? true,
       points: [40, 50, 46, 62, 73, 85, 80, 103],
-      color: '#2563eb',
+      color: '#F59E0B',
       icon: ArrowUpRight,
-      bgLight: 'bg-blue-50',
-      borderColor: 'border-blue-100',
+      bgLight: 'bg-amber-50',
+      borderColor: 'border-amber-100',
     },
   ];
+
+  const getDarkClasses = (color: string) => {
+    switch (color) {
+      case '#10b981': return 'dark:bg-emerald-500/5 dark:border-emerald-500/20';
+      case '#f59e0b': return 'dark:bg-amber-500/5 dark:border-amber-500/20';
+      case '#F59E0B': return 'dark:bg-amber-500/5 dark:border-amber-500/20';
+      default: return 'dark:bg-amber-500/5 dark:border-amber-500/20';
+    }
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.15 }}
-      className="bg-white rounded-3xl border border-slate-100 p-5 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-300"
+      className="bg-white dark:bg-[#111111] rounded-3xl border border-slate-100 dark:border-[#1f1f1f] p-5 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-300"
     >
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h3 className="font-bold text-[#0F172A] text-base flex items-center gap-2">
-            <Wallet className="w-4 h-4 text-[#2563EB]" />
+          <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-base flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-[#F59E0B] dark:text-[#60A5FA]" />
             Revenue Snapshot
           </h3>
-          <p className="text-xs text-[#64748B] mt-0.5">Revenue, Expenses & Profit — current month</p>
+          <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Revenue, Expenses & Profit — current month</p>
         </div>
-        <span className="text-xs bg-blue-50 text-[#2563EB] font-semibold px-2.5 py-1 rounded-full">
+        <span className="text-xs bg-amber-50 dark:bg-amber-500/15 text-[#F59E0B] dark:text-amber-400 font-semibold px-2.5 py-1 rounded-full">
           June 2026
         </span>
       </div>
@@ -119,18 +128,18 @@ export default function FinanceSnapshot({ data }: { data?: any }) {
             <motion.div
               key={m.label}
               variants={item}
-              className={`${m.bgLight} border ${m.borderColor} rounded-2xl p-4 flex items-center gap-4 hover:shadow-md transition-all duration-300 group`}
+              className={`${m.bgLight} border ${m.borderColor} ${getDarkClasses(m.color)} rounded-2xl p-4 flex items-center gap-4 hover:shadow-md transition-all duration-300 group`}
             >
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0`} style={{ backgroundColor: `${m.color}15` }}>
                 <Icon className="w-5 h-5" style={{ color: m.color }} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[#64748B]">{m.label}</p>
-                <p className="text-xl font-extrabold text-[#0F172A] mt-0.5">{m.value}</p>
+                <p className="text-xs font-medium text-[#64748B] dark:text-[#9CA3AF]">{m.label}</p>
+                <p className="text-xl font-extrabold text-[#0F172A] dark:text-[#F9FAFB] mt-0.5">{m.value}</p>
               </div>
               <Sparkline points={m.points} color={m.color} />
               <span className={`flex items-center gap-0.5 text-xs font-semibold px-2 py-1 rounded-full shrink-0 ${
-                m.positive ? 'text-emerald-700 bg-emerald-100' : 'text-amber-700 bg-amber-100'
+                m.positive ? 'text-emerald-700 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-500/15' : 'text-amber-700 bg-amber-100 dark:text-amber-400 dark:bg-amber-500/15'
               }`}>
                 <TrendIcon className="w-3 h-3" />
                 {m.sub.split(' ')[0]}

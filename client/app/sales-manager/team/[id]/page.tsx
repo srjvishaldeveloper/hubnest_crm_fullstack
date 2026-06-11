@@ -150,7 +150,7 @@ const statusColour = (s: string) => {
     'In Progress': 'bg-blue-50 text-blue-700 border-blue-200',
     Completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   };
-  return m[s] ?? 'bg-slate-50 text-slate-600 border-slate-200';
+  return m[s] ?? 'bg-slate-50 dark:bg-[#161616] text-slate-600 border-slate-200';
 };
 
 const priorityColour = (p: string) => {
@@ -207,7 +207,7 @@ function ScoreRing({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute flex flex-col items-center">
-        <span className="text-2xl font-bold text-[#0F172A]">{score}</span>
+        <span className="text-2xl font-bold text-[#0F172A] dark:text-[#F9FAFB]">{score}</span>
         <span className="text-[10px] text-slate-500 font-medium">/ 100</span>
       </div>
     </div>
@@ -372,14 +372,14 @@ export default function TeamMemberDetailPage() {
       >
         <button
           onClick={() => router.back()}
-          className="flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-sm"
+          className="flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 dark:bg-[#161616] transition-colors shadow-sm"
         >
           <ArrowLeft className="w-4 h-4 text-slate-600" />
         </button>
         <div className="flex items-center gap-1.5 text-sm text-slate-500">
           <span className="font-medium text-slate-700 hover:text-[#2563EB] cursor-pointer" onClick={() => router.back()}>Team</span>
           <ChevronRight className="w-3.5 h-3.5" />
-          <span className="font-semibold text-[#0F172A]">{member.name}</span>
+          <span className="font-semibold text-[#0F172A] dark:text-[#F9FAFB]">{member.name}</span>
         </div>
       </motion.div>
 
@@ -457,8 +457,8 @@ export default function TeamMemberDetailPage() {
               <card.icon className={`w-5 h-5 ${card.ic}`} />
             </div>
             <div className="min-w-0">
-              <p className="text-xl font-bold text-[#0F172A]">{card.value}</p>
-              <p className="text-[11px] text-[#64748B] font-medium leading-tight">{card.label}</p>
+              <p className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB]">{card.value}</p>
+              <p className="text-[11px] text-[#64748B] dark:text-[#9CA3AF] font-medium leading-tight">{card.label}</p>
             </div>
           </motion.div>
         ))}
@@ -475,7 +475,7 @@ export default function TeamMemberDetailPage() {
           <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
             <Target className="w-4 h-4 text-[#2563EB]" />
           </div>
-          <h3 className="text-sm font-bold text-[#0F172A]">Target Progress</h3>
+          <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Target Progress</h3>
           <button
             onClick={() => setShowTargetModal(true)}
             className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-[#2563EB] hover:text-blue-800 transition-colors"
@@ -489,7 +489,7 @@ export default function TeamMemberDetailPage() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="text-sm font-semibold text-[#0F172A]">Revenue Target</p>
+                <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB]">Revenue Target</p>
                 <p className="text-xs text-slate-500 mt-0.5">₹{Number(p.revenueAchieved || 0).toFixed(1).replace(/\.0$/, '')}L achieved of ₹{p.revenueTarget}L</p>
               </div>
               <div className="text-right">
@@ -510,7 +510,7 @@ export default function TeamMemberDetailPage() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="text-sm font-semibold text-[#0F172A]">Leads Converted</p>
+                <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB]">Leads Converted</p>
                 <p className="text-xs text-slate-500 mt-0.5">{p.leadsConverted} converted of {p.leadsTarget} target</p>
               </div>
               <div className="text-right">
@@ -537,7 +537,7 @@ export default function TeamMemberDetailPage() {
         className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden"
       >
         {/* Tab Bar */}
-        <div className="flex border-b border-slate-100 overflow-x-auto scrollbar-hide">
+        <div className="flex border-b border-slate-100 dark:border-[#1f1f1f] overflow-x-auto scrollbar-hide">
           {TABS.map(tab => (
             <button
               key={tab.key}
@@ -545,7 +545,7 @@ export default function TeamMemberDetailPage() {
               className={`flex items-center gap-2 px-5 py-4 text-sm font-semibold whitespace-nowrap transition-all border-b-2 ${
                 activeTab === tab.key
                   ? 'text-[#2563EB] border-[#2563EB] bg-blue-50/50'
-                  : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50'
+                  : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50 dark:bg-[#161616]'
               }`}
             >
               {tab.icon}
@@ -568,7 +568,7 @@ export default function TeamMemberDetailPage() {
               <div className="p-6 space-y-6">
                 {/* Activity Summary */}
                 <div>
-                  <h4 className="text-sm font-bold text-[#0F172A] mb-4 flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-4 flex items-center gap-2">
                     <Zap className="w-4 h-4 text-amber-500" />
                     Activity Summary
                   </h4>
@@ -592,9 +592,9 @@ export default function TeamMemberDetailPage() {
                 {/* Performance chart + AI Score */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Bar chart — last 4 weeks */}
-                  <div className="lg:col-span-2 border border-slate-100 rounded-2xl p-5">
+                  <div className="lg:col-span-2 border border-slate-100 dark:border-[#1f1f1f] rounded-2xl p-5">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
+                      <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] flex items-center gap-2">
                         <BarChart3 className="w-4 h-4 text-[#2563EB]" />
                         Performance — Last 4 Weeks
                       </h4>
@@ -614,10 +614,10 @@ export default function TeamMemberDetailPage() {
                   </div>
 
                   {/* AI Score */}
-                  <div className="border border-slate-100 rounded-2xl p-5 flex flex-col items-center justify-center gap-3">
+                  <div className="border border-slate-100 dark:border-[#1f1f1f] rounded-2xl p-5 flex flex-col items-center justify-center gap-3">
                     <div className="flex items-center gap-2 self-start">
                       <Star className="w-4 h-4 text-amber-500" />
-                      <h4 className="text-sm font-bold text-[#0F172A]">AI Performance Score</h4>
+                      <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">AI Performance Score</h4>
                     </div>
                     <ScoreRing score={p.aiScore} />
                     <div className="text-center">
@@ -636,7 +636,7 @@ export default function TeamMemberDetailPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/60">
+                    <tr className="border-b border-slate-100 dark:border-[#1f1f1f] bg-slate-50 dark:bg-[#161616]/60">
                       {['Contact', 'Company', 'Status', 'Priority', 'Value', 'Created'].map(h => (
                         <th key={h} className="px-5 py-3 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
                       ))}
@@ -649,14 +649,14 @@ export default function TeamMemberDetailPage() {
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.06 }}
-                        className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors"
+                        className="border-b border-slate-50 hover:bg-slate-50 dark:bg-[#161616]/60 transition-colors"
                       >
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                               {lead.name.split(' ').map(n => n[0]).join('')}
                             </div>
-                            <span className="text-sm font-medium text-[#0F172A]">{lead.name}</span>
+                            <span className="text-sm font-medium text-[#0F172A] dark:text-[#F9FAFB]">{lead.name}</span>
                           </div>
                         </td>
                         <td className="px-5 py-3.5 text-sm text-slate-600">{lead.company}</td>
@@ -670,7 +670,7 @@ export default function TeamMemberDetailPage() {
                             {lead.priority}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 text-sm font-semibold text-[#0F172A]">{lead.value}</td>
+                        <td className="px-5 py-3.5 text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB]">{lead.value}</td>
                         <td className="px-5 py-3.5 text-xs text-slate-500">{lead.createdAt}</td>
                       </motion.tr>
                     ))}
@@ -687,7 +687,7 @@ export default function TeamMemberDetailPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/60">
+                    <tr className="border-b border-slate-100 dark:border-[#1f1f1f] bg-slate-50 dark:bg-[#161616]/60">
                       {['Task', 'Status', 'Priority', 'Due Date', 'Related Lead'].map(h => (
                         <th key={h} className="px-5 py-3 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
                       ))}
@@ -700,7 +700,7 @@ export default function TeamMemberDetailPage() {
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.06 }}
-                        className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors"
+                        className="border-b border-slate-50 hover:bg-slate-50 dark:bg-[#161616]/60 transition-colors"
                       >
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2.5">
@@ -709,7 +709,7 @@ export default function TeamMemberDetailPage() {
                               : task.status === 'In Progress'
                               ? <Clock className="w-4 h-4 text-blue-500 flex-shrink-0" />
                               : <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />}
-                            <span className={`text-sm font-medium ${task.status === 'Completed' ? 'line-through text-slate-400' : 'text-[#0F172A]'}`}>
+                            <span className={`text-sm font-medium ${task.status === 'Completed' ? 'line-through text-slate-400' : 'text-[#0F172A] dark:text-[#F9FAFB]'}`}>
                               {task.title}
                             </span>
                           </div>
@@ -777,11 +777,11 @@ export default function TeamMemberDetailPage() {
                             {IconComponent[act.icon] ?? <Activity className="w-3.5 h-3.5" />}
                           </div>
                           {/* Content */}
-                          <div className="flex-1 bg-slate-50 rounded-xl p-3.5 hover:bg-slate-100/70 transition-colors">
+                          <div className="flex-1 bg-slate-50 dark:bg-[#161616] rounded-xl p-3.5 hover:bg-slate-100/70 transition-colors">
                             <div className="flex items-start justify-between gap-2">
                               <div>
                                 <span className="text-xs font-bold text-[#2563EB] uppercase tracking-wide">{act.type}</span>
-                                <p className="text-sm text-[#0F172A] mt-0.5">{act.description}</p>
+                                <p className="text-sm text-[#0F172A] dark:text-[#F9FAFB] mt-0.5">{act.description}</p>
                               </div>
                               <span className="text-[10px] text-slate-400 whitespace-nowrap font-medium flex-shrink-0 mt-0.5">{act.timestamp}</span>
                             </div>
@@ -825,19 +825,19 @@ export default function TeamMemberDetailPage() {
             >
               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
                 {/* Modal Header */}
-                <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                <div className="px-6 py-5 border-b border-slate-100 dark:border-[#1f1f1f] flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
                       <Target className="w-4 h-4 text-[#2563EB]" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-[#0F172A]">Set Member Target</h3>
+                      <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Set Member Target</h3>
                       <p className="text-xs text-slate-500">{member.name} · {member.employeeId}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowTargetModal(false)}
-                    className="w-8 h-8 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
+                    className="w-8 h-8 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 dark:bg-[#161616] transition-colors"
                   >
                     <X className="w-4 h-4 text-slate-500" />
                   </button>
@@ -858,7 +858,7 @@ export default function TeamMemberDetailPage() {
                         placeholder="e.g. 15"
                         value={targetForm.revenueTarget}
                         onChange={e => setTargetForm(f => ({ ...f, revenueTarget: e.target.value }))}
-                        className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] font-medium outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 transition-all"
+                        className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] dark:text-[#F9FAFB] font-medium outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 transition-all"
                       />
                     </div>
                     <p className="text-[10px] text-slate-400 mt-1">Current: ₹{Number(p.revenueAchieved || 0).toFixed(1).replace(/\.0$/, '')}L achieved</p>
@@ -877,14 +877,14 @@ export default function TeamMemberDetailPage() {
                         placeholder="e.g. 40"
                         value={targetForm.leadsTarget}
                         onChange={e => setTargetForm(f => ({ ...f, leadsTarget: e.target.value }))}
-                        className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] font-medium outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 transition-all"
+                        className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] dark:text-[#F9FAFB] font-medium outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 transition-all"
                       />
                     </div>
                     <p className="text-[10px] text-slate-400 mt-1">Current: {p.leadsConverted} converted</p>
                   </div>
 
                   {/* Progress previews */}
-                  <div className="bg-slate-50 rounded-xl p-4 space-y-3">
+                  <div className="bg-slate-50 dark:bg-[#161616] rounded-xl p-4 space-y-3">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Preview</p>
                     <div>
                       <div className="flex justify-between text-xs font-medium text-slate-600 mb-1">
@@ -914,7 +914,7 @@ export default function TeamMemberDetailPage() {
                 </div>
 
                 {/* Modal Footer */}
-                <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <div className="px-6 py-4 border-t border-slate-100 dark:border-[#1f1f1f] flex items-center justify-end gap-3">
                   <button
                     onClick={() => setShowTargetModal(false)}
                     className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"

@@ -66,11 +66,11 @@ export default function AIInsights({ data }: AIInsightsProps) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="rounded-3xl bg-gradient-to-br from-[#2563EB] via-blue-600 to-blue-800 p-5 sm:p-6 shadow-lg shadow-blue-500/10 hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300 relative overflow-hidden"
+      className="rounded-3xl bg-gradient-to-br from-[#F59E0B] via-blue-600 to-blue-800 p-5 sm:p-6 shadow-lg shadow-blue-500/10 hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-300 relative overflow-hidden"
     >
       {/* Background decorative circles */}
-      <div className="absolute -top-16 -right-16 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
-      <div className="absolute -bottom-12 -left-12 w-36 h-36 bg-white/5 rounded-full blur-xl" />
+      <div className="absolute -top-16 -right-16 w-48 h-48 bg-card/5 rounded-full blur-2xl" />
+      <div className="absolute -bottom-12 -left-12 w-36 h-36 bg-card/5 rounded-full blur-xl" />
 
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-5">
@@ -81,7 +81,7 @@ export default function AIInsights({ data }: AIInsightsProps) {
             </h3>
             <p className="text-xs text-blue-200 mt-0.5">Smart recommendations powered by AI</p>
           </div>
-          <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-300 bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/10">
+          <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-300 bg-card/10 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/10">
             <Sparkles className="w-3 h-3" />
             AI Powered
           </span>
@@ -102,7 +102,7 @@ export default function AIInsights({ data }: AIInsightsProps) {
                 className={`p-3.5 rounded-2xl backdrop-blur-sm border transition-all duration-200 hover:scale-[1.01] ${
                   insight.type === 'positive'
                     ? 'bg-white/10 border-white/10'
-                    : 'bg-amber-500/10 border-amber-400/15'
+                    : 'bg-amber-500/10 border-amber-400/20'
                 }`}
               >
                 <div className="flex items-start gap-2.5">
@@ -113,7 +113,7 @@ export default function AIInsights({ data }: AIInsightsProps) {
                       insight.type === 'positive' ? 'text-emerald-300' : 'text-amber-300'
                     }`} />
                   </div>
-                  <p className="text-[13px] text-white/90 leading-relaxed">{insight.text}</p>
+                  <p className="text-[13px] text-white leading-relaxed">{insight.text}</p>
                 </div>
               </motion.div>
             );

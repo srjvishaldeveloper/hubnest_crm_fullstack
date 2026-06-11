@@ -280,7 +280,7 @@ export default function SuperAdminProfilePage() {
 
   // Predefined nice gradient avatar colors
   const avatarPresets = [
-    'from-blue-600 to-blue-400',
+    'from-blue-600 to-amber-400',
     'from-emerald-600 to-emerald-400',
     'from-violet-600 to-violet-400',
     'from-rose-600 to-rose-400',
@@ -424,23 +424,23 @@ export default function SuperAdminProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-[#0F172A]">{t('title')}</h1>
-        <p className="text-xs text-[#64748B] mt-0.5">{t('subtitle')}</p>
+        <h1 className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB]">{t('title')}</h1>
+        <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">{t('subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile Details Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/60 p-6 flex flex-col items-center relative overflow-hidden">
+        <div className="bg-card rounded-2xl border border-slate-200/60 p-6 flex flex-col items-center relative overflow-hidden">
           {photoUrl && (photoUrl.startsWith('http') || photoUrl.startsWith('/')) ? (
-            <img src={photoUrl} alt="Avatar" className="w-20 h-20 rounded-2xl object-cover shadow-md border border-slate-100" />
+            <img src={photoUrl} alt="Avatar" className="w-20 h-20 rounded-2xl object-cover shadow-md border border-slate-100 dark:border-[#1f1f1f]" />
           ) : (
-            <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${avatarBg} flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-blue-500/20`}>
+            <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${avatarBg} flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-amber-500/20`}>
               {name?.[0]?.toUpperCase() || 'S'}
             </div>
           )}
           
-          <h2 className="mt-4 text-base font-bold text-[#0F172A]">{name || 'Super Admin'}</h2>
-          <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-lg border border-blue-100 mt-2">{t('role')}</span>
+          <h2 className="mt-4 text-base font-bold text-[#0F172A] dark:text-[#F9FAFB]">{name || 'Super Admin'}</h2>
+          <span className="px-2.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-lg border border-amber-100 mt-2">{t('role')}</span>
 
           {profileMessage.text && (
             <div className={`w-full mt-4 p-3 rounded-xl border flex items-center gap-2 text-xs font-semibold ${
@@ -452,7 +452,7 @@ export default function SuperAdminProfilePage() {
           )}
 
           {!isEditing ? (
-            <div className="w-full mt-6 space-y-3 pt-6 border-t border-slate-100 text-left">
+            <div className="w-full mt-6 space-y-3 pt-6 border-t border-slate-100 dark:border-[#1f1f1f] text-left">
               <div className="flex items-center gap-3 text-xs text-slate-600">
                 <User className="w-4 h-4 text-slate-400" />
                 <span>{name || 'Super Admin'}</span>
@@ -471,13 +471,13 @@ export default function SuperAdminProfilePage() {
               </div>
               <button
                 onClick={() => setIsEditing(true)}
-                className="w-full mt-4 py-2 bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-100 transition duration-200 flex items-center justify-center gap-1.5"
+                className="w-full mt-4 py-2 bg-slate-50 dark:bg-[#161616] border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-100 transition duration-200 flex items-center justify-center gap-1.5"
               >
                 <Settings className="w-3.5 h-3.5" /> {t('editBtn')}
               </button>
             </div>
           ) : (
-            <form onSubmit={handleUpdateProfile} className="w-full mt-6 space-y-4 pt-6 border-t border-slate-100 text-left">
+            <form onSubmit={handleUpdateProfile} className="w-full mt-6 space-y-4 pt-6 border-t border-slate-100 dark:border-[#1f1f1f] text-left">
               <div>
                 <label className="text-[10px] font-bold text-slate-500 block mb-1">{t('nameLabel')} *</label>
                 <input
@@ -485,7 +485,7 @@ export default function SuperAdminProfilePage() {
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:border-blue-500 outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:border-amber-400 outline-none"
                 />
               </div>
               <div>
@@ -495,7 +495,7 @@ export default function SuperAdminProfilePage() {
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
                   placeholder="e.g. +91 9876543210"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:border-blue-500 outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:border-amber-400 outline-none"
                 />
               </div>
               <div>
@@ -505,7 +505,7 @@ export default function SuperAdminProfilePage() {
                   value={photoUrl}
                   onChange={e => setPhotoUrl(e.target.value)}
                   placeholder="https://example.com/avatar.jpg"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:border-blue-500 outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:border-amber-400 outline-none"
                 />
               </div>
               <div className="flex gap-2 pt-2">
@@ -520,14 +520,14 @@ export default function SuperAdminProfilePage() {
                       setPhotoUrl(user.photoUrl || '');
                     }
                   }}
-                  className="flex-1 py-2 border border-slate-200 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-50 transition"
+                  className="flex-1 py-2 border border-slate-200 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-50 dark:bg-[#161616] transition"
                 >
                   {t('cancelBtn')}
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingProfile}
-                  className="flex-1 py-2 bg-[#2563EB] text-white text-xs font-semibold rounded-xl hover:bg-blue-700 transition disabled:opacity-50"
+                  className="flex-1 py-2 bg-[#F59E0B] text-white text-xs font-semibold rounded-xl hover:bg-amber-600 transition disabled:opacity-50"
                 >
                   {isSavingProfile ? t('updating') : t('saveBtn')}
                 </button>
@@ -539,9 +539,9 @@ export default function SuperAdminProfilePage() {
         {/* Right Column Forms */}
         <div className="lg:col-span-2 space-y-6">
           {/* Security Credentials */}
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-6">
-            <h3 className="text-xs font-bold text-[#0F172A] uppercase flex items-center gap-1.5">
-              <KeyRound className="w-4 h-4 text-blue-500" /> {t('securityTitle')}
+          <div className="bg-card rounded-2xl border border-slate-200/60 p-6 space-y-6">
+            <h3 className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB] uppercase flex items-center gap-1.5">
+              <KeyRound className="w-4 h-4 text-[#F59E0B]" /> {t('securityTitle')}
             </h3>
             
             {passwordMessage.text && (
@@ -556,14 +556,14 @@ export default function SuperAdminProfilePage() {
             <form onSubmit={handleUpdatePassword} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">{t('currPwd')}</label>
+                  <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">{t('currPwd')}</label>
                   <div className="relative">
                     <input
                       type={showCurrentPassword ? "text" : "password"}
                       value={currentPassword}
                       onChange={e => setCurrentPassword(e.target.value)}
                       placeholder={showCurrentPassword ? t('enterCurrentPwd') : "••••••••"}
-                      className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-500 transition-colors"
+                      className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-amber-400 transition-colors"
                     />
                     <button
                       type="button"
@@ -576,14 +576,14 @@ export default function SuperAdminProfilePage() {
                 </div>
                 <div />
                 <div>
-                  <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">{t('newPwd')}</label>
+                  <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">{t('newPwd')}</label>
                   <div className="relative">
                     <input
                       type={showNewPassword ? "text" : "password"}
                       value={newPassword}
                       onChange={e => setNewPassword(e.target.value)}
                       placeholder={showNewPassword ? t('enterNewPwd') : "••••••••"}
-                      className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-500 transition-colors"
+                      className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-amber-400 transition-colors"
                     />
                     <button
                       type="button"
@@ -595,14 +595,14 @@ export default function SuperAdminProfilePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">{t('confPwd')}</label>
+                  <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">{t('confPwd')}</label>
                   <div className="relative">
                     <input
                       type={showConfirmPassword ? "text" : "password"}
                       value={confirmPassword}
                       onChange={e => setConfirmPassword(e.target.value)}
                       placeholder={showConfirmPassword ? t('confirmNewPwd') : "••••••••"}
-                      className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-500 transition-colors"
+                      className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-amber-400 transition-colors"
                     />
                     <button
                       type="button"
@@ -617,7 +617,7 @@ export default function SuperAdminProfilePage() {
               <button
                 type="submit"
                 disabled={isUpdatingPassword}
-                className="py-2.5 px-4 bg-[#2563EB] text-white text-xs font-semibold rounded-xl hover:bg-blue-700 transition disabled:opacity-50"
+                className="py-2.5 px-4 bg-[#F59E0B] text-white text-xs font-semibold rounded-xl hover:bg-amber-600 transition disabled:opacity-50"
               >
                 {isUpdatingPassword ? t('updatingPassword') : t('updateCreds')}
               </button>
@@ -625,13 +625,13 @@ export default function SuperAdminProfilePage() {
           </div>
 
           {/* Advanced Security */}
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-6">
-            <h3 className="text-xs font-bold text-[#0F172A] uppercase flex items-center gap-1.5">
+          <div className="bg-card rounded-2xl border border-slate-200/60 p-6 space-y-6">
+            <h3 className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB] uppercase flex items-center gap-1.5">
               <ShieldAlert className="w-4 h-4 text-emerald-500" /> {t('advSecurity')}
             </h3>
-            <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50">
+            <div className="flex items-center justify-between p-4 border border-slate-100 dark:border-[#1f1f1f] rounded-xl bg-slate-50 dark:bg-[#161616]/50">
               <div>
-                <h4 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
+                <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] flex items-center gap-2">
                   <Smartphone className="w-4 h-4" /> {t('twoFactor')}
                 </h4>
                 <p className="text-xs text-slate-500 mt-1">{t('twoFactorDesc')}</p>
@@ -640,13 +640,13 @@ export default function SuperAdminProfilePage() {
                 onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${twoFactorEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
               >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
             </div>
             
             <div className="space-y-3">
               <div className="flex items-center justify-between mt-4">
-                <h4 className="text-xs font-bold text-[#0F172A] uppercase">{t('activeSessions')}</h4>
+                <h4 className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB] uppercase">{t('activeSessions')}</h4>
                 {sessions.filter(s => s.token !== currentRefreshToken).length > 0 && (
                   <button
                     onClick={handleLogoutOtherDevices}
@@ -674,13 +674,13 @@ export default function SuperAdminProfilePage() {
                   {sessions.map((s) => {
                     const isCurrent = s.token === currentRefreshToken;
                     return (
-                      <div key={s.id} className="p-3 border border-slate-100 rounded-xl bg-white flex items-center justify-between hover:border-slate-200 transition-colors">
+                      <div key={s.id} className="p-3 border border-slate-100 dark:border-[#1f1f1f] rounded-xl bg-card flex items-center justify-between hover:border-slate-200 transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isCurrent ? 'bg-blue-50' : 'bg-slate-100'}`}>
-                            <Monitor className={`w-4 h-4 ${isCurrent ? 'text-blue-500' : 'text-slate-500'}`} />
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isCurrent ? 'bg-amber-50' : 'bg-slate-100'}`}>
+                            <Monitor className={`w-4 h-4 ${isCurrent ? 'text-[#F59E0B]' : 'text-slate-500'}`} />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-[#0F172A]">{s.device}</p>
+                            <p className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB]">{s.device}</p>
                             {isCurrent ? (
                               <p className="text-[10px] text-emerald-500 font-semibold mt-0.5">{t('currSession')}</p>
                             ) : (
@@ -711,34 +711,34 @@ export default function SuperAdminProfilePage() {
           </div>
 
           {/* Preferences */}
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-6">
-            <h3 className="text-xs font-bold text-[#0F172A] uppercase flex items-center gap-1.5">
+          <div className="bg-card rounded-2xl border border-slate-200/60 p-6 space-y-6">
+            <h3 className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB] uppercase flex items-center gap-1.5">
               <Settings className="w-4 h-4 text-purple-500" /> {t('preferences')}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50">
+              <div className="flex items-center justify-between p-4 border border-slate-100 dark:border-[#1f1f1f] rounded-xl bg-slate-50 dark:bg-[#161616]/50">
                 <div>
-                  <h4 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] flex items-center gap-2">
                     <Bell className="w-4 h-4" /> {t('emailAlerts')}
                   </h4>
                   <p className="text-xs text-slate-500 mt-1">{t('emailAlertsDesc')}</p>
                 </div>
                 <button 
                   onClick={() => setEmailNotifications(!emailNotifications)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${emailNotifications ? 'bg-[#2563EB]' : 'bg-slate-300'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${emailNotifications ? 'bg-[#F59E0B]' : 'bg-slate-300'}`}
                 >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${emailNotifications ? 'translate-x-6' : 'translate-x-1'}`} />
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${emailNotifications ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
               </div>
               
-              <div className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 flex flex-col justify-center">
-                <label className="text-xs font-bold text-[#0F172A] mb-2 flex items-center gap-2">
+              <div className="p-4 border border-slate-100 dark:border-[#1f1f1f] rounded-xl bg-slate-50 dark:bg-[#161616]/50 flex flex-col justify-center">
+                <label className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-2 flex items-center gap-2">
                   <Globe className="w-4 h-4" /> {t('language')}
                 </label>
                 <select 
                   value={language}
                   onChange={(e) => handleLanguageChange(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500"
+                  className="w-full bg-card border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-amber-400"
                 >
                   <option value="en">English (US)</option>
                   <option value="es">Español</option>
@@ -752,7 +752,7 @@ export default function SuperAdminProfilePage() {
       </div>
 
       {/* Logout Card */}
-      <div className="bg-white p-5 rounded-2xl border border-red-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-card p-5 rounded-2xl border border-red-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <h4 className="text-sm font-bold text-slate-800">{t('sessionMgmt')}</h4>
           <p className="text-xs text-slate-400">{t('sessionMgmtDesc')}</p>

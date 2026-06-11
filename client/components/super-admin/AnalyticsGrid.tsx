@@ -14,7 +14,7 @@ import {
 
 /* ── Department Distribution ──────────────── */
 const DEPT_DATA = [
-  { name: 'Sales', value: 480, color: '#2563EB' },
+  { name: 'Sales', value: 480, color: '#3B82F6' },
   { name: 'Support', value: 320, color: '#F59E0B' },
   { name: 'Marketing', value: 240, color: '#EC4899' },
   { name: 'Engineering', value: 180, color: '#8B5CF6' },
@@ -80,13 +80,13 @@ export default function AnalyticsGrid() {
       className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
     >
       {/* ── Department Distribution ─────────── */}
-      <motion.div variants={item} className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-xl transition-all duration-300">
+      <motion.div variants={item} className="bg-card rounded-3xl border border-slate-100 dark:border-[#1f1f1f] p-5 shadow-sm hover:shadow-xl transition-all duration-300">
         <div className="mb-4">
-          <h3 className="font-bold text-[#0F172A] text-sm flex items-center gap-2">
+          <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm flex items-center gap-2">
             <Building2 className="w-4 h-4 text-[#8B5CF6]" />
             Department Distribution
           </h3>
-          <p className="text-[11px] text-[#64748B] mt-0.5">Users across departments</p>
+          <p className="text-[11px] text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Users across departments</p>
         </div>
         <div className="relative">
           <ResponsiveContainer width="100%" height={160}>
@@ -101,20 +101,20 @@ export default function AnalyticsGrid() {
           {DEPT_DATA.map((d) => (
             <div key={d.name} className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
-              <span className="text-[10px] text-[#64748B] truncate">{d.name}</span>
+              <span className="text-[10px] text-[#64748B] dark:text-[#9CA3AF] truncate">{d.name}</span>
             </div>
           ))}
         </div>
       </motion.div>
 
       {/* ── System Usage ───────────────────── */}
-      <motion.div variants={item} className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-xl transition-all duration-300">
+      <motion.div variants={item} className="bg-card rounded-3xl border border-slate-100 dark:border-[#1f1f1f] p-5 shadow-sm hover:shadow-xl transition-all duration-300">
         <div className="mb-4">
-          <h3 className="font-bold text-[#0F172A] text-sm flex items-center gap-2">
-            <MonitorSmartphone className="w-4 h-4 text-[#2563EB]" />
+          <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm flex items-center gap-2">
+            <MonitorSmartphone className="w-4 h-4 text-[#F59E0B]" />
             System Usage
           </h3>
-          <p className="text-[11px] text-[#64748B] mt-0.5">API calls & page views</p>
+          <p className="text-[11px] text-[#64748B] dark:text-[#9CA3AF] mt-0.5">API calls & page views</p>
         </div>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={USAGE_DATA}>
@@ -122,20 +122,20 @@ export default function AnalyticsGrid() {
             <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="api" fill="#2563EB" radius={[4, 4, 0, 0]} barSize={10} />
+            <Bar dataKey="api" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={10} />
             <Bar dataKey="page" fill="#93c5fd" radius={[4, 4, 0, 0]} barSize={10} />
           </BarChart>
         </ResponsiveContainer>
       </motion.div>
 
       {/* ── Login Trends ───────────────────── */}
-      <motion.div variants={item} className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-xl transition-all duration-300">
+      <motion.div variants={item} className="bg-card rounded-3xl border border-slate-100 dark:border-[#1f1f1f] p-5 shadow-sm hover:shadow-xl transition-all duration-300">
         <div className="mb-4">
-          <h3 className="font-bold text-[#0F172A] text-sm flex items-center gap-2">
+          <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm flex items-center gap-2">
             <LogIn className="w-4 h-4 text-emerald-500" />
             Login Trends
           </h3>
-          <p className="text-[11px] text-[#64748B] mt-0.5">Login attempts this week</p>
+          <p className="text-[11px] text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Login attempts this week</p>
         </div>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={LOGIN_DATA}>
@@ -150,14 +150,14 @@ export default function AnalyticsGrid() {
       </motion.div>
 
       {/* ── Tenant Growth ──────────────────── */}
-      <motion.div variants={item} className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-xl transition-all duration-300">
+      <motion.div variants={item} className="bg-card rounded-3xl border border-slate-100 dark:border-[#1f1f1f] p-5 shadow-sm hover:shadow-xl transition-all duration-300">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-bold text-[#0F172A] text-sm flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-[#2563EB]" />
+            <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-[#F59E0B]" />
               Tenant Growth
             </h3>
-            <p className="text-[11px] text-[#64748B] mt-0.5">New tenants per month</p>
+            <p className="text-[11px] text-[#64748B] dark:text-[#9CA3AF] mt-0.5">New tenants per month</p>
           </div>
           <span className="text-[11px] bg-emerald-50 text-emerald-700 font-semibold px-2 py-1 rounded-full">+18.3%</span>
         </div>
@@ -167,7 +167,7 @@ export default function AnalyticsGrid() {
             <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="tenants" fill="#2563EB" radius={[6, 6, 0, 0]} barSize={16} />
+            <Bar dataKey="tenants" fill="#3B82F6" radius={[6, 6, 0, 0]} barSize={16} />
           </BarChart>
         </ResponsiveContainer>
       </motion.div>

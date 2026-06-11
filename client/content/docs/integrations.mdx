@@ -1,0 +1,28 @@
+---
+title: Integrations
+description: Guide for linking third-party communication, payment, and scheduling APIs.
+---
+
+### Supported Integrations
+
+HubNest CRM integrates natively with popular SaaS tools and APIs to speed up daily operations.
+
+#### 1. Twilio (MFA & SMS Campaigns)
+- **Use Case**: Dispatches OTP passcodes during secure verification and delivers bulk marketing SMS messages.
+- **Setup**: In your Workspace Settings -> Integrations, add your Twilio Account SID, Auth Token, and Sender Number.
+
+#### 2. Resend / SMTP (Transactional Emails)
+- **Use Case**: Sends tenant invitation links, password recovery notifications, and email marketing blasts.
+- **Setup**: Configure your sender domain DNS records (SPF, DKIM) and input your Resend API Key.
+
+#### 3. Stripe & Razorpay (Payments)
+- **Use Case**: Auto-generates invoice checkout links and captures customer payments.
+- **Setup**: Configure webhook listeners targeting `/api/payments/stripe/callback` inside your Stripe Dashboard to reconcile invoices in real time.
+
+#### 4. Slack (Event Notifications)
+- **Use Case**: Stream team updates whenever high-value leads are captured or support tickets are breached.
+- **Setup**: Link a Slack Incoming Webhook URL to specific pipeline events.
+
+#### 5. Google Workspace (Calendar Sync)
+- **Use Case**: Keeps deal appointments and tasks in sync with sales representatives' personal calendars.
+- **Setup**: Complete OAuth2 flow inside the User Profile settings.

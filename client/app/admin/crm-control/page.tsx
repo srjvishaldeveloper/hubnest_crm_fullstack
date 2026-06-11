@@ -73,7 +73,7 @@ export default function CRMControlPage() {
                 className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold transition ${
                   subMenuItem === item
                     ? 'bg-[#2563EB]/10 text-[#2563EB]'
-                    : 'text-slate-600 hover:bg-slate-50'
+                    : 'text-slate-600 hover:bg-slate-50 dark:bg-[#161616]'
                 }`}
               >
                 {item}
@@ -89,7 +89,7 @@ export default function CRMControlPage() {
         {/* Header with AI Focus Banner */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200/60 p-6 rounded-2xl shadow-sm">
           <div>
-            <h2 className="text-[22px] font-bold text-[#0F172A]">CRM Modules & Control</h2>
+            <h2 className="text-[22px] font-bold text-[#0F172A] dark:text-[#F9FAFB]">CRM Modules & Control</h2>
             <p className="text-[13px] text-slate-500 mt-1">Configure global workflow parameters, pipeline stages, and analytics triggers.</p>
           </div>
           <div className="flex items-center gap-3 p-3.5 bg-blue-50 border border-blue-100 rounded-xl max-w-sm">
@@ -121,7 +121,7 @@ export default function CRMControlPage() {
                   {k.trend}
                 </span>
               </div>
-              <p className="text-[28px] font-extrabold text-[#0F172A] mt-2 leading-none">{k.value}</p>
+              <p className="text-[28px] font-extrabold text-[#0F172A] dark:text-[#F9FAFB] mt-2 leading-none">{k.value}</p>
             </div>
           ))}
         </div>
@@ -135,7 +135,7 @@ export default function CRMControlPage() {
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${
                 activeTab === tab
                   ? 'bg-[#2563EB] text-white'
-                  : 'text-slate-600 hover:bg-slate-50'
+                  : 'text-slate-600 hover:bg-slate-50 dark:bg-[#161616]'
               }`}
             >
               {tab} Control
@@ -158,10 +158,10 @@ export default function CRMControlPage() {
             <div className="flex-1 overflow-y-auto mt-4 space-y-4 pr-1.5 scrollbar-thin">
               <div className="grid grid-cols-2 gap-3.5">
                 {PIPELINE_COLUMNS.map((col, idx) => (
-                  <div key={idx} className="p-3 border border-slate-100 rounded-xl bg-slate-50/50">
+                  <div key={idx} className="p-3 border border-slate-100 dark:border-[#1f1f1f] rounded-xl bg-slate-50 dark:bg-[#161616]/50">
                     <span className="text-[11px] font-bold text-slate-400 uppercase">{col.stage}</span>
                     <div className="flex justify-between items-baseline mt-1.5">
-                      <span className="text-lg font-bold text-[#0F172A]">{col.count}</span>
+                      <span className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">{col.count}</span>
                       <span className="text-sm font-semibold text-slate-500">{col.value}</span>
                     </div>
                   </div>
@@ -169,10 +169,10 @@ export default function CRMControlPage() {
               </div>
               <div className="space-y-2 mt-2">
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Top Performers</p>
-                <div className="border border-slate-100 rounded-xl overflow-hidden">
+                <div className="border border-slate-100 dark:border-[#1f1f1f] rounded-xl overflow-hidden">
                   <table className="w-full text-left text-sm">
                     <thead>
-                      <tr className="bg-slate-50/60 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase">
+                      <tr className="bg-slate-50 dark:bg-[#161616]/60 border-b border-slate-100 dark:border-[#1f1f1f] text-xs font-bold text-slate-400 uppercase">
                         <th className="px-3 py-2">Agent</th>
                         <th className="px-3 py-2">Conversion</th>
                         <th className="px-3 py-2 text-right">Revenue</th>
@@ -181,7 +181,7 @@ export default function CRMControlPage() {
                     <tbody>
                       {TEAM_PERFORMANCE.map((p, idx) => (
                         <tr key={idx} className="border-b border-slate-50">
-                          <td className="px-3 py-2.5 text-[#0F172A] font-semibold">{p.name}</td>
+                          <td className="px-3 py-2.5 text-[#0F172A] dark:text-[#F9FAFB] font-semibold">{p.name}</td>
                           <td className="px-3 py-2.5 text-emerald-600 font-bold">{p.rate}</td>
                           <td className="px-3 py-2.5 text-right text-slate-600 font-bold">{p.revenue}</td>
                         </tr>
@@ -203,7 +203,7 @@ export default function CRMControlPage() {
               <span className="text-[11px] font-bold text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded-full">ROAS Focus</span>
             </div>
             <div className="flex-1 overflow-y-auto mt-4 space-y-4 pr-1.5 scrollbar-thin">
-              <div className="flex items-center gap-4 bg-slate-50/50 p-3.5 border border-slate-100 rounded-xl">
+              <div className="flex items-center gap-4 bg-slate-50 dark:bg-[#161616]/50 p-3.5 border border-slate-100 dark:border-[#1f1f1f] rounded-xl">
                 <div className="w-24 h-24 shrink-0 relative flex items-center justify-center">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -242,10 +242,10 @@ export default function CRMControlPage() {
               </div>
               <div className="space-y-2">
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Campaign Performance</p>
-                <div className="border border-slate-100 rounded-xl overflow-hidden">
+                <div className="border border-slate-100 dark:border-[#1f1f1f] rounded-xl overflow-hidden">
                   <table className="w-full text-left text-sm">
                     <thead>
-                      <tr className="bg-slate-50/60 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase">
+                      <tr className="bg-slate-50 dark:bg-[#161616]/60 border-b border-slate-100 dark:border-[#1f1f1f] text-xs font-bold text-slate-400 uppercase">
                         <th className="px-3 py-2">Campaign</th>
                         <th className="px-3 py-2">Leads</th>
                         <th className="px-3 py-2 text-right">ROI</th>
@@ -254,7 +254,7 @@ export default function CRMControlPage() {
                     <tbody>
                       {CAMPAIGNS.map((c, idx) => (
                         <tr key={idx} className="border-b border-slate-50">
-                          <td className="px-3 py-2.5 text-[#0F172A] font-semibold">{c.name}</td>
+                          <td className="px-3 py-2.5 text-[#0F172A] dark:text-[#F9FAFB] font-semibold">{c.name}</td>
                           <td className="px-3 py-2.5 text-slate-600">{c.leads}</td>
                           <td className="px-3 py-2.5 text-right text-emerald-600 font-bold">{c.roi}</td>
                         </tr>
@@ -276,7 +276,7 @@ export default function CRMControlPage() {
               <span className="text-[11px] font-bold text-[#DC2626] bg-red-50 px-2 py-0.5 rounded-full">SLA Warning</span>
             </div>
             <div className="flex-1 overflow-y-auto mt-4 space-y-4 pr-1.5 scrollbar-thin">
-              <div className="p-3.5 border border-slate-100 bg-slate-50/50 rounded-xl space-y-2">
+              <div className="p-3.5 border border-slate-100 dark:border-[#1f1f1f] bg-slate-50 dark:bg-[#161616]/50 rounded-xl space-y-2">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-400 font-bold">First Response SLA Adherence</span>
                   <span className="font-extrabold text-[#16A34A]">98.4%</span>
@@ -287,10 +287,10 @@ export default function CRMControlPage() {
               </div>
               <div className="space-y-2">
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Agent Load (Open Tickets)</p>
-                <div className="border border-slate-100 rounded-xl overflow-hidden">
+                <div className="border border-slate-100 dark:border-[#1f1f1f] rounded-xl overflow-hidden">
                   <table className="w-full text-left text-sm">
                     <thead>
-                      <tr className="bg-slate-50/60 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase">
+                      <tr className="bg-slate-50 dark:bg-[#161616]/60 border-b border-slate-100 dark:border-[#1f1f1f] text-xs font-bold text-slate-400 uppercase">
                         <th className="px-3 py-2">Agent</th>
                         <th className="px-3 py-2">Assigned</th>
                         <th className="px-3 py-2 text-right">Avg Time</th>
@@ -299,7 +299,7 @@ export default function CRMControlPage() {
                     <tbody>
                       {AGENTS.map((a, idx) => (
                         <tr key={idx} className="border-b border-slate-50">
-                          <td className="px-3 py-2.5 text-[#0F172A] font-semibold">{a.name}</td>
+                          <td className="px-3 py-2.5 text-[#0F172A] dark:text-[#F9FAFB] font-semibold">{a.name}</td>
                           <td className="px-3 py-2.5 text-slate-600">{a.tickets}</td>
                           <td className="px-3 py-2.5 text-right text-slate-600 font-bold">{a.avgTime}</td>
                         </tr>
@@ -321,7 +321,7 @@ export default function CRMControlPage() {
               <span className="text-[11px] font-bold text-[#16A34A] bg-emerald-50 px-2 py-0.5 rounded-full">On Target</span>
             </div>
             <div className="flex-1 overflow-y-auto mt-4 space-y-4 pr-1.5 scrollbar-thin">
-              <div className="h-28 bg-slate-50 rounded-xl border border-slate-100 p-2">
+              <div className="h-28 bg-slate-50 dark:bg-[#161616] rounded-xl border border-slate-100 dark:border-[#1f1f1f] p-2">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={[{ m: 'Jan', val: 8.2 }, { m: 'Feb', val: 12.4 }, { m: 'Mar', val: 18.6 }, { m: 'Apr', val: 24.5 }]}>
                     <defs>
@@ -348,7 +348,7 @@ export default function CRMControlPage() {
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-400 font-semibold">Subscription Next Run</span>
-                  <span className="font-bold text-[#0F172A]">08 Jun 2026</span>
+                  <span className="font-bold text-[#0F172A] dark:text-[#F9FAFB]">08 Jun 2026</span>
                 </div>
               </div>
             </div>
@@ -406,7 +406,7 @@ export default function CRMControlPage() {
                 <div key={idx} className="space-y-1.5">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-600 font-semibold">{item.label}</span>
-                    <span className="font-bold text-[#0F172A]">{item.value}</span>
+                    <span className="font-bold text-[#0F172A] dark:text-[#F9FAFB]">{item.value}</span>
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div className={`h-full ${item.color} rounded-full`} style={{ width: item.width }} />
@@ -459,7 +459,7 @@ export default function CRMControlPage() {
                 { name: 'Calling API', active: true },
                 { name: 'Payment Gateway', active: true }
               ].map((ig, idx) => (
-                <div key={idx} className="p-3 border border-slate-100 rounded-xl flex items-center justify-between bg-slate-50/50">
+                <div key={idx} className="p-3 border border-slate-100 dark:border-[#1f1f1f] rounded-xl flex items-center justify-between bg-slate-50 dark:bg-[#161616]/50">
                   <span className="text-sm text-slate-600 font-semibold truncate pr-1">{ig.name}</span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className={`w-2 h-2 rounded-full ${ig.active ? 'bg-emerald-500' : 'bg-rose-500'}`} />
@@ -479,15 +479,15 @@ export default function CRMControlPage() {
               <p className="text-[11px] text-slate-500 mt-0.5">User security role boundaries</p>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-3 border border-slate-100 rounded-xl bg-slate-50">
+              <div className="p-3 border border-slate-100 dark:border-[#1f1f1f] rounded-xl bg-slate-50 dark:bg-[#161616]">
                 <span className="text-[22px] font-extrabold text-emerald-600">12</span>
                 <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Full Access</p>
               </div>
-              <div className="p-3 border border-slate-100 rounded-xl bg-slate-50">
+              <div className="p-3 border border-slate-100 dark:border-[#1f1f1f] rounded-xl bg-slate-50 dark:bg-[#161616]">
                 <span className="text-[22px] font-extrabold text-amber-500">45</span>
                 <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Limited</p>
               </div>
-              <div className="p-3 border border-slate-100 rounded-xl bg-slate-50">
+              <div className="p-3 border border-slate-100 dark:border-[#1f1f1f] rounded-xl bg-slate-50 dark:bg-[#161616]">
                 <span className="text-[22px] font-extrabold text-rose-500">3</span>
                 <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">No Access</p>
               </div>
@@ -500,7 +500,7 @@ export default function CRMControlPage() {
               <h3 className="text-[13px] font-extrabold text-slate-400 uppercase tracking-wider">Audit & Activity Logs</h3>
               <p className="text-[11px] text-slate-500 mt-0.5">Last 5 system actions</p>
             </div>
-            <div className="space-y-3 border-l border-slate-100 pl-3.5 ml-1">
+            <div className="space-y-3 border-l border-slate-100 dark:border-[#1f1f1f] pl-3.5 ml-1">
               {[
                 { actor: 'System', action: 'Auto lead assignment rule activated', time: '5m ago' },
                 { actor: 'Amit Patel', action: 'Modified Support SLA compliance margin', time: '32m ago' },
@@ -572,7 +572,7 @@ export default function CRMControlPage() {
               <button
                 key={idx}
                 onClick={() => alert(`Quick Action Triggered: ${act.label}`)}
-                className="p-3 border border-slate-100 hover:border-blue-200 hover:bg-blue-50/20 rounded-xl transition flex flex-col items-center justify-center gap-1.5 bg-slate-50/50"
+                className="p-3 border border-slate-100 dark:border-[#1f1f1f] hover:border-blue-200 hover:bg-blue-50/20 rounded-xl transition flex flex-col items-center justify-center gap-1.5 bg-slate-50 dark:bg-[#161616]/50"
               >
                 <act.icon className="w-4 h-4 text-[#2563EB]" />
                 <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">{act.label}</span>

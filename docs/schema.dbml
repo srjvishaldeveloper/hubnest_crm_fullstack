@@ -1,0 +1,867 @@
+Table "activities" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "user_id" uuid [not null]
+  "lead_id" uuid
+  "type" "character varying(20)" [not null]
+  "outcome" "character varying(50)"
+  "duration_seconds" integer [default: 0]
+  "notes" text
+  "created_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((outcome)::text = ANY ((ARRAY['Connected'::character varying, 'No Answer'::character varying, 'Interested'::character varying, 'Not Interested'::character varying, 'Converted'::character varying, 'Lost'::character varying])::text[]))` [name: 'activities_outcome_check']
+    `((type)::text = ANY ((ARRAY['Call'::character varying, 'Email'::character varying, 'Meeting'::character varying])::text[]))` [name: 'activities_type_check']
+  }
+
+  Indexes {
+    lead_id [type: btree, name: "idx_activities_lead_id"]
+    tenant_id [type: btree, name: "idx_activities_tenant_id"]
+    user_id [type: btree, name: "idx_activities_user_id"]
+  }
+}
+
+Table "campaign_analytics" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "campaign_id" uuid [not null]
+  "date" date [not null]
+  "impressions" integer [not null, default: 0]
+  "clicks" integer [not null, default: 0]
+  "leads" integer [not null, default: 0]
+  "cost" numeric(12,2) [not null, default: 0]
+  "revenue" numeric(12,2) [not null, default: 0]
+  "created_at" timestamp [not null, default: `now()`]
+
+  Indexes {
+    campaign_id [type: btree, name: "idx_camp_analytics_campaign"]
+    date [type: btree, name: "idx_camp_analytics_date"]
+  }
+}
+
+Table "campaigns" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "name" "character varying(255)" [not null]
+  "type" "character varying(100)"
+  "platform" "character varying(100)"
+  "budget_daily" numeric(12,2) [default: 0]
+  "budget_total" numeric(12,2) [default: 0]
+  "start_date" date
+  "end_date" date
+  "status" "character varying(50)" [not null, default: `'Draft'::charactervarying`]
+  "target_audience" jsonb [not null, default: `'{}'::jsonb`]
+  "content" jsonb [not null, default: `'{}'::jsonb`]
+  "created_by" uuid
+  "created_at" timestamp [not null, default: `now()`]
+  "updated_at" timestamp [not null, default: `now()`]
+
+  Indexes {
+    status [type: btree, name: "idx_campaigns_status"]
+    tenant_id [type: btree, name: "idx_campaigns_tenant_id"]
+  }
+}
+
+Table "customers" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "name" "character varying(255)" [not null]
+  "email" "character varying(255)" [not null]
+  "phone" "character varying(50)"
+  "company" "character varying(255)"
+  "status" "character varying(20)" [not null, default: `'Active'::charactervarying`]
+  "created_at" timestamp [not null, default: `now()`]
+  "updated_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((status)::text = ANY ((ARRAY['Active'::character varying, 'Inactive'::character varying])::text[]))` [name: 'customers_status_check']
+  }
+
+  Indexes {
+    (tenant_id, email) [unique, name: "customers_tenant_id_email_key"]
+    status [type: btree, name: "idx_customers_status"]
+    tenant_id [type: btree, name: "idx_customers_tenant_id"]
+  }
+}
+
+Table "expenses" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "category" "character varying(100)" [not null, default: `'General'::charactervarying`]
+  "description" text [not null]
+  "amount" numeric(12,2) [not null, default: 0]
+  "vendor_id" uuid
+  "approved_by" uuid
+  "status" "character varying(20)" [not null, default: `'Pending'::charactervarying`]
+  "expense_date" date [not null, default: `CURRENT_DATE`]
+  "created_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((category)::text = ANY ((ARRAY['Salaries'::character varying, 'Rent'::character varying, 'Utilities'::character varying, 'Marketing'::character varying, 'Travel'::character varying, 'Software'::character varying, 'Hardware'::character varying, 'General'::character varying, 'Other'::character varying, 'Supplies'::character varying, 'Consulting'::character varying])::text[]))` [name: 'expenses_category_check']
+    `((status)::text = ANY ((ARRAY['Pending'::character varying, 'Approved'::character varying, 'Rejected'::character varying, 'Reimbursed'::character varying])::text[]))` [name: 'expenses_status_check']
+  }
+
+  Indexes {
+    category [type: btree, name: "idx_expenses_category"]
+    status [type: btree, name: "idx_expenses_status"]
+    tenant_id [type: btree, name: "idx_expenses_tenant_id"]
+  }
+}
+
+Table "global_settings" {
+  "key" "character varying(255)" [pk, not null]
+  "value" boolean [not null, default: false]
+  "description" text
+}
+
+Table "integrations" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "key" "character varying(50)" [unique, not null]
+  "name" "character varying(100)" [not null]
+  "description" "character varying(255)"
+  "status" "character varying(20)" [not null, default: `'disconnected'::charactervarying`]
+  "config" jsonb [not null, default: `'{}'::jsonb`]
+  "updated_at" timestamp [not null, default: `now()`]
+  "created_at" timestamp [not null, default: `now()`]
+}
+
+Table "invoices" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "invoice_number" "character varying(50)" [not null]
+  "customer_name" "character varying(255)" [not null]
+  "amount" numeric(12,2) [not null, default: 0]
+  "tax" numeric(12,2) [not null, default: 0]
+  "total" numeric(12,2) [not null, default: 0]
+  "status" "character varying(20)" [not null, default: `'Draft'::charactervarying`]
+  "due_date" date [not null]
+  "paid_date" date
+  "created_at" timestamp [not null, default: `now()`]
+  "updated_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((status)::text = ANY ((ARRAY['Draft'::character varying, 'Sent'::character varying, 'Paid'::character varying, 'Overdue'::character varying, 'Cancelled'::character varying])::text[]))` [name: 'invoices_status_check']
+  }
+
+  Indexes {
+    (tenant_id, invoice_number) [unique, name: "invoices_tenant_id_invoice_number_key"]
+    due_date [type: btree, name: "idx_invoices_due_date"]
+    status [type: btree, name: "idx_invoices_status"]
+    tenant_id [type: btree, name: "idx_invoices_tenant_id"]
+  }
+}
+
+Table "knowledge_base_articles" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "title" "character varying(255)" [not null]
+  "content" text [not null]
+  "category" "character varying(100)" [not null]
+  "status" "character varying(20)" [not null, default: `'Draft'::charactervarying`]
+  "views_count" integer [not null, default: 0]
+  "likes_count" integer [not null, default: 0]
+  "dislikes_count" integer [not null, default: 0]
+  "created_by" uuid
+  "created_at" timestamp [not null, default: `now()`]
+  "updated_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((status)::text = ANY ((ARRAY['Draft'::character varying, 'Published'::character varying])::text[]))` [name: 'knowledge_base_articles_status_check']
+  }
+
+  Indexes {
+    category [type: btree, name: "idx_kb_articles_category"]
+    status [type: btree, name: "idx_kb_articles_status"]
+    tenant_id [type: btree, name: "idx_kb_articles_tenant_id"]
+  }
+}
+
+Table "knowledge_base_comments" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "article_id" uuid [not null]
+  "user_id" uuid
+  "is_like" boolean [not null]
+  "created_at" timestamp [not null, default: `now()`]
+}
+
+Table "lead_assignments" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "lead_id" uuid [not null]
+  "assigned_to" uuid [not null]
+  "assigned_by" uuid [not null]
+  "assigned_from" uuid
+  "notes" text
+  "assigned_at" timestamp [not null, default: `now()`]
+
+  Indexes {
+    lead_id [type: btree, name: "idx_lead_assign_lead"]
+    tenant_id [type: btree, name: "idx_lead_assign_tenant"]
+  }
+}
+
+Table "leads_marketing" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "campaign_id" uuid
+  "name" "character varying(255)" [not null]
+  "phone" "character varying(50)"
+  "email" "character varying(255)"
+  "source" "character varying(100)"
+  "platform" "character varying(100)"
+  "status" "character varying(50)" [not null, default: `'New'::charactervarying`]
+  "quality_score" integer [not null, default: 0]
+  "assigned_to" uuid
+  "created_at" timestamp [not null, default: `now()`]
+  "updated_at" timestamp [not null, default: `now()`]
+  "priority" "character varying(10)" [default: `'Warm'::charactervarying`]
+  "company" "character varying(255)"
+  "notes" text
+  "next_followup" timestamp
+  "conversion_probability" integer [default: 0]
+  "assigned_by" uuid
+  "escalated" boolean [default: false]
+
+  Checks {
+    `((conversion_probability >= 0) AND (conversion_probability <= 100))` [name: 'leads_marketing_conversion_probability_check']
+    `((priority)::text = ANY ((ARRAY['Hot'::character varying, 'Warm'::character varying, 'Cold'::character varying])::text[]))` [name: 'leads_marketing_priority_check']
+  }
+
+  Indexes {
+    campaign_id [type: btree, name: "idx_leads_mktg_campaign_id"]
+    tenant_id [type: btree, name: "idx_leads_mktg_tenant_id"]
+  }
+}
+
+Table "login_audit_log" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "user_id" uuid [not null]
+  "event_type" "character varying(50)" [not null]
+  "ip_address" "character varying(45)"
+  "user_agent" text
+  "device_type" "character varying(100)"
+  "browser" "character varying(100)"
+  "os" "character varying(100)"
+  "location" "character varying(255)"
+  "metadata" jsonb [not null, default: `'{}'::jsonb`]
+  "created_at" timestamp [not null, default: `now()`]
+
+  Indexes {
+    created_at [type: btree, name: "idx_login_audit_created"]
+    event_type [type: btree, name: "idx_login_audit_event"]
+    user_id [type: btree, name: "idx_login_audit_user_id"]
+  }
+}
+
+Table "login_logs" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid
+  "user_id" uuid
+  "email" "character varying(255)"
+  "ip_address" "character varying(64)"
+  "user_agent" text
+  "status" "character varying(20)" [not null, default: `'success'::charactervarying`]
+  "created_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((status)::text = ANY ((ARRAY['success'::character varying, 'failed'::character varying, 'blocked'::character varying])::text[]))` [name: 'login_logs_status_check']
+  }
+
+  Indexes {
+    tenant_id [type: btree, name: "idx_login_logs_tenant"]
+    user_id [type: btree, name: "idx_login_logs_user"]
+  }
+}
+
+Table "manager_targets" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "manager_id" uuid [not null]
+  "month" integer [not null]
+  "year" integer [not null]
+  "revenue_target" numeric(14,2) [default: 0]
+  "revenue_achieved" numeric(14,2) [default: 0]
+  "leads_target" integer [default: 0]
+  "leads_converted" integer [default: 0]
+  "team_target" integer [default: 0]
+
+  Checks {
+    `((month >= 1) AND (month <= 12))` [name: 'manager_targets_month_check']
+    `(year >= 2000)` [name: 'manager_targets_year_check']
+  }
+
+  Indexes {
+    (manager_id, month, year) [unique, name: "manager_targets_manager_id_month_year_key"]
+    (manager_id, month, year) [type: btree, name: "idx_manager_targets"]
+  }
+}
+
+Table "otp_tokens" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "user_id" uuid [not null]
+  "otp" "character varying(10)" [not null]
+  "expires_at" timestamp [not null]
+  "used" boolean [not null, default: false]
+  "created_at" timestamp [not null, default: `now()`]
+
+  Indexes {
+    expires_at [type: btree, name: "idx_otp_tokens_expires_at"]
+    used [type: btree, name: "idx_otp_tokens_used"]
+    user_id [type: btree, name: "idx_otp_tokens_user_id"]
+  }
+}
+
+Table "payments" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "invoice_id" uuid
+  "amount" numeric(12,2) [not null, default: 0]
+  "method" "character varying(50)" [not null, default: `'Bank Transfer'::charactervarying`]
+  "reference" "character varying(255)"
+  "status" "character varying(20)" [not null, default: `'Completed'::charactervarying`]
+  "paid_at" timestamp [not null, default: `now()`]
+  "created_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((method)::text = ANY ((ARRAY['Bank Transfer'::character varying, 'Credit Card'::character varying, 'UPI'::character varying, 'Cash'::character varying, 'Cheque'::character varying, 'Other'::character varying])::text[]))` [name: 'payments_method_check']
+    `((status)::text = ANY ((ARRAY['Pending'::character varying, 'Completed'::character varying, 'Failed'::character varying, 'Refunded'::character varying])::text[]))` [name: 'payments_status_check']
+  }
+
+  Indexes {
+    invoice_id [type: btree, name: "idx_payments_invoice_id"]
+    status [type: btree, name: "idx_payments_status"]
+    tenant_id [type: btree, name: "idx_payments_tenant_id"]
+  }
+}
+
+Table "payroll" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "employee_id" uuid
+  "salary" numeric(12,2) [not null, default: 0]
+  "bonus" numeric(12,2) [not null, default: 0]
+  "deductions" numeric(12,2) [not null, default: 0]
+  "net_pay" numeric(12,2) [not null, default: 0]
+  "pay_period" "character varying(20)" [not null]
+  "status" "character varying(20)" [not null, default: `'Pending'::charactervarying`]
+  "paid_at" timestamp
+  "created_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((pay_period)::text = ANY ((ARRAY['Monthly'::character varying, 'Bi-Weekly'::character varying, 'Weekly'::character varying])::text[]))` [name: 'payroll_pay_period_check']
+    `((status)::text = ANY ((ARRAY['Pending'::character varying, 'Processed'::character varying, 'Paid'::character varying, 'Failed'::character varying])::text[]))` [name: 'payroll_status_check']
+  }
+
+  Indexes {
+    employee_id [type: btree, name: "idx_payroll_employee_id"]
+    status [type: btree, name: "idx_payroll_status"]
+    tenant_id [type: btree, name: "idx_payroll_tenant_id"]
+  }
+}
+
+Table "plan_limits" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "plan_id" uuid [not null]
+  "resource" "character varying(100)" [not null]
+  "max_count" integer [not null, default: 0]
+  "created_at" timestamp [not null, default: `now()`]
+
+  Indexes {
+    (plan_id, resource) [unique, name: "plan_limits_plan_id_resource_key"]
+    plan_id [type: btree, name: "idx_plan_limits_plan_id"]
+    resource [type: btree, name: "idx_plan_limits_resource"]
+  }
+}
+
+Table "refresh_tokens" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "user_id" uuid [not null]
+  "token" text [unique, not null]
+  "expires_at" timestamp [not null]
+  "revoked" boolean [not null, default: false]
+  "created_at" timestamp [not null, default: `now()`]
+  "ip_address" "character varying(45)"
+  "user_agent" text
+
+  Indexes {
+    (revoked, expires_at) [type: btree, name: "idx_refresh_tokens_revoked"]
+    token [type: btree, name: "idx_refresh_tokens_token"]
+    user_id [type: btree, name: "idx_refresh_tokens_user_id"]
+  }
+}
+
+Table "roles" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "name" "character varying(100)" [unique, not null]
+  "permissions" jsonb [not null, default: `'{}'::jsonb`]
+  "created_at" timestamp [not null, default: `now()`]
+  "description" text [default: `''::text`]
+
+  Indexes {
+    name [type: btree, name: "idx_roles_name"]
+  }
+}
+
+Table "sales_targets" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "user_id" uuid [not null]
+  "month" integer [not null]
+  "year" integer [not null]
+  "target_amount" numeric(12,2) [default: 0]
+  "achieved_amount" numeric(12,2) [default: 0]
+  "target_leads" integer [default: 0]
+  "converted_leads" integer [default: 0]
+
+  Checks {
+    `((month >= 1) AND (month <= 12))` [name: 'sales_targets_month_check']
+    `(year >= 2000)` [name: 'sales_targets_year_check']
+  }
+
+  Indexes {
+    (user_id, month, year) [unique, name: "sales_targets_user_id_month_year_key"]
+    (user_id, month, year) [type: btree, name: "idx_sales_targets_user"]
+  }
+}
+
+Table "sms_logs" {
+  "id" uuid [pk, not null, default: `gen_random_uuid()`]
+  "user_id" uuid
+  "phone_number" "character varying(20)" [not null]
+  "message_type" "character varying(30)" [not null]
+  "status" "character varying(20)" [not null, default: `'pending'::charactervarying`]
+  "provider" "character varying(20)" [default: `'twilio'::charactervarying`]
+  "provider_sid" "character varying(64)"
+  "sent_at" timestamp [default: `now()`]
+  "delivered_at" timestamp
+  "error_message" text
+  "metadata" jsonb [default: `'{}'::jsonb`]
+  "created_at" timestamp [default: `now()`]
+
+  Checks {
+    `((message_type)::text = ANY ((ARRAY['otp_login'::character varying, 'otp_reset'::character varying, 'credentials'::character varying, 'verification'::character varying, 'custom'::character varying])::text[]))` [name: 'sms_logs_message_type_check']
+    `((status)::text = ANY ((ARRAY['pending'::character varying, 'sent'::character varying, 'delivered'::character varying, 'failed'::character varying])::text[]))` [name: 'sms_logs_status_check']
+  }
+
+  Indexes {
+    phone_number [type: btree, name: "idx_sms_logs_phone"]
+    sent_at [type: btree, name: "idx_sms_logs_sent_at"]
+    status [type: btree, name: "idx_sms_logs_status"]
+    user_id [type: btree, name: "idx_sms_logs_user_id"]
+  }
+}
+
+Table "sms_settings" {
+  "id" uuid [pk, not null, default: `gen_random_uuid()`]
+  "provider_name" "character varying(30)" [default: `'twilio'::charactervarying`]
+  "sender_id" "character varying(20)" [default: `'HubNest'::charactervarying`]
+  "otp_expiry_secs" integer [default: 300]
+  "max_otp_attempts" integer [default: 5]
+  "rate_limit_per_hour" integer [default: 10]
+  "is_enabled" boolean [default: true]
+  "templates" jsonb [default: `'{"otp": "Your HubNest CRM OTP is: {otp}. Valid for {expiry} minutes.", "credentials": "Welcome to HubNest CRM! Login: {email} | Password: {password} | URL: {url}"}'::jsonb`]
+  "updated_at" timestamp [default: `now()`]
+  "updated_by" uuid
+}
+
+Table "subscription_plans" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "name" "character varying(50)" [unique, not null]
+  "slug" "character varying(50)" [unique, not null]
+  "description" text
+  "price_monthly" numeric(10,2) [not null, default: 0]
+  "price_yearly" numeric(10,2) [not null, default: 0]
+  "is_active" boolean [not null, default: true]
+  "sort_order" integer [not null, default: 0]
+  "features" jsonb [not null, default: `'[]'::jsonb`]
+  "created_at" timestamp [not null, default: `now()`]
+  "updated_at" timestamp [not null, default: `now()`]
+
+  Indexes {
+    is_active [type: btree, name: "idx_subscription_plans_active"]
+    slug [type: btree, name: "idx_subscription_plans_slug"]
+  }
+}
+
+Table "support_ticket_messages" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "ticket_id" uuid [not null]
+  "sender_type" "character varying(20)" [not null]
+  "sender_id" uuid [not null]
+  "message" text [not null]
+  "is_internal_note" boolean [not null, default: false]
+  "created_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((sender_type)::text = ANY ((ARRAY['Agent'::character varying, 'Customer'::character varying])::text[]))` [name: 'support_ticket_messages_sender_type_check']
+  }
+
+  Indexes {
+    ticket_id [type: btree, name: "idx_ticket_msgs_ticket_id"]
+  }
+}
+
+Table "support_tickets" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "customer_id" uuid [not null]
+  "assigned_agent_id" uuid
+  "title" "character varying(255)" [not null]
+  "description" text [not null]
+  "category" "character varying(50)" [not null]
+  "priority" "character varying(20)" [not null, default: `'Medium'::charactervarying`]
+  "status" "character varying(20)" [not null, default: `'Open'::charactervarying`]
+  "sla_deadline" timestamp [not null]
+  "satisfaction_rating" integer
+  "satisfaction_feedback" text
+  "created_at" timestamp [not null, default: `now()`]
+  "updated_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((category)::text = ANY ((ARRAY['Technical'::character varying, 'Billing'::character varying, 'General'::character varying])::text[]))` [name: 'support_tickets_category_check']
+    `((priority)::text = ANY ((ARRAY['High'::character varying, 'Medium'::character varying, 'Low'::character varying])::text[]))` [name: 'support_tickets_priority_check']
+    `((satisfaction_rating >= 1) AND (satisfaction_rating <= 5))` [name: 'support_tickets_satisfaction_rating_check']
+    `((status)::text = ANY ((ARRAY['Open'::character varying, 'In Progress'::character varying, 'Resolved'::character varying, 'Closed'::character varying])::text[]))` [name: 'support_tickets_status_check']
+  }
+
+  Indexes {
+    assigned_agent_id [type: btree, name: "idx_tickets_agent_id"]
+    customer_id [type: btree, name: "idx_tickets_customer_id"]
+    status [type: btree, name: "idx_tickets_status"]
+    tenant_id [type: btree, name: "idx_tickets_tenant_id"]
+  }
+}
+
+Table "tasks" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "user_id" uuid [not null]
+  "lead_id" uuid
+  "type" "character varying(20)" [not null]
+  "title" "character varying(255)" [not null]
+  "scheduled_at" timestamp
+  "completed_at" timestamp
+  "status" "character varying(20)" [not null, default: `'Pending'::charactervarying`]
+  "priority" "character varying(10)" [not null, default: `'Medium'::charactervarying`]
+  "notes" text
+  "created_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((priority)::text = ANY ((ARRAY['High'::character varying, 'Medium'::character varying, 'Low'::character varying])::text[]))` [name: 'tasks_priority_check']
+    `((status)::text = ANY ((ARRAY['Pending'::character varying, 'Done'::character varying, 'Missed'::character varying])::text[]))` [name: 'tasks_status_check']
+    `((type)::text = ANY ((ARRAY['Call'::character varying, 'Meeting'::character varying, 'Follow-up'::character varying, 'Email'::character varying])::text[]))` [name: 'tasks_type_check']
+  }
+
+  Indexes {
+    lead_id [type: btree, name: "idx_tasks_lead_id"]
+    status [type: btree, name: "idx_tasks_status"]
+    tenant_id [type: btree, name: "idx_tasks_tenant_id"]
+    user_id [type: btree, name: "idx_tasks_user_id"]
+  }
+}
+
+Table "tax_records" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "tax_type" "character varying(50)" [not null]
+  "amount" numeric(12,2) [not null, default: 0]
+  "period" "character varying(20)" [not null]
+  "status" "character varying(20)" [not null, default: `'Pending'::charactervarying`]
+  "filed_at" timestamp
+  "created_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((status)::text = ANY ((ARRAY['Pending'::character varying, 'Filed'::character varying, 'Paid'::character varying, 'Overdue'::character varying])::text[]))` [name: 'tax_records_status_check']
+    `((tax_type)::text = ANY ((ARRAY['GST'::character varying, 'Income Tax'::character varying, 'TDS'::character varying, 'Professional Tax'::character varying, 'Other'::character varying])::text[]))` [name: 'tax_records_tax_type_check']
+  }
+
+  Indexes {
+    status [type: btree, name: "idx_tax_records_status"]
+    tenant_id [type: btree, name: "idx_tax_records_tenant_id"]
+  }
+}
+
+Table "team_members" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "team_id" uuid [not null]
+  "user_id" uuid [not null]
+  "tenant_id" uuid [not null]
+  "joined_at" timestamp [not null, default: `now()`]
+
+  Indexes {
+    (team_id, user_id) [unique, name: "team_members_team_id_user_id_key"]
+    team_id [type: btree, name: "idx_team_members_team"]
+    user_id [type: btree, name: "idx_team_members_user"]
+  }
+}
+
+Table "teams" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "manager_id" uuid [not null]
+  "name" "character varying(100)" [not null]
+  "description" text
+  "created_at" timestamp [not null, default: `now()`]
+  "updated_at" timestamp [not null, default: `now()`]
+
+  Indexes {
+    (tenant_id, name) [unique, name: "teams_tenant_id_name_key"]
+    manager_id [type: btree, name: "idx_teams_manager_id"]
+    tenant_id [type: btree, name: "idx_teams_tenant_id"]
+  }
+}
+
+Table "tenant_subscriptions" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "plan_id" uuid [not null]
+  "status" "character varying(20)" [not null, default: `'active'::charactervarying`]
+  "billing_cycle" "character varying(20)" [not null, default: `'monthly'::charactervarying`]
+  "started_at" timestamp [not null, default: `now()`]
+  "expires_at" timestamp
+  "cancelled_at" timestamp
+  "created_at" timestamp [not null, default: `now()`]
+  "updated_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((billing_cycle)::text = ANY ((ARRAY['monthly'::character varying, 'yearly'::character varying])::text[]))` [name: 'tenant_sub_billing_check']
+    `((status)::text = ANY ((ARRAY['active'::character varying, 'cancelled'::character varying, 'expired'::character varying, 'trial'::character varying])::text[]))` [name: 'tenant_sub_status_check']
+  }
+
+  Indexes {
+    plan_id [type: btree, name: "idx_tenant_subscriptions_plan"]
+    status [type: btree, name: "idx_tenant_subscriptions_status"]
+    tenant_id [type: btree, name: "idx_tenant_subscriptions_tenant"]
+  }
+}
+
+Table "tenants" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "name" "character varying(255)" [not null]
+  "schema_name" "character varying(100)" [unique, not null]
+  "status" "character varying(20)" [not null, default: `'Active'::charactervarying`]
+  "created_at" timestamp [not null, default: `now()`]
+  "updated_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((status)::text = ANY ((ARRAY['Active'::character varying, 'Inactive'::character varying, 'Suspended'::character varying])::text[]))` [name: 'tenants_status_check']
+  }
+
+  Indexes {
+    schema_name [type: btree, name: "idx_tenants_schema_name"]
+    status [type: btree, name: "idx_tenants_status"]
+  }
+}
+
+Table "usage_tracking" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "resource" "character varying(100)" [not null]
+  "current_count" integer [not null, default: 0]
+  "last_updated" timestamp [not null, default: `now()`]
+
+  Indexes {
+    (tenant_id, resource) [unique, name: "usage_tracking_tenant_id_resource_key"]
+    resource [type: btree, name: "idx_usage_tracking_resource"]
+    tenant_id [type: btree, name: "idx_usage_tracking_tenant"]
+  }
+}
+
+Table "user_mfa_settings" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "user_id" uuid [unique, not null]
+  "mfa_enabled" boolean [not null, default: false]
+  "preferred_method" "character varying(20)" [not null, default: `'email'::charactervarying`]
+  "phone_number" "character varying(20)"
+  "phone_verified" boolean [not null, default: false]
+  "created_at" timestamp [not null, default: `now()`]
+  "updated_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((preferred_method)::text = ANY ((ARRAY['email'::character varying, 'sms'::character varying, 'both'::character varying])::text[]))` [name: 'chk_mfa_method']
+  }
+
+  Indexes {
+    user_id [type: btree, name: "idx_user_mfa_user_id"]
+  }
+}
+
+Table "users" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "role_id" uuid [not null]
+  "name" "character varying(255)" [not null]
+  "email" "character varying(255)" [unique, not null]
+  "admin_id" "character varying(50)" [unique]
+  "password_hash" text [not null]
+  "status" "character varying(20)" [not null, default: `'Active'::charactervarying`]
+  "created_at" timestamp [not null, default: `now()`]
+  "updated_at" timestamp [not null, default: `now()`]
+  "phone" "character varying(50)"
+  "photo_url" text
+  "language" "character varying(10)" [default: `'en'::charactervarying`]
+  "phone_number" "character varying(20)"
+  "country_code" "character varying(5)" [default: `'+91'::charactervarying`]
+  "phone_verified" boolean [default: false]
+  "phone_verified_at" timestamp
+  "preferred_login_method" "character varying(10)" [default: `'email'::charactervarying`]
+  "sms_notifications_enabled" boolean [default: true]
+  "last_sms_sent_at" timestamp
+
+  Checks {
+    `((preferred_login_method)::text = ANY ((ARRAY['email'::character varying, 'phone'::character varying, 'both'::character varying])::text[]))` [name: 'users_preferred_login_method_check']
+    `((status)::text = ANY ((ARRAY['Active'::character varying, 'Inactive'::character varying, 'Suspended'::character varying, 'Archived'::character varying])::text[]))` [name: 'users_status_check']
+  }
+
+  Indexes {
+    admin_id [type: btree, name: "idx_users_admin_id"]
+    email [type: btree, name: "idx_users_email"]
+    phone_number [type: btree, name: "idx_users_phone_number"]
+    phone_verified [type: btree, name: "idx_users_phone_verified"]
+    role_id [type: btree, name: "idx_users_role_id"]
+    status [type: btree, name: "idx_users_status"]
+    tenant_id [type: btree, name: "idx_users_tenant_id"]
+  }
+}
+
+Table "vendors" {
+  "id" uuid [pk, not null, default: `public.uuid_generate_v4()`]
+  "tenant_id" uuid [not null]
+  "name" "character varying(255)" [not null]
+  "email" "character varying(255)"
+  "phone" "character varying(50)"
+  "address" text
+  "category" "character varying(100)" [not null, default: `'General'::charactervarying`]
+  "status" "character varying(20)" [not null, default: `'Active'::charactervarying`]
+  "created_at" timestamp [not null, default: `now()`]
+  "updated_at" timestamp [not null, default: `now()`]
+
+  Checks {
+    `((category)::text = ANY ((ARRAY['General'::character varying, 'Technology'::character varying, 'Services'::character varying, 'Supplies'::character varying, 'Consulting'::character varying, 'Other'::character varying])::text[]))` [name: 'vendors_category_check']
+    `((status)::text = ANY ((ARRAY['Active'::character varying, 'Inactive'::character varying])::text[]))` [name: 'vendors_status_check']
+  }
+
+  Indexes {
+    status [type: btree, name: "idx_vendors_status"]
+    tenant_id [type: btree, name: "idx_vendors_tenant_id"]
+  }
+}
+
+Ref "activities_lead_id_fkey":"leads_marketing"."id" < "activities"."lead_id" [delete: set null]
+
+Ref "activities_tenant_id_fkey":"tenants"."id" < "activities"."tenant_id" [delete: cascade]
+
+Ref "activities_user_id_fkey":"users"."id" < "activities"."user_id" [delete: cascade]
+
+Ref "campaign_analytics_campaign_id_fkey":"campaigns"."id" < "campaign_analytics"."campaign_id" [delete: cascade]
+
+Ref "campaigns_created_by_fkey":"users"."id" < "campaigns"."created_by" [delete: set null]
+
+Ref "campaigns_tenant_id_fkey":"tenants"."id" < "campaigns"."tenant_id" [delete: cascade]
+
+Ref "customers_tenant_id_fkey":"tenants"."id" < "customers"."tenant_id" [delete: cascade]
+
+Ref "expenses_approved_by_fkey":"users"."id" < "expenses"."approved_by" [delete: set null]
+
+Ref "expenses_tenant_id_fkey":"tenants"."id" < "expenses"."tenant_id" [delete: cascade]
+
+Ref "expenses_vendor_id_fkey":"vendors"."id" < "expenses"."vendor_id" [delete: set null]
+
+Ref "invoices_tenant_id_fkey":"tenants"."id" < "invoices"."tenant_id" [delete: cascade]
+
+Ref "knowledge_base_articles_created_by_fkey":"users"."id" < "knowledge_base_articles"."created_by" [delete: set null]
+
+Ref "knowledge_base_articles_tenant_id_fkey":"tenants"."id" < "knowledge_base_articles"."tenant_id" [delete: cascade]
+
+Ref "knowledge_base_comments_article_id_fkey":"knowledge_base_articles"."id" < "knowledge_base_comments"."article_id" [delete: cascade]
+
+Ref "knowledge_base_comments_user_id_fkey":"users"."id" < "knowledge_base_comments"."user_id" [delete: set null]
+
+Ref "lead_assignments_assigned_by_fkey":"users"."id" < "lead_assignments"."assigned_by" [delete: cascade]
+
+Ref "lead_assignments_assigned_from_fkey":"users"."id" < "lead_assignments"."assigned_from" [delete: set null]
+
+Ref "lead_assignments_assigned_to_fkey":"users"."id" < "lead_assignments"."assigned_to" [delete: cascade]
+
+Ref "lead_assignments_lead_id_fkey":"leads_marketing"."id" < "lead_assignments"."lead_id" [delete: cascade]
+
+Ref "lead_assignments_tenant_id_fkey":"tenants"."id" < "lead_assignments"."tenant_id" [delete: cascade]
+
+Ref "leads_marketing_assigned_by_fkey":"users"."id" < "leads_marketing"."assigned_by" [delete: set null]
+
+Ref "leads_marketing_assigned_to_fkey":"users"."id" < "leads_marketing"."assigned_to" [delete: set null]
+
+Ref "leads_marketing_campaign_id_fkey":"campaigns"."id" < "leads_marketing"."campaign_id" [delete: set null]
+
+Ref "leads_marketing_tenant_id_fkey":"tenants"."id" < "leads_marketing"."tenant_id" [delete: cascade]
+
+Ref "login_audit_log_user_id_fkey":"users"."id" < "login_audit_log"."user_id" [delete: cascade]
+
+Ref "login_logs_tenant_id_fkey":"tenants"."id" < "login_logs"."tenant_id" [delete: cascade]
+
+Ref "login_logs_user_id_fkey":"users"."id" < "login_logs"."user_id" [delete: set null]
+
+Ref "manager_targets_manager_id_fkey":"users"."id" < "manager_targets"."manager_id" [delete: cascade]
+
+Ref "manager_targets_tenant_id_fkey":"tenants"."id" < "manager_targets"."tenant_id" [delete: cascade]
+
+Ref "otp_tokens_user_id_fkey":"users"."id" < "otp_tokens"."user_id" [delete: cascade]
+
+Ref "payments_invoice_id_fkey":"invoices"."id" < "payments"."invoice_id" [delete: set null]
+
+Ref "payments_tenant_id_fkey":"tenants"."id" < "payments"."tenant_id" [delete: cascade]
+
+Ref "payroll_employee_id_fkey":"users"."id" < "payroll"."employee_id" [delete: set null]
+
+Ref "payroll_tenant_id_fkey":"tenants"."id" < "payroll"."tenant_id" [delete: cascade]
+
+Ref "plan_limits_plan_id_fkey":"subscription_plans"."id" < "plan_limits"."plan_id" [delete: cascade]
+
+Ref "refresh_tokens_user_id_fkey":"users"."id" < "refresh_tokens"."user_id" [delete: cascade]
+
+Ref "sales_targets_tenant_id_fkey":"tenants"."id" < "sales_targets"."tenant_id" [delete: cascade]
+
+Ref "sales_targets_user_id_fkey":"users"."id" < "sales_targets"."user_id" [delete: cascade]
+
+Ref "sms_logs_user_id_fkey":"users"."id" < "sms_logs"."user_id" [delete: set null]
+
+Ref "sms_settings_updated_by_fkey":"users"."id" < "sms_settings"."updated_by" [delete: set null]
+
+Ref "support_ticket_messages_ticket_id_fkey":"support_tickets"."id" < "support_ticket_messages"."ticket_id" [delete: cascade]
+
+Ref "support_tickets_assigned_agent_id_fkey":"users"."id" < "support_tickets"."assigned_agent_id" [delete: set null]
+
+Ref "support_tickets_customer_id_fkey":"customers"."id" < "support_tickets"."customer_id" [delete: cascade]
+
+Ref "support_tickets_tenant_id_fkey":"tenants"."id" < "support_tickets"."tenant_id" [delete: cascade]
+
+Ref "tasks_lead_id_fkey":"leads_marketing"."id" < "tasks"."lead_id" [delete: set null]
+
+Ref "tasks_tenant_id_fkey":"tenants"."id" < "tasks"."tenant_id" [delete: cascade]
+
+Ref "tasks_user_id_fkey":"users"."id" < "tasks"."user_id" [delete: cascade]
+
+Ref "tax_records_tenant_id_fkey":"tenants"."id" < "tax_records"."tenant_id" [delete: cascade]
+
+Ref "team_members_team_id_fkey":"teams"."id" < "team_members"."team_id" [delete: cascade]
+
+Ref "team_members_tenant_id_fkey":"tenants"."id" < "team_members"."tenant_id" [delete: cascade]
+
+Ref "team_members_user_id_fkey":"users"."id" < "team_members"."user_id" [delete: cascade]
+
+Ref "teams_manager_id_fkey":"users"."id" < "teams"."manager_id" [delete: cascade]
+
+Ref "teams_tenant_id_fkey":"tenants"."id" < "teams"."tenant_id" [delete: cascade]
+
+Ref "tenant_subscriptions_plan_id_fkey":"subscription_plans"."id" < "tenant_subscriptions"."plan_id" [delete: restrict]
+
+Ref "tenant_subscriptions_tenant_id_fkey":"tenants"."id" < "tenant_subscriptions"."tenant_id" [delete: cascade]
+
+Ref "usage_tracking_tenant_id_fkey":"tenants"."id" < "usage_tracking"."tenant_id" [delete: cascade]
+
+Ref "user_mfa_settings_user_id_fkey":"users"."id" < "user_mfa_settings"."user_id" [delete: cascade]
+
+Ref "users_role_id_fkey":"roles"."id" < "users"."role_id"
+
+Ref "users_tenant_id_fkey":"tenants"."id" < "users"."tenant_id" [delete: cascade]
+
+Ref "vendors_tenant_id_fkey":"tenants"."id" < "vendors"."tenant_id" [delete: cascade]

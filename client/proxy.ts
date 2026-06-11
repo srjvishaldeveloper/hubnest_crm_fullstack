@@ -6,7 +6,22 @@ const AUTH_PUBLIC_PATHS = [
   '/auth/login',
   '/auth/verify-otp',
   '/auth/forgot-password',
+  '/auth/register',
+  '/auth/reset-password',
   '/unauthorized',
+  '/docs',
+  '/about',
+  '/integrations',
+  '/changelog',
+  '/careers',
+  '/blog',
+  '/press',
+  '/help-center',
+  '/status',
+  '/privacy',
+  '/terms',
+  '/security',
+  '/compliance',
 ];
 
 const ROLE_DASHBOARD_MAP: Record<string, string> = {

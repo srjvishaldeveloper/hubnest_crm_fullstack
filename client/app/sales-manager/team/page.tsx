@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -158,7 +158,7 @@ function MemberCard({ member, index, router }: { member: TeamMember; index: numb
           {getInitials(member.name)}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-[#0F172A] truncate">{member.name}</p>
+          <p className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] truncate">{member.name}</p>
           <p className="text-[11px] text-slate-500 font-medium mt-0.5">{member.employeeId}</p>
         </div>
         <StatusBadge status={member.status} />
@@ -193,18 +193,18 @@ function MemberCard({ member, index, router }: { member: TeamMember; index: numb
 
       {/* Activity chips */}
       <div className="flex gap-2">
-        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-full px-3 py-1">
+        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#161616] border border-slate-100 dark:border-[#1f1f1f] rounded-full px-3 py-1">
           <Phone className="w-3 h-3 text-blue-500" />
           <span className="text-[11px] font-semibold text-slate-600">{member.callsToday} calls</span>
         </div>
-        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-full px-3 py-1">
+        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#161616] border border-slate-100 dark:border-[#1f1f1f] rounded-full px-3 py-1">
           <Mail className="w-3 h-3 text-violet-500" />
           <span className="text-[11px] font-semibold text-slate-600">{member.emailsToday} emails</span>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+      <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-[#1f1f1f]">
         <button
           onClick={() => router.push(`/sales-manager/team/${member._id}`)}
           className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2563EB] hover:text-blue-800 transition-colors"
@@ -225,7 +225,7 @@ function MemberCard({ member, index, router }: { member: TeamMember; index: numb
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-export default function SalesManagerTeamPage() {
+function SalesManagerTeamPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const addParam = searchParams.get('add');
@@ -459,7 +459,7 @@ export default function SalesManagerTeamPage() {
             <Users className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-[#0F172A]">Team</h1>
+            <h1 className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB]">Team</h1>
             <p className="text-xs text-slate-500 mt-0.5">Sales Executives</p>
           </div>
           <span className="ml-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-100">
@@ -491,7 +491,7 @@ export default function SalesManagerTeamPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search member..."
-              className="pl-9 pr-4 py-2 bg-white border border-slate-200/80 rounded-xl text-sm text-[#0F172A] placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all w-48"
+              className="pl-9 pr-4 py-2 bg-white border border-slate-200/80 rounded-xl text-sm text-[#0F172A] dark:text-[#F9FAFB] placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all w-48"
             />
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
@@ -560,7 +560,7 @@ export default function SalesManagerTeamPage() {
               <s.icon className={`w-5 h-5 ${s.iconColor}`} />
             </div>
             <div className="min-w-0">
-              <p className="text-2xl font-bold text-[#0F172A] truncate">{s.value}</p>
+              <p className="text-2xl font-bold text-[#0F172A] dark:text-[#F9FAFB] truncate">{s.value}</p>
               <p className="text-[11px] text-slate-500 font-medium">{s.label}</p>
               {s.trend && (
                 <p className={`text-[10px] font-semibold mt-0.5 ${s.trendUp ? 'text-emerald-600' : 'text-amber-600'}`}>
@@ -600,7 +600,7 @@ export default function SalesManagerTeamPage() {
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-[#2563EB]" />
-                <h3 className="text-sm font-bold text-[#0F172A]">Performance Comparison</h3>
+                <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Performance Comparison</h3>
               </div>
               <span className="text-[11px] text-slate-400 font-medium">Leads Handled</span>
             </div>
@@ -647,7 +647,7 @@ export default function SalesManagerTeamPage() {
               <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
                 <Award className="w-4 h-4 text-amber-500" />
               </div>
-              <h3 className="text-sm font-bold text-[#0F172A]">Leaderboard</h3>
+              <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Leaderboard</h3>
               <span className="ml-auto text-[10px] text-slate-400 font-medium">By Conversion</span>
             </div>
             <div className="space-y-3">
@@ -668,7 +668,7 @@ export default function SalesManagerTeamPage() {
                     initial={{ opacity: 0, x: 12 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 + i * 0.07 }}
-                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
+                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 dark:bg-[#161616] transition-colors cursor-pointer group"
                     onClick={() => router.push(`/sales-manager/team/${m._id}`)}
                   >
                     <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${rankColors[i]}`}>
@@ -678,7 +678,7 @@ export default function SalesManagerTeamPage() {
                       {getInitials(m.name)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-bold text-[#0F172A] truncate">{m.name.split(' ')[0]}</p>
+                      <p className="text-[12px] font-bold text-[#0F172A] dark:text-[#F9FAFB] truncate">{m.name.split(' ')[0]}</p>
                       <p className="text-[10px] text-slate-500">{m.conversionRate}% conv</p>
                     </div>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 transition-colors" />
@@ -694,7 +694,7 @@ export default function SalesManagerTeamPage() {
               <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
                 <Activity className="w-4 h-4 text-emerald-500" />
               </div>
-              <h3 className="text-sm font-bold text-[#0F172A]">Today's Activity</h3>
+              <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Today's Activity</h3>
             </div>
             <div className="space-y-3">
               {[
@@ -748,12 +748,12 @@ export default function SalesManagerTeamPage() {
               className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden"
             >
               {/* Modal header */}
-              <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
+              <div className="px-6 py-5 border-b border-slate-100 dark:border-[#1f1f1f] flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
                   <UserPlus className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-[#0F172A]">Add Sales Executive</h2>
+                  <h2 className="text-base font-bold text-[#0F172A] dark:text-[#F9FAFB]">Add Sales Executive</h2>
                   <p className="text-[11px] text-slate-500">Fill in the details to onboard a new team member</p>
                 </div>
                 <button
@@ -775,7 +775,7 @@ export default function SalesManagerTeamPage() {
                     value={addForm.name}
                     onChange={e => handleAddChange('name', e.target.value)}
                     placeholder="e.g. Priya Sharma"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-[#0F172A] placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-[#161616] border border-slate-200 rounded-xl text-sm text-[#0F172A] dark:text-[#F9FAFB] placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
                   />
                 </div>
 
@@ -796,7 +796,7 @@ export default function SalesManagerTeamPage() {
                       }}
                       onBlur={handleEmailBlur}
                       placeholder="priya.sharma@jobnest.com"
-                      className={`w-full pl-10 pr-10 py-2.5 bg-slate-50 border rounded-xl text-sm text-[#0F172A] placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500/30 transition-all ${
+                      className={`w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-[#161616] border rounded-xl text-sm text-[#0F172A] dark:text-[#F9FAFB] placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500/30 transition-all ${
                         emailCheckErr ? 'border-red-400 focus:border-red-400' : 'border-slate-200 focus:border-blue-400'
                       }`}
                     />
@@ -825,7 +825,7 @@ export default function SalesManagerTeamPage() {
                       value={addForm.employeeId}
                       onChange={e => handleAddChange('employeeId', e.target.value)}
                       placeholder="EMP-2050"
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-[#0F172A] placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-[#161616] border border-slate-200 rounded-xl text-sm text-[#0F172A] dark:text-[#F9FAFB] placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
                     />
                   </div>
                   <div>
@@ -836,7 +836,7 @@ export default function SalesManagerTeamPage() {
                         value={addForm.mobile}
                         onChange={e => handleAddChange('mobile', e.target.value)}
                         placeholder="+91 9876543210"
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-[#0F172A] placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-[#161616] border border-slate-200 rounded-xl text-sm text-[#0F172A] dark:text-[#F9FAFB] placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
                       />
                     </div>
                   </div>
@@ -867,8 +867,8 @@ export default function SalesManagerTeamPage() {
                       onChange={e => handleAddChange('password', e.target.value)}
                       readOnly={addForm.autoGenPassword}
                       placeholder="Enter password or auto-generate"
-                      className={`w-full pl-10 pr-10 py-2.5 border rounded-xl text-sm text-[#0F172A] placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all ${
-                        addForm.autoGenPassword ? 'bg-blue-50 border-blue-200 font-mono tracking-wider' : 'bg-slate-50 border-slate-200'
+                      className={`w-full pl-10 pr-10 py-2.5 border rounded-xl text-sm text-[#0F172A] dark:text-[#F9FAFB] placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all ${
+                        addForm.autoGenPassword ? 'bg-blue-50 border-blue-200 font-mono tracking-wider' : 'bg-slate-50 dark:bg-[#161616] border-slate-200'
                       }`}
                     />
                     {addForm.password && (
@@ -885,7 +885,7 @@ export default function SalesManagerTeamPage() {
                 </div>
 
                 {/* Send credentials */}
-                <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-blue-50/50 transition-colors">
+                <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-[#161616] rounded-xl border border-slate-200 cursor-pointer hover:bg-blue-50/50 transition-colors">
                   <div
                     onClick={() => handleAddChange('sendCredentials', !addForm.sendCredentials)}
                     className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
@@ -895,7 +895,7 @@ export default function SalesManagerTeamPage() {
                     {addForm.sendCredentials && <Check className="w-3 h-3 text-white" />}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-[#0F172A]">Send Login Credentials</p>
+                    <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB]">Send Login Credentials</p>
                     <p className="text-[11px] text-slate-500">Email login details to the executive</p>
                   </div>
                   <Mail className="w-4 h-4 text-slate-400 ml-auto" />
@@ -903,7 +903,7 @@ export default function SalesManagerTeamPage() {
               </div>
 
               {/* Modal footer */}
-              <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3">
+              <div className="px-6 py-4 border-t border-slate-100 dark:border-[#1f1f1f] flex items-center justify-end gap-3">
                 <button
                   onClick={() => setShowAddModal(false)}
                   className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
@@ -933,5 +933,30 @@ export default function SalesManagerTeamPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function SalesManagerTeamPage() {
+  return (
+    <Suspense fallback={
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-48 bg-slate-200 rounded-xl animate-pulse" />
+          <div className="h-10 w-36 bg-slate-200 rounded-xl animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-24 bg-slate-200 rounded-2xl animate-pulse" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-64 bg-slate-200 rounded-2xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    }>
+      <SalesManagerTeamPageContent />
+    </Suspense>
   );
 }

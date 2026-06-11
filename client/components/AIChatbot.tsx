@@ -170,7 +170,7 @@ export default function AIChatbot() {
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 p-4 overflow-y-auto bg-slate-50 space-y-4">
+          <div className="flex-1 p-4 overflow-y-auto bg-slate-50 dark:bg-[#161616] space-y-4">
             {messages.map((msg, index) => {
               const isUser = msg.role === 'user';
               return (
@@ -228,7 +228,7 @@ export default function AIChatbot() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask me about sales tips, campaigns..."
               disabled={isLoading}
-              className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-orange-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all placeholder-slate-400 disabled:opacity-50"
+              className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-[#161616] border border-orange-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all placeholder-slate-400 disabled:opacity-50"
             />
             <button
               type="submit"

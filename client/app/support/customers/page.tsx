@@ -65,7 +65,7 @@ export default function CustomersPage() {
       {/* Header section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">Customers CRM Directory</h1>
+          <h1 className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB] tracking-tight">Customers CRM Directory</h1>
           <p className="text-xs text-slate-500">Track and manage customer platform activity, tickets, and retention metrics.</p>
         </div>
         
@@ -104,7 +104,7 @@ export default function CustomersPage() {
 
       {/* Customers List Card */}
       <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-4 bg-slate-50 dark:bg-[#161616] border-b border-slate-100 dark:border-[#1f1f1f] flex items-center justify-between">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">All CRM Users ({total})</span>
           <button
             onClick={loadCustomers}
@@ -117,7 +117,7 @@ export default function CustomersPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50">
+              <tr className="border-b border-slate-100 dark:border-[#1f1f1f] text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-[#161616]/50">
                 <th className="p-4 font-semibold">Customer Name</th>
                 <th className="p-4 font-semibold">Contact Info</th>
                 <th className="p-4 font-semibold">Company</th>
@@ -127,7 +127,7 @@ export default function CustomersPage() {
                 <th className="p-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50 text-xs font-medium text-[#0F172A]">
+            <tbody className="divide-y divide-slate-50 text-xs font-medium text-[#0F172A] dark:text-[#F9FAFB]">
               {loading ? (
                 <tr>
                   <td colSpan={7} className="text-center py-12">
@@ -146,7 +146,7 @@ export default function CustomersPage() {
                   <tr
                     key={c.id}
                     onClick={() => router.push(`/support/customers/${c.id}`)}
-                    className="hover:bg-slate-50/60 cursor-pointer transition-all"
+                    className="hover:bg-slate-50 dark:bg-[#161616]/60 cursor-pointer transition-all"
                   >
                     <td className="p-4">
                       <div className="flex items-center gap-3">
@@ -192,7 +192,7 @@ export default function CustomersPage() {
         </div>
 
         {/* Pagination footer */}
-        <div className="p-4 border-t border-slate-50 flex items-center justify-between text-xs font-semibold text-slate-500 bg-slate-50/50">
+        <div className="p-4 border-t border-slate-50 flex items-center justify-between text-xs font-semibold text-slate-500 bg-slate-50 dark:bg-[#161616]/50">
           <span>Showing {customers.length} of {total} customers</span>
           <div className="flex gap-2">
             <button

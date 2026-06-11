@@ -45,8 +45,8 @@ const KPIS = [
     change: '+8.2%',
     positive: true,
     icon: Users,
-    color: '#2563EB',
-    bgLight: 'bg-blue-50',
+    color: '#F59E0B',
+    bgLight: 'bg-amber-50',
     sparkline: [30, 38, 35, 42, 40, 48, 52, 55],
   },
   {
@@ -95,7 +95,7 @@ const KPIS = [
     change: '+22.4%',
     positive: true,
     icon: DollarSign,
-    color: '#2563EB',
+    color: '#F59E0B',
     bgLight: 'bg-indigo-50',
     sparkline: [80, 95, 88, 110, 125, 140, 138, 165],
   },
@@ -122,8 +122,8 @@ export default function KPICards({ data }: { data?: any }) {
       change: '+8.2%',
       positive: true,
       icon: Users,
-      color: '#2563EB',
-      bgLight: 'bg-blue-50',
+      color: '#F59E0B',
+      bgLight: 'bg-amber-50',
       sparkline: [30, 38, 35, 42, 40, 48, 52, 55],
     },
     {
@@ -172,11 +172,22 @@ export default function KPICards({ data }: { data?: any }) {
       change: '+22.4%',
       positive: true,
       icon: DollarSign,
-      color: '#2563EB',
+      color: '#F59E0B',
       bgLight: 'bg-indigo-50',
       sparkline: [80, 95, 88, 110, 125, 140, 138, 165],
     },
   ];
+
+  const getDarkBg = (color: string) => {
+    switch (color) {
+      case '#F59E0B': return 'dark:bg-amber-500/10';
+      case '#10B981': return 'dark:bg-emerald-500/10';
+      case '#8B5CF6': return 'dark:bg-purple-500/10';
+      case '#F59E0B': return 'dark:bg-amber-500/10';
+      case '#EC4899': return 'dark:bg-pink-500/10';
+      default: return 'dark:bg-amber-500/10';
+    }
+  };
 
   return (
     <motion.div
@@ -192,29 +203,29 @@ export default function KPICards({ data }: { data?: any }) {
           <motion.div
             key={kpi.label}
             variants={item}
-            className="bg-white rounded-3xl border border-slate-100 p-4 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group cursor-default"
+            className="bg-white dark:bg-[#111111] rounded-3xl border border-slate-100 dark:border-[#1f1f1f] p-4 shadow-sm hover:shadow-xl dark:hover:border-amber-500/60 transition-all duration-300 hover:-translate-y-1 group cursor-default"
           >
             <div className="flex items-center justify-between mb-3">
               <div
-                className={`w-10 h-10 ${kpi.bgLight} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}
+                className={`w-10 h-10 ${kpi.bgLight} ${getDarkBg(kpi.color)} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}
               >
                 <Icon className="w-5 h-5" style={{ color: kpi.color }} />
               </div>
               <span
                 className={`flex items-center gap-0.5 text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded-full ${kpi.positive
-                    ? 'text-emerald-700 bg-emerald-50'
-                    : 'text-red-600 bg-red-50'
+                    ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/15'
+                    : 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-500/15'
                   }`}
               >
                 <TrendIcon className="w-3 h-3" />
                 {kpi.change}
               </span>
             </div>
-            <p className="text-xl sm:text-2xl font-extrabold text-[#0F172A] leading-none tracking-tight">
+            <p className="text-xl sm:text-2xl font-extrabold text-[#0F172A] dark:text-[#F9FAFB] leading-none tracking-tight">
               {kpi.value}
             </p>
             <div className="flex items-center justify-between mt-2">
-              <p className="text-[10px] sm:text-xs text-[#64748B] leading-tight">
+              <p className="text-[10px] sm:text-xs text-[#64748B] dark:text-[#9CA3AF] leading-tight">
                 {kpi.label}
               </p>
               <MiniSparkline points={kpi.sparkline} color={kpi.color} />

@@ -114,16 +114,16 @@ export default function CalendarPage() {
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-slate-800">{monthNames[currentMonth]} {currentYear}</h3>
             <div className="flex gap-1">
-              <button onClick={prevMonth} className="p-1.5 border border-slate-200 hover:bg-slate-50 rounded-lg transition text-slate-500">
+              <button onClick={prevMonth} className="p-1.5 border border-slate-200 hover:bg-slate-50 dark:bg-[#161616] rounded-lg transition text-slate-500">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <button onClick={nextMonth} className="p-1.5 border border-slate-200 hover:bg-slate-50 rounded-lg transition text-slate-500">
+              <button onClick={nextMonth} className="p-1.5 border border-slate-200 hover:bg-slate-50 dark:bg-[#161616] rounded-lg transition text-slate-500">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-400 uppercase tracking-wide border-b border-slate-100 pb-2">
+          <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-400 uppercase tracking-wide border-b border-slate-100 dark:border-[#1f1f1f] pb-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
               <div key={d}>{d}</div>
             ))}
@@ -145,8 +145,8 @@ export default function CalendarPage() {
                 <div
                   key={dayNum}
                   onClick={() => handleDayClick(dayNum)}
-                  className={`h-16 p-1.5 border border-slate-100 rounded-xl hover:border-blue-400 hover:bg-blue-50/10 cursor-pointer transition-all flex flex-col justify-between
-                    ${isToday ? 'bg-blue-50/20 border-blue-300 ring-1 ring-blue-300' : 'bg-slate-50/30'}`}
+                  className={`h-16 p-1.5 border border-slate-100 dark:border-[#1f1f1f] rounded-xl hover:border-blue-400 hover:bg-blue-50/10 cursor-pointer transition-all flex flex-col justify-between
+                    ${isToday ? 'bg-blue-50/20 border-blue-300 ring-1 ring-blue-300' : 'bg-slate-50 dark:bg-[#161616]/30'}`}
                 >
                   <span className={`text-[10px] font-extrabold ${isToday ? 'text-blue-600' : 'text-slate-500'}`}>{dayNum}</span>
                   <div className="flex gap-0.5 flex-wrap overflow-hidden">
@@ -166,7 +166,7 @@ export default function CalendarPage() {
         {/* Selected Day Tasks */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between">
           <div className="space-y-4">
-            <h3 className="text-sm font-bold text-slate-800 pb-2 border-b border-slate-100">
+            <h3 className="text-sm font-bold text-slate-800 pb-2 border-b border-slate-100 dark:border-[#1f1f1f]">
               Tasks for {selectedDate.toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' })}
             </h3>
             {dayTasks.length === 0 ? (
@@ -179,7 +179,7 @@ export default function CalendarPage() {
                 {dayTasks.map(task => {
                   const color = task.status === 'Done' ? 'bg-green-100 text-green-700' : (task.status === 'Missed' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700');
                   return (
-                    <div key={task.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/40">
+                    <div key={task.id} className="p-3 bg-slate-50 dark:bg-[#161616] rounded-xl border border-slate-200/40">
                       <div className="flex justify-between items-start gap-2">
                         <p className="text-xs font-bold text-slate-800 leading-tight">{task.title}</p>
                         <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded-full uppercase ${color}`}>
@@ -193,7 +193,7 @@ export default function CalendarPage() {
               </div>
             )}
           </div>
-          <div className="mt-6 p-3 bg-slate-50 rounded-xl text-[10px] text-slate-500 leading-snug">
+          <div className="mt-6 p-3 bg-slate-50 dark:bg-[#161616] rounded-xl text-[10px] text-slate-500 leading-snug">
             Legend:<br />
             <span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 mr-1 align-middle" /> Blue = Upcoming task<br />
             <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-500 mr-1 align-middle" /> Green = Completed task<br />

@@ -94,7 +94,7 @@ export default function SalesDashboard() {
           <p className="text-xs text-slate-500 mt-0.5">Here's your sales overview for today.</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-center shrink-0">
+          <div className="bg-slate-50 dark:bg-[#161616] border border-slate-200 px-3 py-1.5 rounded-xl text-center shrink-0">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Daily Target</span>
             <span className="text-xs font-bold text-slate-800">₹50,000</span>
           </div>
@@ -145,7 +145,7 @@ export default function SalesDashboard() {
         
         {/* Left Side: Priority Leads */}
         <div className="xl:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+          <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-[#1f1f1f]">
             <h3 className="text-sm font-bold text-slate-800">Priority Leads (Hot)</h3>
             <button onClick={() => router.push('/sales/leads')} className="text-xs font-bold text-[#2563EB] hover:underline">
               View All
@@ -153,7 +153,7 @@ export default function SalesDashboard() {
           </div>
           <div className="space-y-3">
             {data?.hotLeads?.map((lead: any) => (
-              <div key={lead.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-slate-50 hover:bg-slate-100/50 rounded-xl border border-slate-200/40 transition">
+              <div key={lead.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100/50 rounded-xl border border-slate-200/40 transition">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-amber-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
                     {lead.name.charAt(0)}
@@ -198,7 +198,7 @@ export default function SalesDashboard() {
         {/* Right Side: Followups */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div className="space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-[#1f1f1f]">
               <h3 className="text-sm font-bold text-slate-800">Today's Follow-ups</h3>
               <button onClick={() => router.push('/sales/tasks')} className="text-xs font-bold text-[#2563EB] hover:underline">
                 View All
@@ -259,7 +259,7 @@ export default function SalesDashboard() {
         {/* AI suggestions */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-1.5 pb-2 border-b border-slate-100 mb-3">
+            <div className="flex items-center gap-1.5 pb-2 border-b border-slate-100 dark:border-[#1f1f1f] mb-3">
               <Sparkles className="w-4.5 h-4.5 text-blue-600" />
               <h3 className="text-sm font-bold text-slate-800">AI Suggestions</h3>
             </div>
@@ -274,7 +274,7 @@ export default function SalesDashboard() {
 
         {/* Sales Performance Card */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+          <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-[#1f1f1f]">
             <h3 className="text-sm font-bold text-slate-800">Sales Performance</h3>
             <button onClick={() => router.push('/sales/profile')} className="text-xs font-bold text-[#2563EB] hover:underline">
               View Report

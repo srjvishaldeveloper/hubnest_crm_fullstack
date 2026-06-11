@@ -21,39 +21,40 @@ export default function UserActivity() {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-xl transition-all duration-300"
+      className="bg-card rounded-3xl border border-slate-100 dark:border-[#1f1f1f] p-5 shadow-sm hover:shadow-xl transition-all duration-300"
     >
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-bold text-[#0F172A] text-sm flex items-center gap-2">
-            <Activity className="w-4 h-4 text-[#2563EB]" />
+          <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm flex items-center gap-2">
+            <Activity className="w-4 h-4 text-[#F59E0B]" />
             User Activity
           </h3>
-          <p className="text-[11px] text-[#64748B] mt-0.5">Active users today by hour</p>
+          <p className="text-[11px] text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Active users today by hour</p>
         </div>
-        <span className="text-[11px] bg-blue-50 text-[#2563EB] font-semibold px-2 py-1 rounded-full">3,241 Today</span>
+        <span className="text-[11px] bg-amber-50 text-[#F59E0B] font-semibold px-2 py-1 rounded-full">3,241 Today</span>
       </div>
       <ResponsiveContainer width="100%" height={180}>
         <LineChart data={DATA}>
           <defs>
             <linearGradient id="userGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2563EB" stopOpacity={0.15} />
-              <stop offset="100%" stopColor="#2563EB" stopOpacity={0} />
+              <stop offset="0%" stopColor="var(--chart-blue)" stopOpacity={0.15} />
+              <stop offset="100%" stopColor="var(--chart-blue)" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-          <XAxis dataKey="time" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+          <XAxis dataKey="time" tick={{ fontSize: 10, fill: 'var(--chart-axis)' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 10, fill: 'var(--chart-axis)' }} axisLine={false} tickLine={false} />
           <Tooltip
             contentStyle={{
-              background: 'white',
-              border: '1px solid #e2e8f0',
+              background: 'var(--color-card)',
+              border: '1px solid var(--color-border)',
               borderRadius: '12px',
               boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
               fontSize: '12px',
+              color: 'var(--color-foreground)',
             }}
           />
-          <Line type="monotone" dataKey="users" stroke="#2563EB" strokeWidth={2.5} dot={false} />
+          <Line type="monotone" dataKey="users" stroke="var(--chart-blue)" strokeWidth={2.5} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </motion.div>

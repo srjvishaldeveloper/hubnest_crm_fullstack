@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Star } from 'lucide-react';
+import { Star, Quote } from 'lucide-react';
 
 const TESTIMONIALS = [
   {
@@ -11,6 +11,7 @@ const TESTIMONIALS = [
     role: 'Head of Sales',
     company: 'Northwind Labs',
     initials: 'AS',
+    accent: 'orange',
   },
   {
     stars: 5,
@@ -19,6 +20,7 @@ const TESTIMONIALS = [
     role: 'Founder',
     company: 'Brightline',
     initials: 'RM',
+    accent: 'green',
   },
   {
     stars: 5,
@@ -27,6 +29,7 @@ const TESTIMONIALS = [
     role: 'Ops Director',
     company: 'Helix Group',
     initials: 'PS',
+    accent: 'orange',
   },
 ];
 
@@ -34,7 +37,7 @@ function StarRow({ count }: { count: number }) {
   return (
     <div className="flex gap-0.5 mb-4">
       {Array.from({ length: count }).map((_, i) => (
-        <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+        <Star key={i} className="h-3.5 w-3.5 fill-orange-400 text-orange-400" />
       ))}
     </div>
   );
@@ -52,7 +55,7 @@ const cardVariants = {
 
 export default function Testimonials() {
   return (
-    <section className="bg-white py-14">
+    <section className="bg-slate-100 dark:bg-[#050505] py-20 border-y border-slate-200 dark:border-[#1a1a1a] transition-colors duration-200">
       <div className="mx-auto w-full max-w-[90%] xl:max-w-[85%] 2xl:max-w-[1600px] px-4 sm:px-8 lg:px-16">
 
         {/* Header */}
@@ -61,9 +64,13 @@ export default function Testimonials() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-10"
+          className="text-center mb-12"
         >
-          <h2 className="text-4xl sm:text-5xl font-serif text-slate-900">
+          <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold tracking-widest uppercase px-4 py-2 rounded-full mb-6">
+            <Star className="w-3.5 h-3.5 fill-green-400" />
+            Testimonials
+          </div>
+          <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-[#ededed] tracking-tight">
             Loved by teams that ship
           </h2>
         </motion.div>
@@ -74,26 +81,36 @@ export default function Testimonials() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-60px' }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-3 gap-5"
         >
           {TESTIMONIALS.map((t) => (
             <motion.div
               key={t.name}
               variants={cardVariants}
-              whileHover={{ y: -6, scale: 1.02 }}
-              className="flex min-h-[260px] flex-col rounded-[24px] border border-slate-200 bg-white/80 p-7 shadow-[0_14px_40px_rgba(15,23,42,0.06)] backdrop-blur transition-all duration-300 hover:border-blue-200 hover:shadow-[0_24px_64px_rgba(37,99,235,0.12)]"
+              whileHover={{ y: -6, scale: 1.01 }}
+              className={`flex min-h-[260px] flex-col rounded-2xl border bg-white dark:bg-[#111111] p-7 transition-all duration-300 ${
+                t.accent === 'orange'
+                  ? 'border-slate-200 dark:border-[#1f1f1f] hover:border-orange-500/30 hover:shadow-[0_0_30px_rgba(249,115,22,0.1)]'
+                  : 'border-slate-200 dark:border-[#1f1f1f] hover:border-green-500/30 hover:shadow-[0_0_30px_rgba(34,197,94,0.1)]'
+              }`}
             >
+              {/* Quote icon */}
+              <Quote className="w-5 h-5 text-[#333] mb-3" />
               <StarRow count={t.stars} />
-              <p className="mb-8 flex-1 text-base leading-relaxed text-slate-700">
+              <p className="mb-8 flex-1 text-base leading-relaxed text-[#a3a3a3]">
                 &ldquo;{t.quote}&rdquo;
               </p>
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-sky-400 text-sm font-bold text-white shadow-lg shadow-blue-600/20">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-slate-900 dark:text-white shadow-lg ${
+                  t.accent === 'orange'
+                    ? 'bg-gradient-to-br from-orange-500 to-orange-600 shadow-orange-500/20'
+                    : 'bg-gradient-to-br from-green-500 to-green-600 shadow-green-500/20'
+                }`}>
                   {t.initials}
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-900 text-sm">{t.name}</p>
-                  <p className="text-slate-400 text-xs mt-0.5">
+                  <p className="font-semibold text-[#ededed] text-sm">{t.name}</p>
+                  <p className="text-[#555] text-xs mt-0.5">
                     {t.role} &middot; {t.company}
                   </p>
                 </div>

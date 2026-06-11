@@ -25,7 +25,7 @@ export default function AdminTeamsPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200/60 p-4 flex gap-4 items-center">
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 w-72">
+        <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#161616] border border-slate-200 rounded-xl px-3 py-1.5 w-72">
           <Search className="w-4 h-4 text-slate-400" />
           <input
             type="text"
@@ -55,7 +55,7 @@ export default function AdminTeamsPage() {
                 <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">{t.description}</p>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-[#1f1f1f] flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Team Lead</span>
                   <span className="text-xs font-bold text-slate-700">{t.lead}</span>

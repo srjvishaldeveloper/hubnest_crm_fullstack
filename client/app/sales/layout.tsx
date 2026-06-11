@@ -21,7 +21,7 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
   const sidebarW = sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-[240px]';
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
       <SessionTimer />
       <AIChatbot />
       <SalesSidebar

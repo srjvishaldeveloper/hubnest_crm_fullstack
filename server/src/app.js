@@ -14,13 +14,19 @@ const marketingLeadsRoutes = require('./modules/marketing/marketing.leads.routes
 const salesRoutes = require('./modules/sales/sales.routes');
 const salesManagerRoutes = require('./modules/sales-manager/salesManager.routes');
 const supportRoutes = require('./modules/support/support.routes');
+const financeRoutes = require('./modules/finance/finance.routes');
 const aiRoutes = require('./modules/ai/ai.routes');
 const reportsRoutes = require('./modules/reports/reports.routes');
+const subscriptionRoutes = require('./modules/subscription/subscription.routes');
+const mfaRoutes = require('./modules/auth/mfa.routes');
+const smsRoutes = require('./modules/sms/sms.routes');
+const chatRoutes = require('./modules/chat/chat.routes');
 
 const superAdminRoutes = require('./modules/super-admin/superAdmin.routes');
 const adminRoutes = require('./modules/admin/admin.routes');
 const managerAliasRoutes = require('./modules/sales-manager/managerAlias.routes');
 const marketingAliasRoutes = require('./modules/marketing/marketingAlias.routes');
+const marketingPublicRoutes = require('./modules/marketing/marketingPublic.routes');
 
 const app = express();
 
@@ -61,13 +67,19 @@ app.use('/api/v1/marketing/leads', marketingLeadsRoutes);
 app.use('/api/v1/sales', salesRoutes);
 app.use('/api/v1/sales-manager', salesManagerRoutes);
 app.use('/api/v1/support', supportRoutes);
+app.use('/api/v1/finance', financeRoutes);
 app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1', reportsRoutes);
 
 app.use('/api/v1/super-admin', superAdminRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/manager', managerAliasRoutes);
+app.use('/api/v1/marketing/public', marketingPublicRoutes);
 app.use('/api/v1/marketing', marketingAliasRoutes);
+app.use('/api/v1/subscription', subscriptionRoutes);
+app.use('/api/v1/mfa', mfaRoutes);
+app.use('/api/v1/sms', smsRoutes);
+app.use('/api/v1/chat', chatRoutes);
 
 // 404 — route not found
 app.use((req, res) => {

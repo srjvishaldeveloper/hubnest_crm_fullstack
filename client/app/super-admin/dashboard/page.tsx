@@ -35,11 +35,11 @@ function Section({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: 'easeOut' }}
     >
-      <div className="flex items-end justify-between mb-4">
+      <div className="flex items-end justify-between mb-3 sm:mb-4">
         <div>
-          <h2 className="text-[15px] font-bold text-[#0F172A]">{title}</h2>
+          <h2 className="text-[15px] font-bold text-[#0F172A] dark:text-[#F9FAFB]">{title}</h2>
           {subtitle && (
-            <p className="text-xs text-[#64748B] mt-0.5">{subtitle}</p>
+            <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">{subtitle}</p>
           )}
         </div>
       </div>
@@ -75,7 +75,7 @@ export default function SuperAdminDashboard() {
         <p className="text-red-500 mb-4 font-medium">Failed to load dashboard data.</p>
         <button 
           onClick={refetch}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          className="px-4 py-2 bg-[#F59E0B] text-white rounded-xl hover:bg-amber-600 transition shadow-sm shadow-amber-500/20"
         >
           Retry
         </button>
@@ -106,10 +106,9 @@ export default function SuperAdminDashboard() {
       </Section>
 
       <Section title="Analytics" subtitle="User activity, roles, usage & trends" delay={0.15}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-4">
           <UserActivity />
           <RoleDistribution />
-          <div className="lg:col-span-1" />
         </div>
         <AnalyticsGrid />
       </Section>

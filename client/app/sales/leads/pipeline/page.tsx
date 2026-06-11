@@ -74,7 +74,7 @@ export default function PipelinePage() {
           {COLUMNS.map(col => {
             const colLeads = leads.filter(l => l.status === col);
             return (
-              <div key={col} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col min-w-[220px] max-h-[70vh]">
+              <div key={col} className="bg-slate-50 dark:bg-[#161616] border border-slate-200 rounded-2xl p-4 flex flex-col min-w-[220px] max-h-[70vh]">
                 {/* Column Title */}
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">{col}</h3>
@@ -101,13 +101,13 @@ export default function PipelinePage() {
                       <div className="flex justify-between items-center pt-2 border-t border-slate-50 text-[10px]">
                         <span className="text-slate-400 font-bold">{lead.phone.slice(0, 11)}...</span>
                         <div className="flex gap-1">
-                          <button className="p-1 hover:bg-slate-50 text-slate-400 hover:text-slate-700 rounded transition">
+                          <button className="p-1 hover:bg-slate-50 dark:bg-[#161616] text-slate-400 hover:text-slate-700 rounded transition">
                             <Phone className="w-3 h-3" />
                           </button>
                           <select
                             value={lead.status}
                             onChange={e => moveLead(lead.id, e.target.value)}
-                            className="bg-slate-50 text-[8px] font-bold text-slate-600 border border-slate-200 rounded p-0.5 cursor-pointer outline-none"
+                            className="bg-slate-50 dark:bg-[#161616] text-[8px] font-bold text-slate-600 border border-slate-200 rounded p-0.5 cursor-pointer outline-none"
                           >
                             {COLUMNS.map(c => (
                               <option key={c} value={c}>{c}</option>

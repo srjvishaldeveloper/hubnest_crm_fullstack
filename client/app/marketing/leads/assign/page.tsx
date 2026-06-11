@@ -58,7 +58,7 @@ export default function MarketingLeadAssignmentPage() {
                 className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   assignmentMode === mode
                     ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/10'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    : 'bg-slate-50 dark:bg-[#161616] text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 {mode}
@@ -71,13 +71,13 @@ export default function MarketingLeadAssignmentPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sales Reps Table */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm self-start">
-          <div className="px-5 py-4 border-b border-slate-100">
+          <div className="px-5 py-4 border-b border-slate-100 dark:border-[#1f1f1f]">
             <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Sales Executives</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/75 border-b border-slate-100">
+                <tr className="bg-slate-50 dark:bg-[#161616]/75 border-b border-slate-100 dark:border-[#1f1f1f]">
                   <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Sales Executive</th>
                   <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Active Leads</th>
                   <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Conversion Rate</th>
@@ -86,14 +86,14 @@ export default function MarketingLeadAssignmentPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {salesReps.map((rep) => (
-                  <tr key={rep.id} className="hover:bg-slate-50/50 transition">
+                  <tr key={rep.id} className="hover:bg-slate-50 dark:bg-[#161616]/50 transition">
                     <td className="px-5 py-3.5 text-xs font-bold text-slate-700">{rep.name}</td>
                     <td className="px-5 py-3.5 text-xs text-slate-500 font-mono font-medium">{rep.activeLeads}</td>
                     <td className="px-5 py-3.5 text-xs text-emerald-600 font-mono font-bold">{rep.conversionRate}</td>
                     <td className="px-5 py-3.5">
                       <button
                         onClick={() => assignLead(rep.id, rep.name)}
-                        className="px-3 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition"
+                        className="px-3 py-1 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition"
                       >
                         Assign Lead
                       </button>
@@ -110,7 +110,7 @@ export default function MarketingLeadAssignmentPage() {
           <h3 className="text-sm font-bold text-slate-900">Assignment History</h3>
           <div className="space-y-3 pt-2">
             {history.map(item => (
-              <div key={item.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
+              <div key={item.id} className="p-3 bg-slate-50 dark:bg-[#161616] border border-slate-100 dark:border-[#1f1f1f] rounded-xl space-y-1">
                 <p className="text-xs text-slate-700 font-bold">{item.lead}</p>
                 <p className="text-[10px] text-slate-500 font-medium">Assigned to: {item.assignedTo} ({item.mode})</p>
                 <span className="text-[9px] text-slate-400 block font-medium">{item.time}</span>

@@ -30,30 +30,30 @@ export default function TopPerformers() {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-white rounded-3xl border border-slate-100 p-5 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-300"
+      className="bg-card dark:bg-[#111111] rounded-3xl border border-slate-100 dark:border-[#1f1f1f] p-5 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-300"
     >
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h3 className="font-bold text-[#0F172A] text-base flex items-center gap-2">
+          <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-base flex items-center gap-2">
             <Trophy className="w-4 h-4 text-amber-500" />
             Top Performers
           </h3>
-          <p className="text-xs text-[#64748B] mt-0.5">Best performers this month</p>
+          <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Best performers this month</p>
         </div>
-        <button className="text-xs text-[#2563EB] font-semibold hover:underline">View All</button>
+        <button className="text-xs text-[#F59E0B] font-semibold hover:underline">View All</button>
       </div>
 
       <div className="overflow-x-auto -mx-2">
         <table className="w-full text-sm min-w-[600px]">
           <thead>
-            <tr className="border-b border-slate-100">
-              <th className="text-left py-2.5 px-3 text-[11px] font-semibold text-[#64748B] uppercase tracking-wide">#</th>
-              <th className="text-left py-2.5 px-3 text-[11px] font-semibold text-[#64748B] uppercase tracking-wide">Name</th>
-              <th className="text-left py-2.5 px-3 text-[11px] font-semibold text-[#64748B] uppercase tracking-wide">Role</th>
-              <th className="text-center py-2.5 px-3 text-[11px] font-semibold text-[#64748B] uppercase tracking-wide">Leads</th>
-              <th className="text-center py-2.5 px-3 text-[11px] font-semibold text-[#64748B] uppercase tracking-wide">Tickets</th>
-              <th className="text-right py-2.5 px-3 text-[11px] font-semibold text-[#64748B] uppercase tracking-wide">Revenue</th>
-              <th className="text-right py-2.5 px-3 text-[11px] font-semibold text-[#64748B] uppercase tracking-wide w-32">Performance</th>
+            <tr className="border-b border-slate-100 dark:border-[#1f1f1f]">
+              <th className="text-left py-2.5 px-3 text-[11px] font-semibold text-[#64748B] dark:text-[#9CA3AF] uppercase tracking-wide">#</th>
+              <th className="text-left py-2.5 px-3 text-[11px] font-semibold text-[#64748B] dark:text-[#9CA3AF] uppercase tracking-wide">Name</th>
+              <th className="text-left py-2.5 px-3 text-[11px] font-semibold text-[#64748B] dark:text-[#9CA3AF] uppercase tracking-wide">Role</th>
+              <th className="text-center py-2.5 px-3 text-[11px] font-semibold text-[#64748B] dark:text-[#9CA3AF] uppercase tracking-wide">Leads</th>
+              <th className="text-center py-2.5 px-3 text-[11px] font-semibold text-[#64748B] dark:text-[#9CA3AF] uppercase tracking-wide">Tickets</th>
+              <th className="text-right py-2.5 px-3 text-[11px] font-semibold text-[#64748B] dark:text-[#9CA3AF] uppercase tracking-wide">Revenue</th>
+              <th className="text-right py-2.5 px-3 text-[11px] font-semibold text-[#64748B] dark:text-[#9CA3AF] uppercase tracking-wide w-32">Performance</th>
             </tr>
           </thead>
           <motion.tbody variants={container} initial="hidden" animate="show">
@@ -63,7 +63,7 @@ export default function TopPerformers() {
                 <motion.tr
                   key={p.name}
                   variants={item}
-                  className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors group"
+                  className="border-b border-slate-50 dark:border-[#1a1a1a] last:border-0 hover:bg-slate-50 dark:bg-[#161616]/50 dark:hover:bg-[#1a1a1a]/50 transition-colors group"
                 >
                   <td className="py-3 px-3">
                     {RankIcon ? (
@@ -71,37 +71,37 @@ export default function TopPerformers() {
                         <RankIcon className="w-3.5 h-3.5 text-white" />
                       </div>
                     ) : (
-                      <span className="text-xs font-bold text-[#94A3B8] pl-1.5">{i + 1}</span>
+                      <span className="text-xs font-bold text-[#94A3B8] dark:text-[#6B7280] pl-1.5">{i + 1}</span>
                     )}
                   </td>
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563EB] to-blue-400 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#F59E0B] to-amber-400 flex items-center justify-center shrink-0">
                         <span className="text-white text-xs font-bold">{p.avatar}</span>
                       </div>
-                      <span className="font-semibold text-[#0F172A] group-hover:text-[#2563EB] transition-colors">{p.name}</span>
+                      <span className="font-semibold text-[#0F172A] dark:text-[#E5E7EB] group-hover:text-[#F59E0B] transition-colors">{p.name}</span>
                     </div>
                   </td>
                   <td className="py-3 px-3">
-                    <span className="text-xs text-[#64748B] bg-slate-100 px-2 py-0.5 rounded-md">{p.role}</span>
+                    <span className="text-xs text-[#64748B] dark:text-[#9CA3AF] bg-slate-100 dark:bg-[#1f1f1f] px-2 py-0.5 rounded-md">{p.role}</span>
                   </td>
-                  <td className="py-3 px-3 text-center font-medium text-[#0F172A]">{p.leads}</td>
-                  <td className="py-3 px-3 text-center font-medium text-[#0F172A]">{p.tickets}</td>
-                  <td className="py-3 px-3 text-right font-bold text-[#0F172A]">{p.revenue}</td>
+                  <td className="py-3 px-3 text-center font-medium text-[#0F172A] dark:text-[#E5E7EB]">{p.leads}</td>
+                  <td className="py-3 px-3 text-center font-medium text-[#0F172A] dark:text-[#E5E7EB]">{p.tickets}</td>
+                  <td className="py-3 px-3 text-right font-bold text-[#0F172A] dark:text-[#E5E7EB]">{p.revenue}</td>
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2 justify-end">
-                      <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="w-16 h-1.5 bg-slate-100 dark:bg-[#1f1f1f] rounded-full overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${p.performance}%` }}
                           transition={{ duration: 0.8, delay: 0.3 + i * 0.1 }}
                           className="h-full rounded-full"
                           style={{
-                            backgroundColor: p.performance >= 90 ? '#10B981' : p.performance >= 75 ? '#2563EB' : '#F59E0B',
+                            backgroundColor: p.performance >= 90 ? '#10B981' : p.performance >= 75 ? '#3B82F6' : '#F59E0B',
                           }}
                         />
                       </div>
-                      <span className="text-xs font-bold text-[#0F172A] w-8 text-right">{p.performance}%</span>
+                      <span className="text-xs font-bold text-[#0F172A] dark:text-[#E5E7EB] w-8 text-right">{p.performance}%</span>
                     </div>
                   </td>
                 </motion.tr>

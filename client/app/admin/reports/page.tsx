@@ -194,7 +194,7 @@ export default function ReportsPage() {
                 className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition ${
                   subMenuItem === item 
                     ? 'bg-[#2563EB]/10 text-[#2563EB]' 
-                    : 'text-slate-600 hover:bg-slate-50'
+                    : 'text-slate-600 hover:bg-slate-50 dark:bg-[#161616]'
                 }`}
               >
                 {item}
@@ -210,11 +210,11 @@ export default function ReportsPage() {
         {/* Header with Date Range Picker */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200/60 p-5 rounded-2xl shadow-sm">
           <div>
-            <h2 className="text-lg font-bold text-[#0F172A]">Real-Time Reports</h2>
+            <h2 className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">Real-Time Reports</h2>
             <p className="text-xs text-slate-500 mt-1">Cross-examine user workflows, pipeline growth, and compliance parameters.</p>
           </div>
           {/* Date Range Picker */}
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 cursor-pointer hover:bg-slate-100 transition shrink-0">
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#161616] border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 cursor-pointer hover:bg-slate-100 transition shrink-0">
             <Calendar className="w-4 h-4 text-[#2563EB]" />
             <span>01 Jun 2026 - 30 Jun 2026</span>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-1" />
@@ -234,7 +234,7 @@ export default function ReportsPage() {
                   {k.trend}
                 </span>
               </div>
-              <p className="text-xl font-extrabold text-[#0F172A] mt-2">{k.value}</p>
+              <p className="text-xl font-extrabold text-[#0F172A] dark:text-[#F9FAFB] mt-2">{k.value}</p>
             </div>
           ))}
         </div>
@@ -248,7 +248,7 @@ export default function ReportsPage() {
               className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap ${
                 activeTab === tab 
                   ? 'bg-[#2563EB] text-white' 
-                  : 'text-slate-600 hover:bg-slate-50'
+                  : 'text-slate-600 hover:bg-slate-50 dark:bg-[#161616]'
               }`}
             >
               {tab === 'UserPerformance' ? 'User Performance' : tab === 'Custom' ? 'Custom Builder' : `${tab} Reports`}
@@ -398,9 +398,9 @@ export default function ReportsPage() {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 <div className="grid grid-cols-3 gap-4">
                   {[{ l: 'ARR Growth', v: arrGrowth.arr }, { l: 'Gateway Charges', v: arrGrowth.gateway }, { l: 'Net Margin', v: arrGrowth.margin }].map(s => (
-                    <div key={s.l} className="bg-slate-50 p-3.5 border border-slate-100 rounded-xl">
+                    <div key={s.l} className="bg-slate-50 dark:bg-[#161616] p-3.5 border border-slate-100 dark:border-[#1f1f1f] rounded-xl">
                       <span className="text-[9px] font-bold text-slate-400 uppercase block">{s.l}</span>
-                      <span className="text-base font-extrabold text-[#0F172A] mt-1 block">{s.v}</span>
+                      <span className="text-base font-extrabold text-[#0F172A] dark:text-[#F9FAFB] mt-1 block">{s.v}</span>
                     </div>
                   ))}
                 </div>
@@ -420,10 +420,10 @@ export default function ReportsPage() {
 
             {activeTab === 'UserPerformance' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
-                <div className="p-4 border-b border-slate-100"><h3 className="text-xs font-extrabold text-[#0F172A] uppercase">User Performance List</h3></div>
+                <div className="p-4 border-b border-slate-100 dark:border-[#1f1f1f]"><h3 className="text-xs font-extrabold text-[#0F172A] dark:text-[#F9FAFB] uppercase">User Performance List</h3></div>
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase">
+                    <tr className="bg-slate-50 dark:bg-[#161616] border-b border-slate-100 dark:border-[#1f1f1f] text-[10px] font-bold text-slate-400 uppercase">
                       <th className="px-4 py-2.5">Rank</th>
                       <th className="px-4 py-2.5">Name</th>
                       <th className="px-4 py-2.5">Role</th>
@@ -434,9 +434,9 @@ export default function ReportsPage() {
                   </thead>
                   <tbody>
                     {userPerformance.map((item, idx) => (
-                      <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/50 transition">
+                      <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50 dark:bg-[#161616]/50 transition">
                         <td className="px-4 py-3 font-mono font-bold text-slate-500">#{item.rank}</td>
-                        <td className="px-4 py-3 text-[#0F172A] font-semibold">{item.name}</td>
+                        <td className="px-4 py-3 text-[#0F172A] dark:text-[#F9FAFB] font-semibold">{item.name}</td>
                         <td className="px-4 py-3 text-slate-500 font-semibold">{item.role}</td>
                         <td className="px-4 py-3 text-slate-500">{item.count}</td>
                         <td className="px-4 py-3 text-emerald-600 font-bold">{item.score}</td>
@@ -468,7 +468,7 @@ export default function ReportsPage() {
                       className={`flex-1 py-1.5 rounded-lg border transition ${
                         builderStep === idx + 1 
                           ? 'border-[#2563EB] bg-blue-50/50 text-[#2563EB]' 
-                          : 'border-slate-100 text-slate-400'
+                          : 'border-slate-100 dark:border-[#1f1f1f] text-slate-400'
                       }`}
                     >
                       {step}
@@ -497,7 +497,7 @@ export default function ReportsPage() {
                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Columns to export</label>
                     <div className="grid grid-cols-2 gap-3">
                       {['Employee ID', 'Name', 'Metric conversion', 'Last login state', 'Contact phone'].map(f => (
-                        <label key={f} className="flex items-center gap-2 p-2.5 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition">
+                        <label key={f} className="flex items-center gap-2 p-2.5 border border-slate-100 dark:border-[#1f1f1f] rounded-xl cursor-pointer hover:bg-slate-50 dark:bg-[#161616] transition">
                           <input 
                             type="checkbox"
                             checked={builderFields.includes(f)}
@@ -535,7 +535,7 @@ export default function ReportsPage() {
                       if (builderStep > 1) setBuilderStep(prev => prev - 1);
                     }}
                     disabled={builderStep === 1}
-                    className="px-4 py-2 border border-slate-200 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-50 transition disabled:opacity-50"
+                    className="px-4 py-2 border border-slate-200 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-50 dark:bg-[#161616] transition disabled:opacity-50"
                   >
                     Back
                   </button>
@@ -555,10 +555,10 @@ export default function ReportsPage() {
             {/* Top Performers Grid panel */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm space-y-4">
               <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Top Performers matrix</h3>
-              <div className="border border-slate-100 rounded-xl overflow-hidden">
+              <div className="border border-slate-100 dark:border-[#1f1f1f] rounded-xl overflow-hidden">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase">
+                    <tr className="bg-slate-50 dark:bg-[#161616] border-b border-slate-100 dark:border-[#1f1f1f] text-[10px] font-bold text-slate-400 uppercase">
                       <th className="px-4 py-2.5">Name</th>
                       <th className="px-4 py-2.5">Sales</th>
                       <th className="px-4 py-2.5">Marketing</th>
@@ -567,8 +567,8 @@ export default function ReportsPage() {
                   </thead>
                   <tbody>
                     {topPerformers.map((t, idx) => (
-                      <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/30">
-                        <td className="px-4 py-3 font-semibold text-[#0F172A]">{t.name}</td>
+                      <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50 dark:bg-[#161616]/30">
+                        <td className="px-4 py-3 font-semibold text-[#0F172A] dark:text-[#F9FAFB]">{t.name}</td>
                         <td className="px-4 py-3 text-slate-600 font-semibold">{t.sales}</td>
                         <td className="px-4 py-3 text-slate-600 font-semibold">{t.marketing}</td>
                         <td className="px-4 py-3 text-right text-emerald-600 font-bold">{t.support}</td>
@@ -589,13 +589,13 @@ export default function ReportsPage() {
               <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1">Export Actions</h3>
               <button 
                 onClick={() => reportService.triggerDownload(`/export/pdf?type=${activeTab.toLowerCase()}`, `${activeTab.toLowerCase()}_report.pdf`)} 
-                className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-200 transition cursor-pointer"
+                className="w-full py-2 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-200 transition cursor-pointer"
               >
                 <FileText className="w-3.5 h-3.5 text-red-500" /> Export as PDF
               </button>
               <button 
                 onClick={() => reportService.triggerDownload(`/export/excel?type=${activeTab.toLowerCase()}`, `${activeTab.toLowerCase()}_report.xlsx`)} 
-                className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-200 transition cursor-pointer"
+                className="w-full py-2 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-200 transition cursor-pointer"
               >
                 <FileText className="w-3.5 h-3.5 text-emerald-500" /> Export as Excel
               </button>
@@ -604,7 +604,7 @@ export default function ReportsPage() {
                   const csvType = activeTab === 'Marketing' ? 'campaigns' : activeTab === 'Support' ? 'tickets' : 'leads';
                   reportService.triggerDownload(`/export/csv?type=${csvType}`, `${csvType}_export.csv`);
                 }} 
-                className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-200 transition cursor-pointer"
+                className="w-full py-2 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-200 transition cursor-pointer"
               >
                 <FileText className="w-3.5 h-3.5 text-blue-500" /> Export as CSV
               </button>
@@ -636,8 +636,8 @@ export default function ReportsPage() {
                 { name: 'Monthly Executive Close', type: 'AI Suggested' },
                 { name: 'Ticket Resolution Speed Index', type: 'System Audit' }
               ].map((rec, idx) => (
-                <div key={idx} className="p-2.5 border border-slate-100 rounded-xl flex items-center justify-between hover:bg-slate-50 transition cursor-pointer">
-                  <span className="text-xs text-[#0F172A] font-semibold truncate pr-1">{rec.name}</span>
+                <div key={idx} className="p-2.5 border border-slate-100 dark:border-[#1f1f1f] rounded-xl flex items-center justify-between hover:bg-slate-50 dark:bg-[#161616] transition cursor-pointer">
+                  <span className="text-xs text-[#0F172A] dark:text-[#F9FAFB] font-semibold truncate pr-1">{rec.name}</span>
                   <span className="px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase bg-blue-50 text-blue-600 shrink-0">{rec.type}</span>
                 </div>
               ))}
@@ -650,9 +650,9 @@ export default function ReportsPage() {
                 { name: 'Daily Sales Snapshot', time: '9:00 AM Daily' },
                 { name: 'Weekly Marketing ROI', time: 'Mon 8:00 AM' }
               ].map((sch, idx) => (
-                <div key={idx} className="flex justify-between items-center p-2.5 border border-slate-100 rounded-xl bg-slate-50/50">
+                <div key={idx} className="flex justify-between items-center p-2.5 border border-slate-100 dark:border-[#1f1f1f] rounded-xl bg-slate-50 dark:bg-[#161616]/50">
                   <div>
-                    <span className="text-xs text-[#0F172A] font-semibold block">{sch.name}</span>
+                    <span className="text-xs text-[#0F172A] dark:text-[#F9FAFB] font-semibold block">{sch.name}</span>
                     <span className="text-[9px] text-slate-400 font-bold uppercase">{sch.time}</span>
                   </div>
                   <input type="checkbox" defaultChecked className="w-8 h-4 bg-slate-200 rounded-full appearance-none relative checked:bg-[#2563EB] cursor-pointer transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-3 after:h-3 after:bg-white after:rounded-full after:transition-transform checked:after:translate-x-4" />
@@ -691,7 +691,7 @@ export default function ReportsPage() {
                 { label: 'SLA Compliancy Breach Report', date: '3 hours ago' },
                 { label: 'Unassigned Leads Overload Alert', date: '1 day ago' }
               ].map((al, idx) => (
-                <div key={idx} className="p-2 border border-slate-100 rounded-xl bg-slate-50/50 flex justify-between items-center">
+                <div key={idx} className="p-2 border border-slate-100 dark:border-[#1f1f1f] rounded-xl bg-slate-50 dark:bg-[#161616]/50 flex justify-between items-center">
                   <span className="text-[11px] text-slate-600 font-semibold truncate pr-1">{al.label}</span>
                   <span className="text-[9px] text-slate-400 font-bold shrink-0">{al.date}</span>
                 </div>
@@ -710,7 +710,7 @@ export default function ReportsPage() {
                 98%
               </div>
               <div>
-                <span className="text-xs font-bold text-[#0F172A]">Sync score is excellent</span>
+                <span className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB]">Sync score is excellent</span>
                 <p className="text-[10px] text-slate-500 mt-0.5">Database records are fully validated and mapped against schema parameters.</p>
               </div>
             </div>

@@ -98,7 +98,7 @@ async function sendOTPEmail(to, otp, userName) {
   }
 }
 
-function buildCredentialsTemplate(adminId, tempPassword, companyName, adminName, type = 'create_tenant', email = '') {
+function buildCredentialsTemplate(adminId, tempPassword, companyName, adminName, type = 'create_tenant', email = '', details = {}) {
   let subtitle = 'WORKSPACE PROVISIONED';
   let bodyText = `Your workspace for <strong>${companyName}</strong> has been successfully created. Here are your administrator login credentials:`;
   let idLabel = 'Admin ID:';
@@ -116,6 +116,9 @@ function buildCredentialsTemplate(adminId, tempPassword, companyName, adminName,
     bodyText = `Your password for the <strong>${companyName}</strong> workspace has been successfully reset. Here are your new login credentials:`;
     idLabel = 'Login ID:';
   }
+
+  const roleText = details.role ? `<tr><td style="padding:6px 0;font-size:13px;color:#64748b;font-weight:600;" width="140">Role:</td><td style="padding:6px 0;font-size:13px;color:#0f172a;font-weight:700;">${details.role}</td></tr>` : '';
+  const deptText = details.department ? `<tr><td style="padding:6px 0;font-size:13px;color:#64748b;font-weight:600;" width="140">Department:</td><td style="padding:6px 0;font-size:13px;color:#0f172a;font-weight:700;">${details.department}</td></tr>` : '';
 
   return `
 <!DOCTYPE html>
@@ -147,6 +150,10 @@ function buildCredentialsTemplate(adminId, tempPassword, companyName, adminName,
               <!-- Credentials Box -->
               <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin:0 0 24px;">
                 <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="padding:6px 0;font-size:13px;color:#64748b;font-weight:600;" width="140">Company/Tenant:</td>
+                    <td style="padding:6px 0;font-size:13px;color:#0f172a;font-weight:700;">${companyName}</td>
+                  </tr>
                   ${email ? `
                   <tr>
                     <td style="padding:6px 0;font-size:13px;color:#64748b;font-weight:600;" width="140">Email:</td>
@@ -160,6 +167,8 @@ function buildCredentialsTemplate(adminId, tempPassword, companyName, adminName,
                     <td style="padding:6px 0;font-size:13px;color:#64748b;font-weight:600;">Password:</td>
                     <td style="padding:6px 0;font-size:13px;color:#0f172a;font-family:monospace;font-weight:700;">${tempPassword}</td>
                   </tr>
+                  ${roleText}
+                  ${deptText}
                   <tr>
                     <td style="padding:6px 0;font-size:13px;color:#64748b;font-weight:600;">Portal URL:</td>
                     <td style="padding:6px 0;font-size:13px;color:#2563eb;font-weight:700;"><a href="http://localhost:3000/auth/login" style="color:#2563eb;text-decoration:none;">http://localhost:3000/auth/login</a></td>
@@ -175,6 +184,13 @@ function buildCredentialsTemplate(adminId, tempPassword, companyName, adminName,
                   <strong>First-time Sign In:</strong> For security reasons, please change your password immediately after logging in.
                 </p>
               </div>
+
+              <!-- About Our CRM Reference -->
+              <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px;margin:0 0 24px;color:#166534;font-size:12px;line-height:1.6;">
+                <strong>About Job Nest CRM:</strong>
+                Job Nest CRM is a premium, unified SaaS customer relationship management suite engineered by SRJ Global Tech to consolidate Sales, Marketing, Support, and Finance modules into a single, high-performance dashboard. Enjoy advanced real-time pipeline management, automated ticketing, campaign analysis, and secure Multi-Factor Authentication.
+              </div>
+
               <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
               <p style="margin:0;color:#d1d5db;font-size:12px;text-align:center;">
                 &copy; ${new Date().getFullYear()} JOB NEST CRM &bull; All rights reserved
@@ -207,7 +223,7 @@ async function sendPasswordResetEmail(to, otp, userName) {
   }
 }
 
-async function sendCredentialsEmail(to, adminId, tempPassword, companyName, adminName, type = 'create_tenant') {
+async function sendCredentialsEmail(to, adminId, tempPassword, companyName, adminName, type = 'create_tenant', details = {}) {
   let subject = 'JOB NEST CRM - Workspace Credentials';
   if (type === 'create_tenant') {
     subject = 'JOB NEST CRM - Workspace Created';
@@ -224,7 +240,7 @@ async function sendCredentialsEmail(to, adminId, tempPassword, companyName, admi
       from: `"JOB NEST CRM" <${env.smtp.user}>`,
       to,
       subject,
-      html: buildCredentialsTemplate(adminId, tempPassword, companyName, adminName, type, to),
+      html: buildCredentialsTemplate(adminId, tempPassword, companyName, adminName, type, to, details),
     });
     logger.info(`Credentials email sent to ${to} with type ${type}`, { messageId: info.messageId });
   } catch (err) {

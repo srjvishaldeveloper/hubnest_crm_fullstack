@@ -5,8 +5,39 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import {
-  BarChart3, Home, Megaphone, Users, LineChart,
-  UserCircle, LogOut, X, Sparkles, ChevronDown, ChevronRight, FileText
+  BarChart3,
+  Home,
+  Megaphone,
+  Users,
+  LineChart,
+  UserCircle,
+  LogOut,
+  X,
+  Sparkles,
+  ChevronDown,
+  ChevronRight,
+  Workflow,
+  Layout,
+  Mail,
+  MessageSquare,
+  PhoneCall,
+  Globe,
+  Code,
+  Import,
+  FolderHeart,
+  Image,
+  Settings,
+  Bell,
+  Calendar,
+  DollarSign,
+  Zap,
+  Cpu,
+  FlaskConical,
+  Heart,
+  Webhook,
+  Plug,
+  FileText,
+  ListFilter,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -14,6 +45,20 @@ interface Props {
   open: boolean;
   collapsed: boolean;
   onClose: () => void;
+}
+
+interface SubItem {
+  label: string;
+  href: string;
+  icon: React.ElementType;
+}
+
+interface SectionItem {
+  title: string;
+  href?: string;
+  icon: React.ElementType;
+  key?: string;
+  subItems?: SubItem[];
 }
 
 export default function MarketingSidebar({ open, collapsed, onClose }: Props) {
@@ -24,13 +69,15 @@ export default function MarketingSidebar({ open, collapsed, onClose }: Props) {
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     campaigns: true,
+    builders: true,
+    data: true,
     leads: true,
-    analytics: true,
-    reports: true,
+    analytics: false,
+    platform: false,
   });
 
   const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
   async function handleLogout() {
@@ -38,12 +85,12 @@ export default function MarketingSidebar({ open, collapsed, onClose }: Props) {
     router.replace('/auth/login');
   }
 
-  const sidebarWidth = collapsed ? 'lg:w-[72px]' : 'lg:w-[240px]';
-  const mobileTranslate = open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0';
+  const sidebarWidth = collapsed ? 'md:w-[72px]' : 'md:w-[240px]';
+  const mobileTranslate = open ? 'translate-x-0' : '-translate-x-full md:translate-x-0';
 
-  const sections = [
+  const sections: SectionItem[] = [
     {
-      title: 'Home',
+      title: 'Dashboard',
       href: '/marketing/dashboard',
       icon: Home,
     },
@@ -52,50 +99,88 @@ export default function MarketingSidebar({ open, collapsed, onClose }: Props) {
       icon: Megaphone,
       key: 'campaigns',
       subItems: [
-        { label: 'All Campaigns', href: '/marketing/campaigns' },
-        { label: 'Create Campaign', href: '/marketing/campaigns/create' },
-        { label: 'A/B Testing', href: '/marketing/campaigns/ab-testing' },
-        { label: 'Automation', href: '/marketing/campaigns/automation' },
-        { label: 'Budget Manager', href: '/marketing/campaigns/budget' },
-      ]
+        { label: 'All Campaigns',        href: '/marketing/campaigns',            icon: Megaphone       },
+        { label: 'Email Campaigns',       href: '/marketing/campaigns/email',      icon: Mail            },
+        { label: 'WhatsApp Campaigns',    href: '/marketing/campaigns/whatsapp',   icon: MessageSquare   },
+        { label: 'SMS Campaigns',         href: '/marketing/campaigns/sms',        icon: PhoneCall       },
+        { label: 'Meta Messenger',        href: '/marketing/campaigns/meta',       icon: Globe           },
+        { label: 'Push Notifications',    href: '/marketing/campaigns/push',       icon: Bell            },
+        { label: 'A/B Testing',           href: '/marketing/campaigns/ab-testing', icon: FlaskConical    },
+        { label: 'Campaign Scheduler',    href: '/marketing/campaigns/scheduler',  icon: Calendar        },
+        { label: 'Campaign Budget',       href: '/marketing/campaigns/budget',     icon: DollarSign      },
+        { label: 'Campaign Automation',   href: '/marketing/campaigns/automation', icon: Zap             },
+      ],
+    },
+    {
+      title: 'Builders',
+      icon: Layout,
+      key: 'builders',
+      subItems: [
+        { label: 'Landing Pages',   href: '/marketing/landing-pages', icon: FileText    },
+        { label: 'Form Builder',    href: '/marketing/forms',         icon: Code        },
+        { label: 'Template Library',href: '/marketing/templates',     icon: FolderHeart },
+        { label: 'Media Library',   href: '/marketing/media',         icon: Image       },
+      ],
+    },
+    {
+      title: 'Contacts & Data',
+      icon: Users,
+      key: 'data',
+      subItems: [
+        { label: 'Contact Lists',      href: '/marketing/contacts/lists',    icon: ListFilter },
+        { label: 'Audience Segments',  href: '/marketing/contacts/segments', icon: Sparkles   },
+        { label: 'Import Center',      href: '/marketing/contacts/import',   icon: Import     },
+      ],
     },
     {
       title: 'Leads',
       icon: Users,
       key: 'leads',
       subItems: [
-        { label: 'All Leads', href: '/marketing/leads' },
-        { label: 'Lead Assignment', href: '/marketing/leads/assign' },
-        { label: 'Segments', href: '/marketing/leads/segments' },
-      ]
+        { label: 'All Leads',       href: '/marketing/leads',          icon: Users       },
+        { label: 'Lead Segments',   href: '/marketing/leads/segments', icon: ListFilter  },
+        { label: 'Lead Assignment', href: '/marketing/leads/assign',   icon: UserCircle  },
+      ],
+    },
+    {
+      title: 'Automation',
+      href: '/marketing/automation',
+      icon: Workflow,
+    },
+    {
+      title: 'AI Studio',
+      href: '/marketing/ai-studio',
+      icon: Cpu,
     },
     {
       title: 'Analytics',
       icon: LineChart,
       key: 'analytics',
       subItems: [
-        { label: 'Overview', href: '/marketing/analytics' },
-        { label: 'Campaign Analytics', href: '/marketing/analytics/campaigns' },
-        { label: 'ROI Report', href: '/marketing/analytics/roi' },
-        { label: 'Audience', href: '/marketing/analytics/audience' },
-        { label: 'Funnel', href: '/marketing/analytics/funnel' },
-      ]
+        { label: 'Overview',           href: '/marketing/analytics',           icon: BarChart3    },
+        { label: 'Campaign Analytics', href: '/marketing/analytics/campaigns', icon: Megaphone    },
+        { label: 'Audience Insights',  href: '/marketing/analytics/audience',  icon: Users        },
+        { label: 'Funnel Analysis',    href: '/marketing/analytics/funnel',    icon: LineChart    },
+        { label: 'ROI Report',         href: '/marketing/analytics/roi',       icon: DollarSign   },
+        { label: 'Reports',            href: '/marketing/reports',             icon: FileText     },
+      ],
     },
     {
-      title: 'Reports',
-      icon: FileText,
-      key: 'reports',
+      title: 'Platform',
+      icon: Settings,
+      key: 'platform',
       subItems: [
-        { label: 'Campaign Report', href: '/marketing/reports?tab=campaigns' },
-        { label: 'Lead Report', href: '/marketing/reports?tab=leads' },
-        { label: 'ROI Report', href: '/marketing/reports?tab=roi' },
-      ]
+        { label: 'Integrations',   href: '/marketing/integrations',  icon: Plug    },
+        { label: 'Subscriptions',  href: '/marketing/subscriptions', icon: Heart   },
+        { label: 'Webhooks & APIs',href: '/marketing/webhooks',      icon: Webhook },
+        { label: 'Settings',       href: '/marketing/settings',      icon: Settings},
+      ],
     },
     {
       title: 'Profile',
       href: '/marketing/profile',
       icon: UserCircle,
-    }
+    },
   ];
 
   return (
@@ -103,28 +188,41 @@ export default function MarketingSidebar({ open, collapsed, onClose }: Props) {
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-30"
+            className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-30"
             onClick={onClose}
           />
         )}
       </AnimatePresence>
 
-      <aside className={`fixed top-0 left-0 h-full z-40 flex flex-col
-        bg-[#0F172A] transition-all duration-300 ease-in-out border-r border-slate-800
-        w-[240px] ${sidebarWidth} ${mobileTranslate}`}
+      <aside
+        className={`fixed top-0 left-0 h-full z-40 flex flex-col
+          bg-white dark:bg-[#0F172A] transition-all duration-300 ease-in-out
+          border-r border-slate-200 dark:border-slate-800
+          w-[240px] ${sidebarWidth} ${mobileTranslate}`}
       >
         {/* Logo */}
-        <div className={`flex items-center gap-3 px-4 h-[72px] border-b border-slate-800 shrink-0 ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}>
-          <div className="w-9 h-9 bg-[#2563EB] rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/40">
+        <div
+          className={`flex items-center gap-3 px-4 h-[72px] border-b border-slate-200 dark:border-slate-800 shrink-0 ${
+            collapsed ? 'md:justify-center md:px-0' : ''
+          }`}
+        >
+          <div className="w-9 h-9 bg-indigo-600 dark:bg-[#2563EB] rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-200 dark:shadow-blue-900/40">
             <BarChart3 className="w-5 h-5 text-white" />
           </div>
-          <div className={`${collapsed ? 'lg:hidden' : ''} overflow-hidden`}>
-            <p className="text-white font-bold text-sm tracking-tight">Job Nest CRM</p>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Marketing</span>
+          <div className={`${collapsed ? 'md:hidden' : ''} overflow-hidden`}>
+            <p className="text-slate-900 dark:text-white font-bold text-sm tracking-tight">HubNest CRM</p>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+              Marketing Hub
+            </span>
           </div>
-          <button onClick={onClose} className="lg:hidden ml-auto p-1.5 text-slate-400 hover:text-white transition">
+          <button
+            onClick={onClose}
+            className="md:hidden ml-auto p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -135,43 +233,53 @@ export default function MarketingSidebar({ open, collapsed, onClose }: Props) {
             if (section.subItems) {
               const isExpanded = expandedSections[section.key!];
               const Icon = section.icon;
-              const hasActiveSub = section.subItems.some(item => pathname === item.href);
+              const hasActiveSub = section.subItems.some((item) => pathname === item.href);
 
               return (
                 <div key={section.key} className="space-y-1">
                   <button
                     onClick={() => !collapsed && toggleSection(section.key!)}
                     title={section.title}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group
-                      ${hasActiveSub && collapsed
-                        ? 'bg-[#2563EB] text-white shadow-lg'
-                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 group
+                      ${
+                        hasActiveSub && collapsed
+                          ? 'bg-indigo-600 dark:bg-[#2563EB] text-white shadow-lg'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                       }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <Icon className={`w-[18px] h-[18px] shrink-0 transition-transform group-hover:scale-110 ${hasActiveSub ? 'text-white' : 'text-slate-400'}`} />
-                      <span className={`${collapsed ? 'lg:hidden' : ''} truncate`}>{section.title}</span>
+                    <div className="flex items-center gap-3.5">
+                      <Icon
+                        className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
+                          hasActiveSub ? 'text-white' : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                      />
+                      <span className={`${collapsed ? 'md:hidden' : ''} truncate`}>{section.title}</span>
                     </div>
-                    {!collapsed && (
-                      isExpanded ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />
-                    )}
+                    {!collapsed &&
+                      (isExpanded ? (
+                        <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+                      ))}
                   </button>
 
                   {!collapsed && isExpanded && (
-                    <div className="pl-9 space-y-1 pr-1">
+                    <div className="pl-6 space-y-0.5 pr-1 border-l border-slate-100 dark:border-slate-800/80 ml-5">
                       {section.subItems.map((subItem) => {
                         const active = pathname === subItem.href;
+                        const SubIcon = subItem.icon;
                         return (
                           <Link
                             key={subItem.href}
                             href={subItem.href}
                             onClick={onClose}
-                            className={`block py-1.5 text-xs font-semibold transition-colors ${
+                            className={`flex items-center gap-2 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-colors ${
                               active
-                                ? 'text-[#2563EB]'
-                                : 'text-slate-400 hover:text-white'
+                                ? 'text-indigo-600 dark:text-blue-400 bg-indigo-50/50 dark:bg-blue-950/20'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                             }`}
                           >
+                            <SubIcon className="w-3.5 h-3.5 shrink-0" />
                             {subItem.label}
                           </Link>
                         );
@@ -189,47 +297,67 @@ export default function MarketingSidebar({ open, collapsed, onClose }: Props) {
                   href={section.href!}
                   onClick={onClose}
                   title={section.title}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group
-                    ${active
-                      ? 'bg-[#2563EB] text-white shadow-lg'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  className={`flex items-center gap-3.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 group
+                    ${
+                      active
+                        ? 'bg-indigo-600 dark:bg-[#2563EB] text-white shadow-lg'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }
-                    ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+                    ${collapsed ? 'md:justify-center md:px-0' : ''}`}
                 >
-                  <Icon className={`w-[18px] h-[18px] shrink-0 transition-transform group-hover:scale-110 ${active ? 'text-white' : 'text-slate-400'}`} />
-                  <span className={`${collapsed ? 'lg:hidden' : ''} truncate`}>{section.title}</span>
+                  <Icon
+                    className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
+                      active ? 'text-white' : 'text-slate-500 dark:text-slate-400'
+                    }`}
+                  />
+                  <span className={`${collapsed ? 'md:hidden' : ''} truncate`}>{section.title}</span>
                 </Link>
               );
             }
           })}
         </nav>
 
-        {/* AI Promo Card */}
+        {/* AI Co-Pilot Promo Card */}
         {!collapsed && (
           <div className="px-3 mb-3">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-violet-950/60 to-slate-900/60 border border-violet-800/30">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-slate-900/60 border border-violet-200/50 dark:border-violet-800/30">
               <div className="flex items-center gap-1.5 mb-1">
-                <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-                <p className="text-[10px] font-bold text-violet-400 uppercase tracking-wider">AI Marketing</p>
+                <Sparkles className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
+                <p className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider">
+                  AI Co-Pilot
+                </p>
               </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">Get smart campaign optimization suggestions.</p>
-              <button className="w-full mt-2.5 py-1.5 bg-[#2563EB] hover:bg-blue-600 text-white text-xs font-bold rounded-lg transition">
-                Ask AI
-              </button>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                Instantly design templates, build workflow nodes, and write email copy.
+              </p>
+              <Link
+                href="/marketing/ai-studio"
+                className="block text-center w-full mt-2.5 py-1.5 bg-indigo-600 dark:bg-[#2563EB] hover:bg-indigo-700 dark:hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition shadow-sm"
+              >
+                Open AI Studio
+              </Link>
             </div>
           </div>
         )}
 
         {/* Bottom Profile & Logout */}
-        <div className="border-t border-slate-800 p-3 shrink-0 space-y-2">
-          <div className={`flex items-center gap-3 p-2 rounded-xl bg-slate-800/50 ${collapsed ? 'lg:justify-center lg:p-1.5' : ''}`}>
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shrink-0 ring-2 ring-slate-700">
-              <span className="text-white font-bold text-xs">{user?.name?.charAt(0).toUpperCase() || 'M'}</span>
+        <div className="border-t border-slate-200 dark:border-slate-800 p-3 shrink-0 space-y-2">
+          <div
+            className={`flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/30 ${
+              collapsed ? 'md:justify-center md:p-1.5' : ''
+            }`}
+          >
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shrink-0 ring-2 ring-slate-200 dark:ring-slate-700">
+              <span className="text-white font-bold text-xs">
+                {user?.name?.charAt(0).toUpperCase() || 'M'}
+              </span>
             </div>
-            <div className={`overflow-hidden ${collapsed ? 'lg:hidden' : ''}`}>
-              <p className="text-white text-xs font-bold truncate leading-tight">{user?.name || 'Marketing User'}</p>
-              <span className="inline-block text-[9px] font-extrabold text-blue-400 bg-blue-950 px-1.5 py-0.5 rounded-md uppercase tracking-wider mt-0.5 leading-none">
-                {user?.role || 'Marketing Executive'}
+            <div className={`overflow-hidden ${collapsed ? 'md:hidden' : ''}`}>
+              <p className="text-slate-900 dark:text-white text-xs font-bold truncate leading-tight">
+                {user?.name || 'Marketing Head'}
+              </p>
+              <span className="inline-block text-[9px] font-extrabold text-indigo-600 dark:text-blue-400 bg-indigo-50 dark:bg-blue-950 px-1.5 py-0.5 rounded-md uppercase tracking-wider mt-0.5 leading-none">
+                {user?.role || 'Marketing Head'}
               </span>
             </div>
           </div>
@@ -237,35 +365,15 @@ export default function MarketingSidebar({ open, collapsed, onClose }: Props) {
           <button
             onClick={handleLogout}
             title="Logout"
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold
-              text-red-400 hover:bg-red-500/10 transition-all group
-              ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold
+              text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all group
+              ${collapsed ? 'md:justify-center md:px-0' : ''}`}
           >
-            <LogOut className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110 text-red-400" />
-            <span className={collapsed ? 'lg:hidden' : ''}>Logout</span>
+            <LogOut className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110 text-red-500 dark:text-red-400" />
+            <span className={collapsed ? 'md:hidden' : ''}>Logout</span>
           </button>
         </div>
       </aside>
-
-      {/* Mobile Bottom Nav */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0F172A] border-t border-slate-800 z-50 safe-area-bottom">
-        <div className="flex items-center justify-around h-16">
-          {sections.filter(s => s.href).map((item) => {
-            const active = pathname === item.href;
-            const Icon = item.icon;
-            return (
-              <Link key={item.href} href={item.href!} className="flex flex-col items-center gap-0.5 px-2 py-1">
-                <div className={`p-1.5 rounded-lg transition-all ${active ? 'bg-[#2563EB]' : ''}`}>
-                  <Icon className={`w-5 h-5 transition-colors ${active ? 'text-white' : 'text-[#6B7280]'}`} />
-                </div>
-                <span className={`text-[9px] font-semibold transition-colors ${active ? 'text-blue-400' : 'text-[#6B7280]'}`}>
-                  {item.title}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
     </>
   );
 }

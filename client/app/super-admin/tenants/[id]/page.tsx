@@ -40,7 +40,7 @@ function TenantDetailContent() {
     return (
       <div className="flex flex-col items-center justify-center py-32">
         <p className="text-slate-500 text-sm">Tenant not found</p>
-        <button onClick={() => router.back()} className="mt-4 text-sm text-[#2563EB] hover:underline">Go back</button>
+        <button onClick={() => router.back()} className="mt-4 text-sm text-[#F59E0B] hover:underline">Go back</button>
       </div>
     );
   }
@@ -93,25 +93,25 @@ function TenantDetailContent() {
   return (
     <div className="space-y-6">
       {/* Back */}
-      <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-slate-500 hover:text-[#2563EB] transition group">
+      <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-slate-500 hover:text-[#F59E0B] transition group">
         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" /> Back to Tenants
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Workspace details */}
         <div className="space-y-6 lg:col-span-1">
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-6">
+          <div className="bg-card rounded-2xl border border-slate-200/60 p-6">
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center text-[#2563EB] border border-blue-100 shadow-sm">
+              <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center text-[#F59E0B] border border-amber-100 shadow-sm">
                 <Building2 className="w-8 h-8" />
               </div>
-              <h2 className="mt-4 text-base font-bold text-[#0F172A]">{tenant.company}</h2>
-              <span className="mt-1.5 px-2.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-lg border border-blue-100 uppercase">
+              <h2 className="mt-4 text-base font-bold text-[#0F172A] dark:text-[#F9FAFB]">{tenant.company}</h2>
+              <span className="mt-1.5 px-2.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-lg border border-amber-100 uppercase">
                 {tenant.plan} Subscription
               </span>
             </div>
 
-            <div className="mt-6 space-y-3 pt-6 border-t border-slate-100 text-left">
+            <div className="mt-6 space-y-3 pt-6 border-t border-slate-100 dark:border-[#1f1f1f] text-left">
               <div className="flex items-center gap-3 text-xs text-slate-600">
                 <Building2 className="w-4 h-4 text-slate-400" /> B2B Workspace
               </div>
@@ -127,18 +127,18 @@ function TenantDetailContent() {
 
         {/* Change Admin Control (Edge Cases Only) */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-6">
+          <div className="bg-card rounded-2xl border border-slate-200/60 p-6 space-y-6">
             <div>
               <div className="flex items-center gap-2">
                 <ShieldAlert className="w-5 h-5 text-amber-500" />
-                <h3 className="text-sm font-bold text-[#0F172A]">Workspace Admin Management</h3>
+                <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Workspace Admin Management</h3>
               </div>
               <p className="text-xs text-slate-500 mt-1">Reset credentials or assign a new Admin account to this B2B company workspace (edge cases only).</p>
             </div>
 
             {/* Current Admin details */}
-            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/40 space-y-3">
-              <div className="text-[10px] font-extrabold text-[#2563EB] uppercase tracking-wider">Current Workspace Administrator</div>
+            <div className="p-4 rounded-xl border border-slate-100 dark:border-[#1f1f1f] bg-slate-50 dark:bg-[#161616]/40 space-y-3">
+              <div className="text-[10px] font-extrabold text-[#F59E0B] uppercase tracking-wider">Current Workspace Administrator</div>
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div>
                   <span className="text-slate-400">Admin Name</span>
@@ -167,39 +167,39 @@ function TenantDetailContent() {
                 Change Admin Credentials
               </button>
             ) : (
-              <form onSubmit={handleResetAdmin} className="space-y-4 pt-4 border-t border-slate-100">
-                <div className="text-[10px] font-extrabold text-[#0F172A] uppercase tracking-wider">Change Admin Form</div>
+              <form onSubmit={handleResetAdmin} className="space-y-4 pt-4 border-t border-slate-100 dark:border-[#1f1f1f]">
+                <div className="text-[10px] font-extrabold text-[#0F172A] dark:text-[#F9FAFB] uppercase tracking-wider">Change Admin Form</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">New Admin Full Name *</label>
+                    <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">New Admin Full Name *</label>
                     <input
                       required
                       type="text"
                       value={newName}
                       onChange={e => setNewName(e.target.value)}
                       placeholder="e.g. Anand Kumar"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-400"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-amber-400"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">New Admin Email *</label>
+                    <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">New Admin Email *</label>
                     <input
                       required
                       type="email"
                       value={newEmail}
                       onChange={e => setNewEmail(e.target.value)}
                       placeholder="e.g. anand@acme.com"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-400"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-amber-400"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">New Admin Phone</label>
+                    <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">New Admin Phone</label>
                     <input
                       type="tel"
                       value={newPhone}
                       onChange={e => setNewPhone(e.target.value)}
                       placeholder="e.g. +91 9999999999"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-400"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-amber-400"
                     />
                   </div>
                 </div>
@@ -212,14 +212,14 @@ function TenantDetailContent() {
                       setEditingAdmin(false);
                       setShowPwdSuccess(false);
                     }}
-                    className="px-4 py-2 border border-slate-200 text-xs font-semibold text-slate-600 rounded-xl hover:bg-slate-50 transition disabled:opacity-50"
+                    className="px-4 py-2 border border-slate-200 text-xs font-semibold text-slate-600 rounded-xl hover:bg-slate-50 dark:bg-[#161616] transition disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isResetting}
-                    className="px-4 py-2 bg-[#2563EB] text-white text-xs font-semibold rounded-xl hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-1.5"
+                    className="px-4 py-2 bg-[#F59E0B] text-white text-xs font-semibold rounded-xl hover:bg-amber-600 transition disabled:opacity-50 flex items-center gap-1.5"
                   >
                     {isResetting ? (
                       <>
@@ -248,7 +248,7 @@ function TenantDetailContent() {
                   <div className="flex items-center gap-2 text-emerald-800 text-xs font-bold">
                     <Check className="w-4 h-4 text-emerald-600" /> Admin Credentials Reset Successfully!
                   </div>
-                  <div className="bg-white p-3 rounded-xl border border-emerald-200/50 flex justify-between items-center text-xs font-mono text-slate-800">
+                  <div className="bg-card p-3 rounded-xl border border-emerald-200/50 flex justify-between items-center text-xs font-mono text-slate-800">
                     <div>
                       <span className="text-[10px] text-slate-400 font-sans block">Temporary Password</span>
                       <span className="font-bold">{newPwd}</span>

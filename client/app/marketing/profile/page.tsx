@@ -147,7 +147,7 @@ export default function MarketingProfilePage() {
               </div>
             </div>
             <div className="text-center sm:text-left pb-1">
-              <h2 className="text-lg font-extrabold text-[#0F172A]">{user?.name || 'Priya Sharma'}</h2>
+              <h2 className="text-lg font-extrabold text-[#0F172A] dark:text-[#F9FAFB]">{user?.name || 'Priya Sharma'}</h2>
               <p className="text-xs text-slate-500 font-mono mt-0.5">{user?.adminId || 'MKT-1001'} · {user?.role || 'Marketing Head'}</p>
               <div className="flex gap-1.5 mt-2 justify-center sm:justify-start">
                 <span className="px-2 py-0.5 bg-violet-50 text-violet-700 text-[10px] font-bold rounded-lg border border-violet-100 uppercase tracking-wide">
@@ -160,7 +160,7 @@ export default function MarketingProfilePage() {
             </div>
           </div>
           {/* Completeness Ring */}
-          <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 p-3 rounded-xl shrink-0 self-center md:self-end">
+          <div className="flex items-center gap-3 bg-slate-50 dark:bg-[#161616] border border-slate-100 dark:border-[#1f1f1f] p-3 rounded-xl shrink-0 self-center md:self-end">
             <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                 <path strokeWidth="3" stroke="#E2E8F0" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -173,10 +173,10 @@ export default function MarketingProfilePage() {
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
               </svg>
-              <span className={`absolute font-bold text-[#0F172A] ${completeness === 100 ? 'text-[9px]' : 'text-[10px]'}`}>{completeness}%</span>
+              <span className={`absolute font-bold text-[#0F172A] dark:text-[#F9FAFB] ${completeness === 100 ? 'text-[9px]' : 'text-[10px]'}`}>{completeness}%</span>
             </div>
             <div>
-              <p className="text-xs font-bold text-[#0F172A]">Profile Completed</p>
+              <p className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB]">Profile Completed</p>
               <p className="text-[9px] text-slate-500">
                 {completeness === 100 ? 'All details verified' : 'Add phone for 100%'}
               </p>
@@ -186,7 +186,7 @@ export default function MarketingProfilePage() {
       </div>
 
       {/* ── Tabs ── */}
-      <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-2xl p-1 shadow-sm overflow-x-auto">
+      <div className="flex items-center gap-1 bg-white dark:bg-[#161616] border border-slate-200 dark:border-[#1f1f1f] rounded-2xl p-1 shadow-sm overflow-x-auto">
         {TABS.map(tab => (
           <button
             key={tab}
@@ -194,7 +194,7 @@ export default function MarketingProfilePage() {
             className={`flex-1 px-4 py-2.5 text-xs font-semibold rounded-xl transition whitespace-nowrap ${
               activeTab === tab
                 ? 'bg-[#4F46E5] text-white shadow-sm'
-                : 'text-slate-500 hover:bg-slate-50'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
             }`}
           >
             {tab}
@@ -207,10 +207,10 @@ export default function MarketingProfilePage() {
         <div className="space-y-6">
           {/* Contact Info */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h3 className="text-[13px] font-bold text-[#0F172A] mb-4">Personal Information</h3>
+            <h3 className="text-[13px] font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-4">Personal Information</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Full Name */}
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-[#161616] rounded-xl">
                 <div className="w-8 h-8 rounded-lg bg-[#4F46E5]/10 flex items-center justify-center shrink-0">
                   <User className="w-4 h-4 text-[#4F46E5]" />
                 </div>
@@ -221,16 +221,16 @@ export default function MarketingProfilePage() {
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full text-xs font-semibold text-[#0F172A] mt-0.5 bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#4F46E5]"
+                      className="w-full text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mt-0.5 bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#4F46E5]"
                     />
                   ) : (
-                    <p className="text-xs font-semibold text-[#0F172A] mt-0.5 truncate">{user?.name || 'Priya Sharma'}</p>
+                    <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mt-0.5 truncate">{user?.name || 'Priya Sharma'}</p>
                   )}
                 </div>
               </div>
 
               {/* Email Address */}
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-[#161616] rounded-xl">
                 <div className="w-8 h-8 rounded-lg bg-[#4F46E5]/10 flex items-center justify-center shrink-0">
                   <Mail className="w-4 h-4 text-[#4F46E5]" />
                 </div>
@@ -241,16 +241,16 @@ export default function MarketingProfilePage() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full text-xs font-semibold text-[#0F172A] mt-0.5 bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#4F46E5]"
+                      className="w-full text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mt-0.5 bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#4F46E5]"
                     />
                   ) : (
-                    <p className="text-xs font-semibold text-[#0F172A] mt-0.5 truncate">{user?.email || 'priya@company.com'}</p>
+                    <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mt-0.5 truncate">{user?.email || 'priya@company.com'}</p>
                   )}
                 </div>
               </div>
 
               {/* Phone Number */}
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-[#161616] rounded-xl">
                 <div className="w-8 h-8 rounded-lg bg-[#4F46E5]/10 flex items-center justify-center shrink-0">
                   <Phone className="w-4 h-4 text-[#4F46E5]" />
                 </div>
@@ -262,44 +262,44 @@ export default function MarketingProfilePage() {
                       placeholder="e.g. +91 98765 43210"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full text-xs font-semibold text-[#0F172A] mt-0.5 bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#4F46E5]"
+                      className="w-full text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mt-0.5 bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#4F46E5]"
                     />
                   ) : (
-                    <p className="text-xs font-semibold text-[#0F172A] mt-0.5 truncate">{phone || 'Not Provided'}</p>
+                    <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mt-0.5 truncate">{phone || 'Not Provided'}</p>
                   )}
                 </div>
               </div>
 
               {/* Department */}
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-[#161616] rounded-xl">
                 <div className="w-8 h-8 rounded-lg bg-[#4F46E5]/10 flex items-center justify-center shrink-0">
                   <Building2 className="w-4 h-4 text-[#4F46E5]" />
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold">Department</p>
-                  <p className="text-xs font-semibold text-[#0F172A] mt-0.5">Marketing</p>
+                  <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mt-0.5">Marketing</p>
                 </div>
               </div>
 
               {/* Role */}
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-[#161616] rounded-xl">
                 <div className="w-8 h-8 rounded-lg bg-[#4F46E5]/10 flex items-center justify-center shrink-0">
                   <Shield className="w-4 h-4 text-[#4F46E5]" />
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold">Role</p>
-                  <p className="text-xs font-semibold text-[#0F172A] mt-0.5">{user?.role || 'Marketing Head'}</p>
+                  <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mt-0.5">{user?.role || 'Marketing Head'}</p>
                 </div>
               </div>
 
               {/* Joined */}
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-[#161616] rounded-xl">
                 <div className="w-8 h-8 rounded-lg bg-[#4F46E5]/10 flex items-center justify-center shrink-0">
                   <Calendar className="w-4 h-4 text-[#4F46E5]" />
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold">Joined</p>
-                  <p className="text-xs font-semibold text-[#0F172A] mt-0.5">January 2024</p>
+                  <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mt-0.5">January 2024</p>
                 </div>
               </div>
             </div>
@@ -337,16 +337,16 @@ export default function MarketingProfilePage() {
 
           {/* Performance KPIs */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h3 className="text-[13px] font-bold text-[#0F172A] mb-4">My Performance</h3>
+            <h3 className="text-[13px] font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-4">My Performance</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {perfMetrics.map(m => {
                 const Icon = m.icon;
                 return (
-                  <div key={m.label} className="text-center p-4 bg-slate-50 rounded-xl">
+                  <div key={m.label} className="text-center p-4 bg-slate-50 dark:bg-[#161616] rounded-xl">
                     <div className={`w-10 h-10 rounded-xl ${m.color} flex items-center justify-center mx-auto mb-2`}>
                       <Icon className="w-5 h-5" />
                     </div>
-                    <p className="text-xl font-extrabold text-[#0F172A]">{m.value}</p>
+                    <p className="text-xl font-extrabold text-[#0F172A] dark:text-[#F9FAFB]">{m.value}</p>
                     <p className="text-[10px] text-slate-500 mt-0.5">{m.label}</p>
                   </div>
                 );
@@ -356,7 +356,7 @@ export default function MarketingProfilePage() {
 
           {/* Activity Summary */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h3 className="text-[13px] font-bold text-[#0F172A] mb-4">Recent Activity</h3>
+            <h3 className="text-[13px] font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-4">Recent Activity</h3>
             <div className="space-y-3">
               {activitySummary.map((a, i) => (
                 <div key={i} className="flex items-start gap-3">
@@ -364,7 +364,7 @@ export default function MarketingProfilePage() {
                     <a.icon className="w-4 h-4" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-[#0F172A]">{a.action}</p>
+                    <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB]">{a.action}</p>
                     <p className="text-[10px] text-slate-400 mt-0.5">{a.time}</p>
                   </div>
                 </div>
@@ -378,10 +378,10 @@ export default function MarketingProfilePage() {
         <div className="space-y-6">
           {/* Campaign Performance Summary */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h3 className="text-[13px] font-bold text-[#0F172A] mb-4">Campaign Performance Summary</h3>
+            <h3 className="text-[13px] font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-4">Campaign Performance Summary</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
-                <thead className="bg-slate-50">
+                <thead className="bg-slate-50 dark:bg-[#161616]">
                   <tr>
                     {['Campaign', 'Platform', 'Leads', 'ROI', 'Status'].map(h => (
                       <th key={h} className="text-left px-4 py-2.5 text-slate-400 font-semibold text-[10px] uppercase tracking-wide">{h}</th>
@@ -390,10 +390,10 @@ export default function MarketingProfilePage() {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {campaignSummary.map(c => (
-                    <tr key={c.name} className="hover:bg-slate-50/50 transition">
-                      <td className="px-4 py-3 font-semibold text-[#0F172A]">{c.name}</td>
+                    <tr key={c.name} className="hover:bg-slate-50 dark:bg-[#161616]/50 transition">
+                      <td className="px-4 py-3 font-semibold text-[#0F172A] dark:text-[#F9FAFB]">{c.name}</td>
                       <td className="px-4 py-3 text-slate-500">{c.platform}</td>
-                      <td className="px-4 py-3 font-bold text-[#0F172A]">{c.leads}</td>
+                      <td className="px-4 py-3 font-bold text-[#0F172A] dark:text-[#F9FAFB]">{c.leads}</td>
                       <td className="px-4 py-3">
                         <span className={`font-extrabold ${c.roi >= 200 ? 'text-green-600' : c.roi >= 150 ? 'text-blue-600' : 'text-red-500'}`}>
                           {c.roi}%
@@ -410,7 +410,7 @@ export default function MarketingProfilePage() {
           {/* Lead Generation Summary */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-              <h3 className="text-[13px] font-bold text-[#0F172A] mb-4">Lead Generation Summary</h3>
+              <h3 className="text-[13px] font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-4">Lead Generation Summary</h3>
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <ResponsiveContainer width={120} height={120}>
@@ -421,7 +421,7 @@ export default function MarketingProfilePage() {
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <p className="text-sm font-extrabold text-[#0F172A]">1,847</p>
+                    <p className="text-sm font-extrabold text-[#0F172A] dark:text-[#F9FAFB]">1,847</p>
                     <p className="text-[9px] text-slate-400">Total</p>
                   </div>
                 </div>
@@ -432,7 +432,7 @@ export default function MarketingProfilePage() {
                         <span className="w-2 h-2 rounded-full" style={{ background: s.color }} />
                         <span className="text-slate-600">{s.name}</span>
                       </div>
-                      <span className="font-bold text-[#0F172A]">{s.value}%</span>
+                      <span className="font-bold text-[#0F172A] dark:text-[#F9FAFB]">{s.value}%</span>
                     </div>
                   ))}
                 </div>
@@ -441,7 +441,7 @@ export default function MarketingProfilePage() {
 
             {/* Budget Performance */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-              <h3 className="text-[13px] font-bold text-[#0F172A] mb-4">Budget Performance</h3>
+              <h3 className="text-[13px] font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-4">Budget Performance</h3>
               <div className="space-y-3">
                 {budgetData.map(b => (
                   <div key={b.platform}>
@@ -467,29 +467,29 @@ export default function MarketingProfilePage() {
       {activeTab === 'Security' && (
         <div className="space-y-6">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h3 className="text-[13px] font-bold text-[#0F172A] mb-4">Security Settings</h3>
+            <h3 className="text-[13px] font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-4">Security Settings</h3>
             <div className="space-y-4">
               {/* Password */}
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#161616] rounded-xl">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center">
                     <Key className="w-4.5 h-4.5 text-violet-600" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-[#0F172A]">Password</p>
+                    <p className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB]">Password</p>
                     <p className="text-[10px] text-slate-400">Last changed 30 days ago</p>
                   </div>
                 </div>
                 <button className="text-xs font-bold text-[#4F46E5] hover:underline">Change</button>
               </div>
               {/* 2FA */}
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#161616] rounded-xl">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center">
                     <ShieldCheck className="w-4.5 h-4.5 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-[#0F172A]">Two-Factor Authentication</p>
+                    <p className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB]">Two-Factor Authentication</p>
                     <p className="text-[10px] text-slate-400">Adds extra layer of security</p>
                   </div>
                 </div>
@@ -501,13 +501,13 @@ export default function MarketingProfilePage() {
                 </button>
               </div>
               {/* Active Sessions */}
-              <div className="p-4 bg-slate-50 rounded-xl">
+              <div className="p-4 bg-slate-50 dark:bg-[#161616] rounded-xl">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center">
                     <Smartphone className="w-4.5 h-4.5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-[#0F172A]">Active Sessions</p>
+                    <p className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB]">Active Sessions</p>
                     <p className="text-[10px] text-slate-400">2 devices logged in</p>
                   </div>
                 </div>
@@ -518,7 +518,7 @@ export default function MarketingProfilePage() {
                   ].map(s => (
                     <div key={s.device} className="flex items-center justify-between text-xs">
                       <div>
-                        <p className="font-medium text-[#0F172A]">{s.device}</p>
+                        <p className="font-medium text-[#0F172A] dark:text-[#F9FAFB]">{s.device}</p>
                         <p className="text-[10px] text-slate-400">{s.location}</p>
                       </div>
                       {s.current ? (
@@ -537,7 +537,7 @@ export default function MarketingProfilePage() {
 
       {activeTab === 'Notifications' && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-          <h3 className="text-[13px] font-bold text-[#0F172A] mb-4">Notification Preferences</h3>
+          <h3 className="text-[13px] font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-4">Notification Preferences</h3>
           <div className="space-y-4">
             {[
               { label: 'Email Notifications', desc: 'Receive updates via email', value: emailNotif, set: setEmailNotif, icon: Mail },
@@ -546,13 +546,13 @@ export default function MarketingProfilePage() {
             ].map(item => {
               const Icon = item.icon;
               return (
-                <div key={item.label} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                <div key={item.label} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#161616] rounded-xl">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center">
                       <Icon className="w-4.5 h-4.5 text-violet-600" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-[#0F172A]">{item.label}</p>
+                      <p className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB]">{item.label}</p>
                       <p className="text-[10px] text-slate-400">{item.desc}</p>
                     </div>
                   </div>
@@ -574,7 +574,7 @@ export default function MarketingProfilePage() {
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
             <div className="flex items-center gap-2 mb-4">
               <LifeBuoy className="w-5 h-5 text-[#4F46E5]" />
-              <h3 className="text-[13px] font-bold text-[#0F172A]">Help & Support</h3>
+              <h3 className="text-[13px] font-bold text-[#0F172A] dark:text-[#F9FAFB]">Help & Support</h3>
             </div>
             <div className="space-y-3">
               {[
@@ -584,13 +584,13 @@ export default function MarketingProfilePage() {
                 { title: 'Analytics & Reporting', desc: 'Generate custom reports and export campaign analytics.' },
                 { title: 'Contact Support', desc: 'Reach our team for urgent issues or technical questions.' },
               ].map(item => (
-                <div key={item.title} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-violet-50/40 transition cursor-pointer group">
+                <div key={item.title} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#161616] rounded-xl hover:bg-violet-50/40 transition cursor-pointer group">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center">
                       <HelpCircle className="w-4 h-4 text-[#4F46E5]" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-[#0F172A] group-hover:text-[#4F46E5] transition">{item.title}</p>
+                      <p className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB] group-hover:text-[#4F46E5] transition">{item.title}</p>
                       <p className="text-[10px] text-slate-400">{item.desc}</p>
                     </div>
                   </div>

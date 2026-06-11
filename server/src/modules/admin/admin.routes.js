@@ -4,6 +4,7 @@ const authCtrl = require('../auth/auth.controller');
 const { authenticate } = require('../../middleware/auth');
 const { query } = require('../../config/database');
 const { sendSuccess, sendError } = require('../../utils/helpers');
+const { generateInvoicePdf } = require('../../utils/generateInvoicePdf');
 
 // Ensure only Admin has access to Admin endpoints
 router.use(authenticate);
@@ -18,7 +19,7 @@ router.use((req, res, next) => {
 router.get('/dashboard', async (req, res) => {
   try {
     const tenantId = req.user.tenant_id;
-    const usersCount = await query('SELECT count(*) FROM users WHERE tenant_id = $1', [tenantId]);
+    const usersCount = await query("SELECT count(*) FROM users WHERE tenant_id = $1 AND status != 'Archived'", [tenantId]);
     
     // Check if leads table exists, handle fallback if not
     let countLeads = 0;
@@ -70,6 +71,60 @@ router.get('/reports', async (req, res) => {
 // GET /api/v1/admin/crm-control -> 200 + CRM stats
 router.get('/crm-control', async (req, res) => {
   return sendSuccess(res, { crmStats: { activeTenants: 1 } }, 'CRM control stats retrieved');
+});
+
+// ─── BILLING (Admin scoped to own tenant) ────────────────────────────────────
+
+router.get('/billing/invoices', async (req, res) => {
+  try {
+    const tenantId = req.user.tenant_id;
+    const result = await query(`
+      SELECT i.id as "_id", i.invoice_number as "invoiceNumber",
+             t.name as "tenantName", i.customer_name as "tenant",
+             i.total as amount, 'INR' as currency, LOWER(i.status) as status,
+             i.due_date as "dueDate", i.created_at as "issuedDate"
+      FROM invoices i
+      LEFT JOIN tenants t ON t.id = i.tenant_id
+      WHERE i.tenant_id = $1
+      ORDER BY i.created_at DESC
+    `, [tenantId]);
+    return sendSuccess(res, { data: result.rows }, 'Invoices retrieved successfully');
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+});
+
+router.get('/billing/invoices/:id/download', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tenantId = req.user.tenant_id;
+    const result = await query(`
+      SELECT i.id as "_id", i.invoice_number as "invoiceNumber",
+             t.name as "tenantName", i.customer_name as "tenant",
+             i.total as amount, 'INR' as currency, LOWER(i.status) as status,
+             i.due_date as "dueDate", i.created_at as "issuedDate"
+      FROM invoices i
+      LEFT JOIN tenants t ON t.id = i.tenant_id
+      WHERE i.id = $1 AND i.tenant_id = $2
+    `, [id, tenantId]);
+
+    if (result.rows.length === 0) {
+      return sendError(res, 'Invoice not found', 404);
+    }
+
+    const invoice = result.rows[0];
+    const pdfBuffer = generateInvoicePdf(invoice);
+    const filename = `invoice_${invoice.invoiceNumber || id}.pdf`;
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return res.end(pdfBuffer);
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
 });
 
 module.exports = router;

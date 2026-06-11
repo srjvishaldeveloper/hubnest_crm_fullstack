@@ -20,13 +20,13 @@ export default function AdminAuditLogsPage() {
           <h2 className="text-xl font-bold text-slate-900">System Audit Logs</h2>
           <p className="text-xs text-slate-500 mt-1">Immutable system configuration changes, user deletions, database migrations, and bulk exports.</p>
         </div>
-        <button className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-50 transition">
+        <button className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-50 dark:bg-[#161616] transition">
           <Download className="w-3.5 h-3.5" /> Export Logs
         </button>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200/60 p-4 flex gap-4 items-center">
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 w-72">
+        <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#161616] border border-slate-200 rounded-xl px-3 py-1.5 w-72">
           <Search className="w-4 h-4 text-slate-400" />
           <input
             type="text"
@@ -42,7 +42,7 @@ export default function AdminAuditLogsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/75 border-b border-slate-100">
+              <tr className="bg-slate-50 dark:bg-[#161616]/75 border-b border-slate-100 dark:border-[#1f1f1f]">
                 <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase w-48">Log Type</th>
                 <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Operation Details</th>
                 <th className="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Triggered By</th>
@@ -53,7 +53,7 @@ export default function AdminAuditLogsPage() {
               {logs
                 .filter((l) => l.type.toLowerCase().includes(search.toLowerCase()) || l.details.toLowerCase().includes(search.toLowerCase()))
                 .map((l) => (
-                  <tr key={l.id} className="hover:bg-slate-50/50 transition">
+                  <tr key={l.id} className="hover:bg-slate-50 dark:bg-[#161616]/50 transition">
                     <td className="px-5 py-3.5">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide ${
                         l.type.startsWith('USER') ? 'bg-red-50 text-red-600' :

@@ -6,7 +6,7 @@ import { Users } from 'lucide-react';
 
 const DATA = [
   { name: 'Super Admin', value: 4, color: '#1e40af' },
-  { name: 'Admin', value: 28, color: '#2563EB' },
+  { name: 'Admin', value: 28, color: '#3B82F6' },
   { name: 'Manager', value: 86, color: '#3b82f6' },
   { name: 'Agent', value: 342, color: '#60a5fa' },
   { name: 'Viewer', value: 1204, color: '#93c5fd' },
@@ -20,14 +20,14 @@ export default function RoleDistribution() {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.05 }}
-      className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-xl transition-all duration-300"
+      className="bg-card rounded-3xl border border-slate-100 dark:border-[#1f1f1f] p-5 shadow-sm hover:shadow-xl transition-all duration-300"
     >
       <div className="mb-4">
-        <h3 className="font-bold text-[#0F172A] text-sm flex items-center gap-2">
-          <Users className="w-4 h-4 text-[#2563EB]" />
+        <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm flex items-center gap-2">
+          <Users className="w-4 h-4 text-[#F59E0B]" />
           Role Distribution
         </h3>
-        <p className="text-[11px] text-[#64748B] mt-0.5">Users by role across the platform</p>
+        <p className="text-[11px] text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Users by role across the platform</p>
       </div>
 
       <div className="relative">
@@ -41,7 +41,7 @@ export default function RoleDistribution() {
               outerRadius={72}
               dataKey="value"
               strokeWidth={2}
-              stroke="white"
+              stroke="var(--color-card)"
             >
               {DATA.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />
@@ -52,8 +52,8 @@ export default function RoleDistribution() {
         {/* Center label */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
-            <p className="text-xl font-extrabold text-[#0F172A]">{TOTAL.toLocaleString()}</p>
-            <p className="text-[10px] text-[#64748B]">Total</p>
+            <p className="text-xl font-extrabold text-[#0F172A] dark:text-[#F9FAFB]">{TOTAL.toLocaleString()}</p>
+            <p className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">Total</p>
           </div>
         </div>
       </div>
@@ -63,8 +63,8 @@ export default function RoleDistribution() {
         {DATA.map((d) => (
           <div key={d.name} className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
-            <span className="text-[11px] text-[#64748B] truncate">{d.name}</span>
-            <span className="text-[11px] font-bold text-[#0F172A] ml-auto">{d.value}</span>
+            <span className="text-[11px] text-[#64748B] dark:text-[#9CA3AF] truncate">{d.name}</span>
+            <span className="text-[11px] font-bold text-[#0F172A] dark:text-[#F9FAFB] ml-auto">{d.value}</span>
           </div>
         ))}
       </div>

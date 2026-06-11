@@ -52,21 +52,21 @@ export default function SuperAdminCRMPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-[#0F172A]">CRM Control Settings</h1>
-        <p className="text-xs text-[#64748B] mt-0.5">Super Admin global CRM instance control and system-wide configurations</p>
+        <h1 className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB]">CRM Control Settings</h1>
+        <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Super Admin global CRM instance control and system-wide configurations</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Toggles */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-5 space-y-4">
-            <h3 className="text-sm font-bold text-[#0F172A] mb-4 flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-[#2563EB]" /> Global Environment Flags
+          <div className="bg-card rounded-2xl border border-slate-200/60 p-5 space-y-4">
+            <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-4 flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4 text-[#F59E0B]" /> Global Environment Flags
             </h3>
             
             {loading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                <Loader2 className="w-6 h-6 text-[#F59E0B] animate-spin" />
               </div>
             ) : (
               [
@@ -75,9 +75,9 @@ export default function SuperAdminCRMPage() {
                 { key: 'enableSuperInsights', label: 'AI Super Insights Engine', desc: 'Activate machine learning recommendation cards across all client workspaces' },
                 { key: 'autoPurgeLogs', label: 'Auto Purge Database Logs', desc: 'Periodically clear audit logs older than 90 days' },
               ].map(f => (
-                <div key={f.key} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/20">
+                <div key={f.key} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-[#1f1f1f] bg-slate-50 dark:bg-[#161616]/20">
                   <div>
-                    <span className="text-xs font-bold text-[#0F172A]">{f.label}</span>
+                    <span className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB]">{f.label}</span>
                     <p className="text-[10px] text-slate-500 mt-0.5">{f.desc}</p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -88,9 +88,9 @@ export default function SuperAdminCRMPage() {
                       type="button"
                       disabled={updating === f.key}
                       onClick={() => handleToggle(f.key)}
-                      className={`w-10 h-5 rounded-full relative transition-colors duration-200 ${globalSettings[f.key] ? 'bg-[#2563EB]' : 'bg-slate-200'} ${updating === f.key ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      className={`w-10 h-5 rounded-full relative transition-colors duration-200 ${globalSettings[f.key] ? 'bg-[#F59E0B]' : 'bg-slate-200'} ${updating === f.key ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                     >
-                      <span className={`absolute top-[2px] left-[2px] w-4 h-4 bg-white rounded-full transition-transform duration-200 ${globalSettings[f.key] ? 'translate-x-5' : ''}`} />
+                      <span className={`absolute top-[2px] left-[2px] w-4 h-4 bg-card rounded-full transition-transform duration-200 ${globalSettings[f.key] ? 'translate-x-5' : ''}`} />
                     </button>
                   </div>
                 </div>
@@ -99,22 +99,22 @@ export default function SuperAdminCRMPage() {
           </div>
 
           {/* Database & Storage */}
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-5 space-y-4">
-            <h3 className="text-sm font-bold text-[#0F172A]">System Storage & Database</h3>
+          <div className="bg-card rounded-2xl border border-slate-200/60 p-5 space-y-4">
+            <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">System Storage & Database</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#161616] border border-slate-100 dark:border-[#1f1f1f]">
                 <span className="text-[10px] text-slate-400 font-bold uppercase">DB Clusters</span>
-                <p className="text-lg font-bold text-[#0F172A] mt-1">2 Active</p>
+                <p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB] mt-1">2 Active</p>
                 <div className="w-full bg-slate-200 h-1 rounded-full mt-2 overflow-hidden"><div className="h-full bg-emerald-500 w-4/5" /></div>
               </div>
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#161616] border border-slate-100 dark:border-[#1f1f1f]">
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Total Storage</span>
-                <p className="text-lg font-bold text-[#0F172A] mt-1">1.84 TB</p>
-                <div className="w-full bg-slate-200 h-1 rounded-full mt-2 overflow-hidden"><div className="h-full bg-blue-500 w-1/2" /></div>
+                <p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB] mt-1">1.84 TB</p>
+                <div className="w-full bg-slate-200 h-1 rounded-full mt-2 overflow-hidden"><div className="h-full bg-amber-500 w-1/2" /></div>
               </div>
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#161616] border border-slate-100 dark:border-[#1f1f1f]">
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Redis Cache Hit</span>
-                <p className="text-lg font-bold text-[#0F172A] mt-1">98.2 %</p>
+                <p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB] mt-1">98.2 %</p>
                 <div className="w-full bg-slate-200 h-1 rounded-full mt-2 overflow-hidden"><div className="h-full bg-indigo-500 w-11/12" /></div>
               </div>
             </div>
@@ -123,8 +123,8 @@ export default function SuperAdminCRMPage() {
 
         {/* Right Column: Server Alarms */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-5 space-y-4">
-            <h3 className="text-sm font-bold text-[#0F172A] flex items-center gap-1.5"><AlertTriangle className="w-4 h-4 text-rose-500" /> Active System Alarms</h3>
+          <div className="bg-card rounded-2xl border border-slate-200/60 p-5 space-y-4">
+            <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] flex items-center gap-1.5"><AlertTriangle className="w-4 h-4 text-rose-500" /> Active System Alarms</h3>
             {[
               { title: 'Server Node #3 CPU load high', desc: 'Utilization exceeded 92% for 15 minutes', date: '5 mins ago' },
               { title: 'WhatsApp Webhook timeout', desc: '3 consecutive delivery attempts failed', date: '30 mins ago' },
@@ -137,8 +137,8 @@ export default function SuperAdminCRMPage() {
             ))}
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-5 space-y-4">
-            <h3 className="text-sm font-bold text-[#0F172A] flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-500" /> Health Checks</h3>
+          <div className="bg-card rounded-2xl border border-slate-200/60 p-5 space-y-4">
+            <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-500" /> Health Checks</h3>
             <div className="space-y-3">
               {[
                 { name: 'Gateway Proxy Router', status: 'Healthy' },

@@ -1,4 +1,12 @@
 const request = require('supertest');
+
+// Mock nodemailer before app is loaded
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn().mockReturnValue({
+    sendMail: jest.fn().mockResolvedValue({ messageId: 'mock-message-id' }),
+  }),
+}));
+
 const app = require('../src/app');
 const { pool } = require('../src/config/database');
 const { ensureRoles, createTestTenant, createTestUser, cleanup, redis } = require('./testHelper');

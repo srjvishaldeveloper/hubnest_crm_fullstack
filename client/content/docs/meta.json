@@ -1,0 +1,22 @@
+{
+  "pages": [
+    "overview",
+    "installation",
+    "architecture",
+    "multi-tenant-saas",
+    "auth-mfa",
+    "rbac-departments",
+    "crm",
+    "marketing-tracking",
+    "finance-invoices",
+    "hr",
+    "support",
+    "api-reference",
+    "webhooks",
+    "integrations",
+    "deployment",
+    "database-schema",
+    "troubleshooting",
+    "changelog"
+  ]
+}

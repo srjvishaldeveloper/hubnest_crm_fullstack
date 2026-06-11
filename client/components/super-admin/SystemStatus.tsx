@@ -44,15 +44,15 @@ export default function SystemStatus() {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-white rounded-3xl border border-slate-100 p-5 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-300"
+      className="bg-card rounded-3xl border border-slate-100 dark:border-[#1f1f1f] p-5 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-300"
     >
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h3 className="font-bold text-[#0F172A] text-base flex items-center gap-2">
-            <Activity className="w-4 h-4 text-[#2563EB]" />
+          <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-base flex items-center gap-2">
+            <Activity className="w-4 h-4 text-[#F59E0B]" />
             System Status
           </h3>
-          <p className="text-xs text-[#64748B] mt-0.5">Infrastructure health & performance</p>
+          <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Infrastructure health & performance</p>
         </div>
         <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
           allOperational
@@ -76,17 +76,17 @@ export default function SystemStatus() {
             <motion.div
               key={service.name}
               variants={item}
-              className="flex items-center gap-3 p-3.5 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-md transition-all duration-200 group"
+              className="flex items-center gap-3 p-3.5 rounded-2xl border border-slate-100 dark:border-[#1f1f1f] hover:border-slate-200 hover:shadow-md transition-all duration-200 group"
             >
-              <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-blue-50 transition-colors">
-                <Icon className="w-5 h-5 text-[#64748B] group-hover:text-[#2563EB] transition-colors" />
+              <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-[#161616] flex items-center justify-center shrink-0 group-hover:bg-amber-50 transition-colors">
+                <Icon className="w-5 h-5 text-[#64748B] dark:text-[#9CA3AF] group-hover:text-[#F59E0B] transition-colors" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[#0F172A]">{service.name}</p>
+                <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB]">{service.name}</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] text-[#94A3B8]">{service.latency}</span>
-                  <span className="text-[10px] text-[#94A3B8]">•</span>
-                  <span className="text-[10px] text-[#94A3B8]">{service.uptime} uptime</span>
+                  <span className="text-[10px] text-[#94A3B8] dark:text-[#6B7280]">{service.latency}</span>
+                  <span className="text-[10px] text-[#94A3B8] dark:text-[#6B7280]">•</span>
+                  <span className="text-[10px] text-[#94A3B8] dark:text-[#6B7280]">{service.uptime} uptime</span>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">

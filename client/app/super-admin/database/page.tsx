@@ -7,15 +7,15 @@ export default function DatabaseMetricsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-[#0F172A]">Database Metrics</h1>
-        <p className="text-xs text-[#64748B] mt-0.5">Real-time health and performance of the data layer</p>
+        <h1 className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB]">Database Metrics</h1>
+        <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Real-time health and performance of the data layer</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/60 shadow-sm">
+        <div className="p-5 rounded-2xl bg-card border border-slate-200/60 shadow-sm">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-              <Database className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+              <Database className="w-5 h-5 text-[#F59E0B]" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-700">PostgreSQL</h3>
@@ -28,7 +28,7 @@ export default function DatabaseMetricsPage() {
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/60 shadow-sm">
+        <div className="p-5 rounded-2xl bg-card border border-slate-200/60 shadow-sm">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
               <Activity className="w-5 h-5 text-red-600" />
@@ -44,7 +44,7 @@ export default function DatabaseMetricsPage() {
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/60 shadow-sm">
+        <div className="p-5 rounded-2xl bg-card border border-slate-200/60 shadow-sm">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
               <Cpu className="w-5 h-5 text-indigo-600" />

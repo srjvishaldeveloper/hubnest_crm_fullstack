@@ -121,7 +121,7 @@ export default function ActivityPage() {
           <p className="text-xs text-slate-500 mt-0.5">Logs of all call, email, and meeting interactions.</p>
         </div>
         <div className="flex gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition">
+          <button className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 dark:bg-[#161616] text-slate-700 text-xs font-semibold rounded-xl transition">
             <Download className="w-4 h-4" /> Export
           </button>
           <button onClick={() => setIsLogPanelOpen(true)} className="flex items-center gap-1.5 px-4 py-2 bg-[#2563EB] hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-md shadow-blue-500/10">
@@ -157,7 +157,7 @@ export default function ActivityPage() {
             className={`flex-1 px-4 py-2.5 text-xs font-semibold rounded-xl transition whitespace-nowrap ${
               activeTab === tab
                 ? 'bg-[#2563EB] text-white shadow-sm'
-                : 'text-slate-500 hover:bg-slate-50'
+                : 'text-slate-500 hover:bg-slate-50 dark:bg-[#161616]'
             }`}
           >
             {tab}
@@ -170,7 +170,7 @@ export default function ActivityPage() {
         
         {/* Timeline Log */}
         <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-          <h3 className="text-sm font-bold text-slate-800 pb-2 border-b border-slate-100">Timeline Activity</h3>
+          <h3 className="text-sm font-bold text-slate-800 pb-2 border-b border-slate-100 dark:border-[#1f1f1f]">Timeline Activity</h3>
           {loading ? (
             <div className="text-center py-12">
               <span className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin inline-block" />
@@ -210,7 +210,7 @@ export default function ActivityPage() {
                         Call Duration: {Math.floor(act.duration_seconds / 60)}m {act.duration_seconds % 60}s
                       </span>
                     )}
-                    <p className="text-[11px] text-slate-500 mt-1.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-relaxed">
+                    <p className="text-[11px] text-slate-500 mt-1.5 bg-slate-50 dark:bg-[#161616] p-2.5 rounded-xl border border-slate-100 dark:border-[#1f1f1f] leading-relaxed">
                       {act.notes}
                     </p>
                   </div>
@@ -223,7 +223,7 @@ export default function ActivityPage() {
         {/* Performance Sidebar */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-6">
           <div>
-            <h3 className="text-sm font-bold text-slate-800 pb-2 border-b border-slate-100 mb-3">Weekly Activities</h3>
+            <h3 className="text-sm font-bold text-slate-800 pb-2 border-b border-slate-100 dark:border-[#1f1f1f] mb-3">Weekly Activities</h3>
             <div className="h-44 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weeklyActivityData}>
@@ -238,14 +238,14 @@ export default function ActivityPage() {
             </div>
           </div>
 
-          <div className="space-y-3 pt-4 border-t border-slate-100">
+          <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-[#1f1f1f]">
             <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Productivity Metrics</h3>
             {[
               { label: 'Response Rate', value: '68%', color: 'text-blue-600 bg-blue-50/50' },
               { label: 'Engagement Rate', value: '45%', color: 'text-green-600 bg-green-50/50' },
               { label: 'Productivity Score (AI)', value: '82', color: 'text-violet-600 bg-violet-50/50' },
             ].map((metric) => (
-              <div key={metric.label} className="flex items-center justify-between text-xs font-semibold p-2 bg-slate-50 rounded-xl border border-slate-100">
+              <div key={metric.label} className="flex items-center justify-between text-xs font-semibold p-2 bg-slate-50 dark:bg-[#161616] rounded-xl border border-slate-100 dark:border-[#1f1f1f]">
                 <span className="text-slate-500">{metric.label}</span>
                 <span className={`px-2 py-0.5 rounded-md font-extrabold ${metric.color}`}>{metric.value}</span>
               </div>
@@ -270,7 +270,7 @@ export default function ActivityPage() {
               className="bg-white w-full max-w-md h-full relative z-10 border-l border-slate-200 flex flex-col shadow-2xl p-6"
             >
               {/* Panel Header */}
-              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-[#1f1f1f]">
                 <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Log Communication</h3>
                 <button onClick={() => setIsLogPanelOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-xl transition text-slate-400 hover:text-slate-600">
                   <X className="w-4.5 h-4.5" />

@@ -8,7 +8,9 @@ import {
   LayoutDashboard, Users, SlidersHorizontal, BarChart3,
   UserCircle, LogOut, X, Sparkles, ShieldCheck,
   Activity, Layers, Plug, Lock, ScrollText, Settings,
-  TrendingUp, Brain, UserCheck, Briefcase, BookOpen
+  TrendingUp, Brain, UserCheck, Briefcase, BookOpen,
+  CreditCard, Shield, DollarSign, FileText, Receipt,
+  Wallet, Building2
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -29,8 +31,8 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
     router.replace('/auth/login');
   }
 
-  const sidebarWidth = collapsed ? 'lg:w-[72px]' : 'lg:w-[240px]';
-  const mobileTranslate = open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0';
+  const sidebarWidth = collapsed ? 'md:w-[72px]' : 'md:w-[240px]';
+  const mobileTranslate = open ? 'translate-x-0' : '-translate-x-full md:translate-x-0';
 
   const menuSections =
     role === 'Sales Manager'
@@ -88,6 +90,32 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
             items: [{ label: 'Profile', href: '/support/profile', icon: UserCircle }],
           },
         ]
+      : role === 'Finance Manager' || role === 'Accountant' || role === 'Auditor' || role === 'Finance Executive'
+      ? [
+          {
+            title: 'MAIN MENU',
+            items: [{ label: 'Home', href: '/finance', icon: LayoutDashboard }],
+          },
+          {
+            title: 'FINANCE',
+            items: [
+              { label: 'Invoices', href: '/finance/invoices', icon: FileText },
+              { label: 'Payments', href: '/finance/payments', icon: CreditCard },
+              { label: 'Expenses', href: '/finance/expenses', icon: Receipt },
+              { label: 'Vendors', href: '/finance/vendors', icon: Building2 },
+            ],
+          },
+          {
+            title: 'ANALYTICS',
+            items: [
+              { label: 'Analytics', href: '/finance/analytics', icon: BarChart3 },
+            ],
+          },
+          {
+            title: 'ACCOUNT',
+            items: [{ label: 'Profile', href: '/finance/profile', icon: UserCircle }],
+          },
+        ]
       : [
           {
             title: 'MAIN MENU',
@@ -110,6 +138,8 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
             title: 'SYSTEM',
             items: [
               { label: 'Integrations', href: '/admin/integrations', icon: Plug },
+              { label: 'Subscription', href: '/admin/subscription', icon: CreditCard },
+              { label: 'Security & MFA', href: '/admin/security', icon: Shield },
               { label: 'Access & Security', href: '/admin/access-security', icon: Lock },
               { label: 'Audit Logs', href: '/admin/audit-logs', icon: ScrollText },
               { label: 'System Settings', href: '/admin/system-settings', icon: Settings },
@@ -120,6 +150,12 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
             items: [
               { label: 'User Insights', href: '/admin/user-insights', icon: TrendingUp },
               { label: 'AI Recommendations', href: '/admin/ai-recommendations', icon: Brain },
+            ],
+          },
+          {
+            title: 'BILLING',
+            items: [
+              { label: 'Invoices', href: '/admin/billing/invoices', icon: FileText },
             ],
           },
           {
@@ -139,28 +175,28 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-30"
+            className="md:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-30"
             onClick={onClose}
           />
         )}
       </AnimatePresence>
 
       <aside className={`fixed top-0 left-0 h-full z-40 flex flex-col
-        bg-white border-r border-slate-200/80 transition-all duration-300 ease-in-out shadow-sm
+        bg-white dark:bg-[#181818] border-r border-slate-200/80 dark:border-[#333333] transition-all duration-300 ease-in-out shadow-sm
         w-[240px] ${sidebarWidth} ${mobileTranslate}`}
       >
         {/* Logo Section */}
-        <div className={`flex items-center gap-3 px-4 h-[72px] border-b border-slate-100 shrink-0 ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}>
+        <div className={`flex items-center gap-3 px-4 h-[72px] border-b border-slate-100 dark:border-[#333333] shrink-0 ${collapsed ? 'md:justify-center md:px-0' : ''}`}>
           <div className="w-9 h-9 bg-[#2563EB] rounded-xl flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20">
             <Briefcase className="w-5 h-5 text-white" />
           </div>
-          <div className={`${collapsed ? 'lg:hidden' : ''} overflow-hidden`}>
-            <p className="text-[#0F172A] font-bold text-sm tracking-tight whitespace-nowrap">Job Nest CRM</p>
-            <span className="inline-flex items-center text-[10px] font-extrabold text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded-full uppercase tracking-wider mt-0.5">
-              Admin
+          <div className={`${collapsed ? 'md:hidden' : ''} overflow-hidden`}>
+            <p className="text-[#0F172A] dark:text-white font-bold text-sm tracking-tight whitespace-nowrap">HubNest CRM</p>
+            <span className="inline-flex items-center text-[10px] font-extrabold text-[#2563EB] dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-full uppercase tracking-wider mt-0.5">
+              {role}
             </span>
           </div>
-          <button onClick={onClose} className="lg:hidden ml-auto p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+          <button onClick={onClose} className="md:hidden ml-auto p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#2A2A2A] transition">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -170,7 +206,7 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
         <div className="flex-1 overflow-y-auto scrollbar-thin py-4 px-3 space-y-4">
           {menuSections.map((section) => (
             <div key={section.title} className="space-y-0.5">
-              <p className={`text-slate-400 text-[11px] font-bold uppercase tracking-wider px-2 mb-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
+              <p className={`text-slate-400 dark:text-slate-500 text-[11px] font-bold uppercase tracking-wider px-2 mb-1.5 ${collapsed ? 'md:hidden' : ''}`}>
                 {section.title}
               </p>
               {section.items.map((item) => {
@@ -185,12 +221,12 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group
                       ${active
                         ? 'bg-[#2563EB] text-white shadow-sm shadow-blue-500/20'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-[#0F172A]'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#2A2A2A] hover:text-[#0F172A] dark:text-[#F9FAFB] dark:hover:text-white'
                       }
-                      ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+                      ${collapsed ? 'md:justify-center md:px-0' : ''}`}
                   >
-                    <Icon className={`w-[18px] h-[18px] shrink-0 transition-transform duration-200 group-hover:scale-110 ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                    <span className={`${collapsed ? 'lg:hidden' : ''} truncate`}>{item.label}</span>
+                    <Icon className={`w-[18px] h-[18px] shrink-0 transition-transform duration-200 group-hover:scale-110 ${active ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-white'}`} />
+                    <span className={`${collapsed ? 'md:hidden' : ''} truncate`}>{item.label}</span>
                   </Link>
                 );
               })}
@@ -213,14 +249,14 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
         </div>
 
         {/* Bottom Profile & Logout */}
-        <div className="border-t border-slate-100 p-3 shrink-0 space-y-2">
-          <div className={`flex items-center gap-3 p-2 rounded-xl bg-slate-50 ${collapsed ? 'lg:justify-center lg:p-1.5' : ''}`}>
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-400 rounded-full flex items-center justify-center shrink-0 ring-2 ring-blue-100">
+        <div className="border-t border-slate-100 dark:border-[#333333] p-3 shrink-0 space-y-2">
+          <div className={`flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-[#202020] ${collapsed ? 'md:justify-center md:p-1.5' : ''}`}>
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-400 rounded-full flex items-center justify-center shrink-0 ring-2 ring-blue-100 dark:ring-blue-500/20">
               <span className="text-white font-bold text-xs">{user?.name?.charAt(0).toUpperCase() || 'A'}</span>
             </div>
-            <div className={`overflow-hidden ${collapsed ? 'lg:hidden' : ''}`}>
-              <p className="text-[#0F172A] text-xs font-bold truncate leading-tight">{user?.name || 'User'}</p>
-              <span className="inline-block text-[9px] font-extrabold text-[#2563EB] bg-blue-50 px-1.5 py-0.5 rounded-md uppercase tracking-wider mt-0.5 leading-none">
+            <div className={`overflow-hidden ${collapsed ? 'md:hidden' : ''}`}>
+              <p className="text-[#0F172A] dark:text-white text-xs font-bold truncate leading-tight">{user?.name || 'User'}</p>
+              <span className="inline-block text-[9px] font-extrabold text-[#2563EB] dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-1.5 py-0.5 rounded-md uppercase tracking-wider mt-0.5 leading-none">
                 {role}
               </span>
             </div>
@@ -230,11 +266,11 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
             onClick={handleLogout}
             title="Logout"
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold
-              text-red-500 hover:bg-red-50 transition-all duration-200 group
-              ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+              text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all duration-200 group
+              ${collapsed ? 'md:justify-center md:px-0' : ''}`}
           >
             <LogOut className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110 text-red-500" />
-            <span className={collapsed ? 'lg:hidden' : ''}>Logout</span>
+            <span className={collapsed ? 'md:hidden' : ''}>Logout</span>
           </button>
         </div>
       </aside>

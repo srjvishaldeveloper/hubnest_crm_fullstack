@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { smGetProfile, smUpdateProfile, smGetTargets } from '../../../services/salesManagerService';
 import { useAuthStore } from '../../../store/authStore';
+import { useTheme } from '../../../components/shared/ThemeProvider';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Profile {
@@ -119,8 +120,8 @@ function GaugeChart({ value, max, color, label, sublabel }: {
         </text>
         <text x={cx} y={cy + 14} textAnchor="middle" fontSize="9" fill="#64748B">{sublabel}</text>
       </svg>
-      <p className="text-xs font-semibold text-[#0F172A] mt-1">{label}</p>
-      <p className="text-[10px] text-[#64748B]">Target: {max}{max <= 100 ? '%' : ''}</p>
+      <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mt-1">{label}</p>
+      <p className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">Target: {max}{max <= 100 ? '%' : ''}</p>
     </div>
   );
 }
@@ -181,7 +182,7 @@ export default function SalesManagerProfilePage() {
     weeklyReport: true,
   });
   const [language, setLanguage] = useState('English');
-  const [theme, setTheme] = useState('Light');
+  const { theme: globalTheme, setTheme: setGlobalTheme } = useTheme();
   const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' });
   const [savingProfile, setSavingProfile] = useState(false);
 
@@ -232,7 +233,7 @@ export default function SalesManagerProfilePage() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-12 h-12 rounded-full border-4 border-[#2563EB] border-t-transparent animate-spin" />
-          <p className="text-sm text-[#64748B] font-medium">Loading profile…</p>
+          <p className="text-sm text-[#64748B] dark:text-[#9CA3AF] font-medium">Loading profile…</p>
         </div>
       </div>
     );
@@ -242,8 +243,8 @@ export default function SalesManagerProfilePage() {
     <div className="space-y-6">
       {/* ── Page Title ── */}
       <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-xl font-bold text-[#0F172A]">My Profile</h1>
-        <p className="text-xs text-[#64748B] mt-0.5">Manage your account information, performance and settings</p>
+        <h1 className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB]">My Profile</h1>
+        <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Manage your account information, performance and settings</p>
       </motion.div>
 
       {/* ── Profile Header ── */}
@@ -336,8 +337,8 @@ export default function SalesManagerProfilePage() {
               <card.icon className={`w-5 h-5 ${card.color}`} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-[#0F172A]">{card.value}</p>
-              <p className="text-xs text-[#64748B] leading-tight">{card.label}</p>
+              <p className="text-2xl font-bold text-[#0F172A] dark:text-[#F9FAFB]">{card.value}</p>
+              <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] leading-tight">{card.label}</p>
             </div>
           </motion.div>
         ))}
@@ -351,7 +352,7 @@ export default function SalesManagerProfilePage() {
         className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden"
       >
         {/* Tab bar */}
-        <div className="flex border-b border-slate-100 overflow-x-auto">
+        <div className="flex border-b border-slate-100 dark:border-[#1f1f1f] overflow-x-auto">
           {TABS.map(tab => (
             <button
               key={tab.key}
@@ -359,7 +360,7 @@ export default function SalesManagerProfilePage() {
               className={`flex items-center gap-2 px-5 py-4 text-sm font-semibold whitespace-nowrap transition-all border-b-2 ${
                 activeTab === tab.key
                   ? 'border-[#2563EB] text-[#2563EB] bg-blue-50/50'
-                  : 'border-transparent text-[#64748B] hover:text-[#0F172A] hover:bg-slate-50'
+                  : 'border-transparent text-[#64748B] dark:text-[#9CA3AF] hover:text-[#0F172A] dark:text-[#F9FAFB] hover:bg-slate-50 dark:bg-[#161616]'
               }`}
             >
               {tab.icon} {tab.label}
@@ -382,8 +383,8 @@ export default function SalesManagerProfilePage() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-base font-bold text-[#0F172A]">Personal Information</h3>
-                    <p className="text-xs text-[#64748B] mt-0.5">Your personal and contact details</p>
+                    <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F9FAFB]">Personal Information</h3>
+                    <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Your personal and contact details</p>
                   </div>
                   {!isEditing ? (
                     <button
@@ -403,7 +404,7 @@ export default function SalesManagerProfilePage() {
                       </button>
                       <button
                         onClick={() => { setIsEditing(false); setEditForm({ ...profile }); }}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-[#64748B] text-sm font-semibold rounded-xl hover:bg-slate-200 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-[#64748B] dark:text-[#9CA3AF] text-sm font-semibold rounded-xl hover:bg-slate-200 transition-colors"
                       >
                         <X className="w-4 h-4" /> Cancel
                       </button>
@@ -414,13 +415,13 @@ export default function SalesManagerProfilePage() {
                 {/* Form */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {[
-                    { label: 'Full Name', key: 'name' as keyof Profile, icon: <User className="w-4 h-4 text-[#64748B]" />, type: 'text' },
-                    { label: 'Email Address', key: 'email' as keyof Profile, icon: <Mail className="w-4 h-4 text-[#64748B]" />, type: 'email' },
-                    { label: 'Mobile Number', key: 'mobile' as keyof Profile, icon: <Phone className="w-4 h-4 text-[#64748B]" />, type: 'tel' },
-                    { label: 'Department', key: 'department' as keyof Profile, icon: <Users className="w-4 h-4 text-[#64748B]" />, type: 'text' },
+                    { label: 'Full Name', key: 'name' as keyof Profile, icon: <User className="w-4 h-4 text-[#64748B] dark:text-[#9CA3AF]" />, type: 'text' },
+                    { label: 'Email Address', key: 'email' as keyof Profile, icon: <Mail className="w-4 h-4 text-[#64748B] dark:text-[#9CA3AF]" />, type: 'email' },
+                    { label: 'Mobile Number', key: 'mobile' as keyof Profile, icon: <Phone className="w-4 h-4 text-[#64748B] dark:text-[#9CA3AF]" />, type: 'tel' },
+                    { label: 'Department', key: 'department' as keyof Profile, icon: <Users className="w-4 h-4 text-[#64748B] dark:text-[#9CA3AF]" />, type: 'text' },
                   ].map(field => (
                     <div key={field.key}>
-                      <label className="block text-xs font-semibold text-[#64748B] mb-1.5">{field.label}</label>
+                      <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">{field.label}</label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2">{field.icon}</span>
                         <input
@@ -428,10 +429,10 @@ export default function SalesManagerProfilePage() {
                           value={editForm[field.key]}
                           onChange={e => setEditForm(f => ({ ...f, [field.key]: e.target.value }))}
                           disabled={!isEditing}
-                          className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm text-[#0F172A] outline-none transition-all ${
+                          className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm text-[#0F172A] dark:text-[#F9FAFB] outline-none transition-all ${
                             isEditing
                               ? 'border-[#2563EB] bg-blue-50/30 focus:ring-2 focus:ring-blue-500/20'
-                              : 'border-slate-200 bg-slate-50 cursor-default'
+                              : 'border-slate-200 bg-slate-50 dark:bg-[#161616] cursor-default'
                           }`}
                         />
                       </div>
@@ -439,36 +440,36 @@ export default function SalesManagerProfilePage() {
                   ))}
                   {/* Address */}
                   <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Address</label>
+                    <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Address</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-3"><MapPin className="w-4 h-4 text-[#64748B]" /></span>
+                      <span className="absolute left-3 top-3"><MapPin className="w-4 h-4 text-[#64748B] dark:text-[#9CA3AF]" /></span>
                       <textarea
                         rows={2}
                         value={editForm.address}
                         onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))}
                         disabled={!isEditing}
-                        className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm text-[#0F172A] outline-none transition-all resize-none ${
+                        className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm text-[#0F172A] dark:text-[#F9FAFB] outline-none transition-all resize-none ${
                           isEditing
                             ? 'border-[#2563EB] bg-blue-50/30 focus:ring-2 focus:ring-blue-500/20'
-                            : 'border-slate-200 bg-slate-50 cursor-default'
+                            : 'border-slate-200 bg-slate-50 dark:bg-[#161616] cursor-default'
                         }`}
                       />
                     </div>
                   </div>
                   {/* Emergency Contact */}
                   <div>
-                    <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Emergency Contact</label>
+                    <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Emergency Contact</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2"><AlertCircle className="w-4 h-4 text-[#64748B]" /></span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2"><AlertCircle className="w-4 h-4 text-[#64748B] dark:text-[#9CA3AF]" /></span>
                       <input
                         type="tel"
                         value={editForm.emergencyContact}
                         onChange={e => setEditForm(f => ({ ...f, emergencyContact: e.target.value }))}
                         disabled={!isEditing}
-                        className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm text-[#0F172A] outline-none transition-all ${
+                        className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm text-[#0F172A] dark:text-[#F9FAFB] outline-none transition-all ${
                           isEditing
                             ? 'border-[#2563EB] bg-blue-50/30 focus:ring-2 focus:ring-blue-500/20'
-                            : 'border-slate-200 bg-slate-50 cursor-default'
+                            : 'border-slate-200 bg-slate-50 dark:bg-[#161616] cursor-default'
                         }`}
                       />
                     </div>
@@ -506,8 +507,8 @@ export default function SalesManagerProfilePage() {
             {activeTab === 'performance' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-base font-bold text-[#0F172A]">Performance Overview</h3>
-                  <p className="text-xs text-[#64748B] mt-0.5">Revenue & leads vs targets for this quarter</p>
+                  <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F9FAFB]">Performance Overview</h3>
+                  <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Revenue & leads vs targets for this quarter</p>
                 </div>
 
                 {/* Gauges */}
@@ -542,44 +543,44 @@ export default function SalesManagerProfilePage() {
                 <div className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
                   <div className="flex items-center gap-2 mb-4">
                     <Activity className="w-4 h-4 text-[#2563EB]" />
-                    <h4 className="text-sm font-bold text-[#0F172A]">Monthly Revenue Trend</h4>
-                    <span className="text-xs text-[#64748B]">(Last 7 months, ₹L)</span>
+                    <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Monthly Revenue Trend</h4>
+                    <span className="text-xs text-[#64748B] dark:text-[#9CA3AF]">(Last 7 months, ₹L)</span>
                   </div>
                   <div className="flex items-end gap-3">
                     <Sparkline data={targets.monthlyTrend} color="#2563EB" />
                     <div className="text-right">
                       <p className="text-xs text-emerald-600 font-semibold">↑ +18%</p>
-                      <p className="text-[10px] text-[#64748B]">vs last period</p>
+                      <p className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">vs last period</p>
                     </div>
                   </div>
                   <div className="flex justify-between mt-2 px-1">
                     {['Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map(m => (
-                      <span key={m} className="text-[10px] text-[#94A3B8]">{m}</span>
+                      <span key={m} className="text-[10px] text-[#94A3B8] dark:text-[#6B7280]">{m}</span>
                     ))}
                   </div>
                 </div>
 
                 {/* Top Performers */}
                 <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
-                  <div className="p-5 border-b border-slate-100 flex items-center gap-2">
+                  <div className="p-5 border-b border-slate-100 dark:border-[#1f1f1f] flex items-center gap-2">
                     <Award className="w-4 h-4 text-amber-500" />
-                    <h4 className="text-sm font-bold text-[#0F172A]">Top Performers Under Management</h4>
+                    <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Top Performers Under Management</h4>
                   </div>
                   <div className="divide-y divide-slate-50">
                     {targets.topPerformers.map((p, idx) => (
-                      <div key={p.name} className="flex items-center gap-4 px-5 py-3 hover:bg-slate-50/50 transition-colors">
+                      <div key={p.name} className="flex items-center gap-4 px-5 py-3 hover:bg-slate-50 dark:bg-[#161616]/50 transition-colors">
                         <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${
                           idx === 0 ? 'bg-amber-400' : idx === 1 ? 'bg-slate-400' : idx === 2 ? 'bg-orange-400' : 'bg-blue-400'
                         }`}>
                           {idx + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[#0F172A] truncate">{p.name}</p>
-                          <p className="text-xs text-[#64748B]">{p.deals} deals • {p.revenue}</p>
+                          <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB] truncate">{p.name}</p>
+                          <p className="text-xs text-[#64748B] dark:text-[#9CA3AF]">{p.deals} deals • {p.revenue}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-bold text-emerald-600">{p.rate}%</p>
-                          <p className="text-[10px] text-[#94A3B8]">conversion</p>
+                          <p className="text-[10px] text-[#94A3B8] dark:text-[#6B7280]">conversion</p>
                         </div>
                         <div className="w-20">
                           <div className="w-full bg-slate-100 rounded-full h-1.5">
@@ -600,15 +601,15 @@ export default function SalesManagerProfilePage() {
             {activeTab === 'security' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-base font-bold text-[#0F172A]">Security Settings</h3>
-                  <p className="text-xs text-[#64748B] mt-0.5">Manage your password, 2FA and active sessions</p>
+                  <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F9FAFB]">Security Settings</h3>
+                  <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Manage your password, 2FA and active sessions</p>
                 </div>
 
                 {/* Change Password */}
                 <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-2xl border border-slate-200 p-5">
                   <div className="flex items-center gap-2 mb-4">
                     <Lock className="w-4 h-4 text-[#2563EB]" />
-                    <h4 className="text-sm font-bold text-[#0F172A]">Change Password</h4>
+                    <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Change Password</h4>
                   </div>
                   <div className="space-y-3">
                     {[
@@ -617,20 +618,20 @@ export default function SalesManagerProfilePage() {
                       { label: 'Confirm New Password', key: 'confirm' as const, show: showConfirmPw, toggle: () => setShowConfirmPw(v => !v) },
                     ].map(field => (
                       <div key={field.key}>
-                        <label className="block text-xs font-semibold text-[#64748B] mb-1.5">{field.label}</label>
+                        <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">{field.label}</label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2"><Lock className="w-4 h-4 text-[#94A3B8]" /></span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2"><Lock className="w-4 h-4 text-[#94A3B8] dark:text-[#6B7280]" /></span>
                           <input
                             type={field.show ? 'text' : 'password'}
                             value={pwForm[field.key]}
                             onChange={e => setPwForm(f => ({ ...f, [field.key]: e.target.value }))}
                             placeholder="••••••••"
-                            className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-[#0F172A] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/20 transition-all"
+                            className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-[#0F172A] dark:text-[#F9FAFB] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/20 transition-all"
                           />
                           <button
                             type="button"
                             onClick={field.toggle}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B]"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] dark:text-[#6B7280] hover:text-[#64748B] dark:text-[#9CA3AF]"
                           >
                             {field.show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
@@ -650,8 +651,8 @@ export default function SalesManagerProfilePage() {
                       <Shield className="w-5 h-5 text-violet-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-[#0F172A]">Two-Factor Authentication</p>
-                      <p className="text-xs text-[#64748B]">Add an extra layer of security to your account</p>
+                      <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB]">Two-Factor Authentication</p>
+                      <p className="text-xs text-[#64748B] dark:text-[#9CA3AF]">Add an extra layer of security to your account</p>
                     </div>
                   </div>
                   <Toggle value={twoFA} onChange={() => setTwoFA(v => !v)} />
@@ -659,31 +660,31 @@ export default function SalesManagerProfilePage() {
 
                 {/* Login History */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="p-5 border-b border-slate-100 flex items-center gap-2">
+                  <div className="p-5 border-b border-slate-100 dark:border-[#1f1f1f] flex items-center gap-2">
                     <Clock className="w-4 h-4 text-[#2563EB]" />
-                    <h4 className="text-sm font-bold text-[#0F172A]">Recent Login History</h4>
+                    <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Recent Login History</h4>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
-                        <tr className="border-b border-slate-100">
+                        <tr className="border-b border-slate-100 dark:border-[#1f1f1f]">
                           {['Date', 'Time', 'Device', 'Location', 'Status'].map(h => (
-                            <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">{h}</th>
+                            <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-[#94A3B8] dark:text-[#6B7280] uppercase tracking-wider">{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {MOCK_LOGINS.map((log, i) => (
-                          <tr key={i} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                            <td className="px-4 py-3 text-xs font-medium text-[#0F172A]">{log.date}</td>
-                            <td className="px-4 py-3 text-xs text-[#64748B]">{log.time}</td>
+                          <tr key={i} className="border-b border-slate-50 hover:bg-slate-50 dark:bg-[#161616]/50 transition-colors">
+                            <td className="px-4 py-3 text-xs font-medium text-[#0F172A] dark:text-[#F9FAFB]">{log.date}</td>
+                            <td className="px-4 py-3 text-xs text-[#64748B] dark:text-[#9CA3AF]">{log.time}</td>
                             <td className="px-4 py-3">
-                              <div className="flex items-center gap-1.5 text-xs text-[#64748B]">
+                              <div className="flex items-center gap-1.5 text-xs text-[#64748B] dark:text-[#9CA3AF]">
                                 {log.device.includes('iPhone') ? <Smartphone className="w-3.5 h-3.5" /> : <Monitor className="w-3.5 h-3.5" />}
                                 {log.device}
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-xs text-[#64748B]">
+                            <td className="px-4 py-3 text-xs text-[#64748B] dark:text-[#9CA3AF]">
                               <div className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {log.location}</div>
                             </td>
                             <td className="px-4 py-3">
@@ -703,25 +704,25 @@ export default function SalesManagerProfilePage() {
 
                 {/* Active Sessions */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="p-5 border-b border-slate-100 flex items-center gap-2">
+                  <div className="p-5 border-b border-slate-100 dark:border-[#1f1f1f] flex items-center gap-2">
                     <Monitor className="w-4 h-4 text-[#2563EB]" />
-                    <h4 className="text-sm font-bold text-[#0F172A]">Active Sessions</h4>
+                    <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Active Sessions</h4>
                   </div>
                   <div className="divide-y divide-slate-50">
                     {MOCK_SESSIONS.map(session => (
-                      <div key={session.id} className="flex items-center justify-between px-5 py-4 hover:bg-slate-50/50">
+                      <div key={session.id} className="flex items-center justify-between px-5 py-4 hover:bg-slate-50 dark:bg-[#161616]/50">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
                             {session.device.includes('iPhone') ? <Smartphone className="w-4 h-4 text-blue-600" /> : <Monitor className="w-4 h-4 text-blue-600" />}
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-[#0F172A]">{session.device}</p>
+                              <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB]">{session.device}</p>
                               {session.current && (
                                 <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700">Current</span>
                               )}
                             </div>
-                            <p className="text-xs text-[#64748B]">{session.location} • {session.lastActive}</p>
+                            <p className="text-xs text-[#64748B] dark:text-[#9CA3AF]">{session.location} • {session.lastActive}</p>
                           </div>
                         </div>
                         {!session.current && (
@@ -740,15 +741,15 @@ export default function SalesManagerProfilePage() {
             {activeTab === 'settings' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-base font-bold text-[#0F172A]">Account Settings</h3>
-                  <p className="text-xs text-[#64748B] mt-0.5">Customize your notification and display preferences</p>
+                  <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F9FAFB]">Account Settings</h3>
+                  <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Customize your notification and display preferences</p>
                 </div>
 
                 {/* Notifications */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="p-5 border-b border-slate-100 flex items-center gap-2">
+                  <div className="p-5 border-b border-slate-100 dark:border-[#1f1f1f] flex items-center gap-2">
                     <Bell className="w-4 h-4 text-[#2563EB]" />
-                    <h4 className="text-sm font-bold text-[#0F172A]">Notification Preferences</h4>
+                    <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Notification Preferences</h4>
                   </div>
                   <div className="divide-y divide-slate-50">
                     {[
@@ -759,8 +760,8 @@ export default function SalesManagerProfilePage() {
                     ].map(item => (
                       <div key={item.key} className="flex items-center justify-between px-5 py-4">
                         <div>
-                          <p className="text-sm font-semibold text-[#0F172A]">{item.label}</p>
-                          <p className="text-xs text-[#64748B] mt-0.5">{item.desc}</p>
+                          <p className="text-sm font-semibold text-[#0F172A] dark:text-[#F9FAFB]">{item.label}</p>
+                          <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">{item.desc}</p>
                         </div>
                         <Toggle
                           value={notifications[item.key]}
@@ -775,15 +776,15 @@ export default function SalesManagerProfilePage() {
                 <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
                   <div className="flex items-center gap-2 mb-3">
                     <Settings className="w-4 h-4 text-[#2563EB]" />
-                    <h4 className="text-sm font-bold text-[#0F172A]">Language & Region</h4>
+                    <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Language & Region</h4>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Language</label>
+                      <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Language</label>
                       <select
                         value={language}
                         onChange={e => setLanguage(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] bg-white outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-[#0F172A] dark:text-[#F9FAFB] bg-white outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-500/20 transition-all"
                       >
                         {['English', 'Hindi', 'Tamil', 'Telugu', 'Marathi', 'Gujarati'].map(l => (
                           <option key={l}>{l}</option>
@@ -791,21 +792,24 @@ export default function SalesManagerProfilePage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-[#64748B] mb-1.5">Theme</label>
+                      <label className="block text-xs font-semibold text-[#64748B] dark:text-[#9CA3AF] mb-1.5">Theme</label>
                       <div className="flex gap-2">
-                        {['Light', 'Dark', 'System'].map(t => (
-                          <button
-                            key={t}
-                            onClick={() => setTheme(t)}
-                            className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
-                              theme === t
-                                ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-sm shadow-blue-500/20'
-                                : 'bg-slate-50 text-[#64748B] border-slate-200 hover:border-[#2563EB] hover:text-[#2563EB]'
-                            }`}
-                          >
-                            {t}
-                          </button>
-                        ))}
+                        {['Light', 'Dark', 'System'].map(t => {
+                          const isSelected = globalTheme === t.toLowerCase();
+                          return (
+                            <button
+                              key={t}
+                              onClick={() => setGlobalTheme(t.toLowerCase() as any)}
+                              className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
+                                isSelected
+                                  ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-sm shadow-blue-500/20'
+                                  : 'bg-slate-50 dark:bg-[#161616] text-[#64748B] dark:text-[#9CA3AF] border-slate-200 hover:border-[#2563EB] hover:text-[#2563EB] dark:bg-zinc-900 dark:border-zinc-800'
+                              }`}
+                            >
+                              {t}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -855,7 +859,7 @@ export default function SalesManagerProfilePage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
       >
-        <h3 className="text-sm font-bold text-[#0F172A] mb-3">Help & Support</h3>
+        <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-3">Help & Support</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { icon: AlertCircle, title: 'Raise a Ticket', desc: 'Report an issue or bug to the support team', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', btnColor: 'bg-red-600 hover:bg-red-700' },
@@ -866,8 +870,8 @@ export default function SalesManagerProfilePage() {
               <div className={`w-10 h-10 rounded-xl ${card.bg} flex items-center justify-center mb-3`}>
                 <card.icon className={`w-5 h-5 ${card.color}`} />
               </div>
-              <h4 className="text-sm font-bold text-[#0F172A]">{card.title}</h4>
-              <p className="text-xs text-[#64748B] mt-1 mb-4 leading-relaxed">{card.desc}</p>
+              <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">{card.title}</h4>
+              <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-1 mb-4 leading-relaxed">{card.desc}</p>
               <button className={`flex items-center gap-1.5 px-3 py-1.5 ${card.btnColor} text-white text-xs font-semibold rounded-lg transition-colors shadow-sm`}>
                 Open <ChevronRight className="w-3.5 h-3.5" />
               </button>
@@ -888,8 +892,8 @@ export default function SalesManagerProfilePage() {
             <LogOut className="w-5 h-5 text-red-600" />
           </div>
           <div>
-            <p className="text-sm font-bold text-[#0F172A]">Sign Out</p>
-            <p className="text-xs text-[#64748B]">Sign out of your current session. You will need to log in again.</p>
+            <p className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Sign Out</p>
+            <p className="text-xs text-[#64748B] dark:text-[#9CA3AF]">Sign out of your current session. You will need to log in again.</p>
           </div>
         </div>
         <button

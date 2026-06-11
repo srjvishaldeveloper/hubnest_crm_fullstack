@@ -8,14 +8,14 @@ export default function SuperAdminReportsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-[#0F172A]">Platform Analytics</h1>
-          <p className="text-xs text-[#64748B] mt-0.5">Global metrics, subscriptions, and database sizing charts</p>
+          <h1 className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB]">Platform Analytics</h1>
+          <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Global metrics, subscriptions, and database sizing charts</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium bg-white hover:bg-slate-50 transition text-slate-600">
+          <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium bg-card hover:bg-slate-50 dark:bg-[#161616] transition text-slate-600">
             <Calendar className="w-3.5 h-3.5" /> This Quarter
           </button>
-          <button className="flex items-center gap-1.5 px-4 py-2 bg-[#2563EB] text-white text-xs font-semibold rounded-xl hover:bg-blue-700 transition">
+          <button className="flex items-center gap-1.5 px-4 py-2 bg-[#F59E0B] text-white text-xs font-semibold rounded-xl hover:bg-amber-600 transition">
             <Download className="w-4 h-4" /> Export Report
           </button>
         </div>
@@ -28,15 +28,15 @@ export default function SuperAdminReportsPage() {
           { label: 'Avg Tenant Spend', value: '₹15.2K' },
           { label: 'Churn Rate', value: '1.42%' },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-slate-200/60 p-4">
+          <div key={s.label} className="bg-card rounded-2xl border border-slate-200/60 p-4">
             <span className="text-[10px] uppercase font-bold text-slate-400">{s.label}</span>
-            <p className="text-xl font-bold text-[#0F172A] mt-1">{s.value}</p>
+            <p className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB] mt-1">{s.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-4">
-        <h3 className="text-xs font-bold text-[#0F172A] uppercase">Workspace signup & active user growth</h3>
+      <div className="bg-card rounded-2xl border border-slate-200/60 p-6 space-y-4">
+        <h3 className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB] uppercase">Workspace signup & active user growth</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={[{ month: 'Jan', signups: 12, users: 120 }, { month: 'Feb', signups: 19, users: 180 }, { month: 'Mar', signups: 26, users: 240 }, { month: 'Apr', signups: 38, users: 310 }]}>
@@ -44,7 +44,7 @@ export default function SuperAdminReportsPage() {
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip />
-              <Area type="monotone" dataKey="users" stroke="#2563EB" fill="#2563EB" fillOpacity={0.05} />
+              <Area type="monotone" dataKey="users" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.05} />
               <Area type="monotone" dataKey="signups" stroke="#10B981" fill="#10B981" fillOpacity={0.05} />
             </AreaChart>
           </ResponsiveContainer>

@@ -1,0 +1,50 @@
+---
+title: Webhooks & Events
+description: System webhooks guide, security signatures, event schemas, and automatic retry specifications.
+---
+
+### Webhooks Architecture
+
+HubNest CRM supports real-time HTTP POST notifications to third-party endpoints when system actions occur. Webhook processing is handled asynchronously via Redis-backed queue tasks.
+
+#### Supported Events
+- `lead.created` - Fired when a new lead is captured.
+- `lead.won` - Fired when a lead's pipeline stage shifts to Won.
+- `invoice.paid` - Fired when a billing status changes to Paid.
+- `tenant.created` - Fired when a new workspace registers.
+
+#### Event Payload Schema
+All webhooks carry a standard JSON envelope:
+```json
+{
+  "event": "lead.created",
+  "timestamp": 1780938450,
+  "tenantId": 1,
+  "data": {
+    "id": 1420,
+    "name": "Jane Doe",
+    "email": "jane.doe@enterprise.com",
+    "company": "Enterprise Corp",
+    "priority": "Hot"
+  }
+}
+```
+
+### Webhook Verification
+Each payload is signed using a cryptographic hash. The request headers include a signature `X-HubNest-Signature` computed using a SHA-256 HMAC of the raw request body with the webhook's private secret.
+
+```javascript
+const crypto = require('crypto');
+const signature = crypto
+  .createHmac('sha256', webhookSecret)
+  .update(rawBody)
+  .digest('hex');
+```
+
+Verify that this matches the header signature to confirm authenticity.
+
+### Retry Mechanism
+If an endpoint returns a non-2xx status code:
+1. The event is scheduled for retry inside the BullMQ worker.
+2. Retries are sent up to 5 times using an exponential backoff factor (15m, 1h, 4h, 12h, 24h).
+3. If all attempts fail, the webhook endpoint is disabled and flagged as `failing`.

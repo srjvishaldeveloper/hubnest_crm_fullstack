@@ -23,6 +23,18 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { z } from 'zod';
+
+const createTenantSchema = z.object({
+  companyName: z.string().min(2, "Company Name must be at least 2 characters"),
+  adminName: z.string().min(2, "Admin Name must be at least 2 characters"),
+  adminEmail: z.string().email("Invalid admin email address"),
+  companyEmail: z.string().email("Invalid company email").optional().or(z.literal('')),
+  adminPhone: z.string()
+    .transform(val => val.replace(/\s+/g, '').replace(/-/g, ''))
+    .refine(val => !val || /^\+?[0-9]\d{6,14}$/.test(val), "Invalid phone number format (e.g., +919599476483)")
+    .optional().or(z.literal('')),
+});
 
 const MOBILE_NAV = [
   { label: 'Dashboard', href: '/super-admin/dashboard', icon: LayoutDashboard },
@@ -124,39 +136,29 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
 
   async function handleCreateTenant(e: React.FormEvent) {
     e.preventDefault();
-    if (!companyName || !adminName || !adminEmail) {
-      alert('Please fill out all required fields.');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(adminEmail.trim())) {
-      alert('Please enter a valid admin email address (e.g. name@company.com).');
-      return;
-    }
-
-    if (emailAvailable === false) {
-      setEmailCheckErr('This email is already in use. Try a different one.');
-      return;
-    }
-
-    if (adminPhone) {
-      const phoneRegex = /^\+?[0-9\s\-()]{7,15}$/;
-      if (!phoneRegex.test(adminPhone.trim())) {
-        alert('Please enter a valid admin phone number.');
-        return;
-      }
-    }
-    
-    setIsProvisioning(true);
 
     try {
+      const validatedData = createTenantSchema.parse({
+        companyName,
+        adminName,
+        adminEmail,
+        companyEmail,
+        adminPhone
+      });
+      
+      if (emailAvailable === false) {
+        setEmailCheckErr('This email is already in use. Try a different one.');
+        return;
+      }
+      
+      setIsProvisioning(true);
+
       const response = await api.post('/auth/create-tenant', {
-        companyName: companyName.trim(),
-        companyEmail: companyEmail.trim(),
-        adminName: adminName.trim(),
-        adminEmail: adminEmail.trim(),
-        adminPhone: adminPhone.trim(),
+        companyName: validatedData.companyName,
+        companyEmail: validatedData.companyEmail,
+        adminName: validatedData.adminName,
+        adminEmail: validatedData.adminEmail,
+        adminPhone: validatedData.adminPhone,
         plan,
         status,
         adminId: generatedId,
@@ -184,6 +186,11 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       });
       setShowAddTenantModal(false);
     } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        alert(err.issues[0].message);
+        setIsProvisioning(false);
+        return;
+      }
       console.error('Failed to provision tenant in database / send email:', err);
       if (err.response?.status === 409) {
         setEmailCheckErr('This email is already in use. Try a different one.');
@@ -197,18 +204,31 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     }
   }
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768 && window.innerWidth < 1024) {
+        setSidebarCollapsed(true);
+      } else if (window.innerWidth >= 1024) {
+        setSidebarCollapsed(false);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   function toggleSidebar() {
-    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
       setSidebarCollapsed((v) => !v);
     } else {
       setSidebarOpen((v) => !v);
     }
   }
 
-  const sidebarW = sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-[280px]';
+  const sidebarW = sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-[280px]';
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
       <SessionTimer />
       <AIChatbot />
       <Sidebar
@@ -228,13 +248,13 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white/90 backdrop-blur-xl border-t border-slate-200/60 flex items-center safe-area-inset-bottom shadow-2xl">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-card/90 backdrop-blur-xl border-t border-slate-200/60 flex items-center safe-area-inset-bottom shadow-2xl">
         {MOBILE_NAV.map((navItem) =>
           navItem.isTrigger ? (
             <button
               key={navItem.label}
               onClick={() => setSidebarOpen((v) => !v)}
-              className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-slate-400 hover:text-[#2563EB] transition"
+              className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-slate-400 hover:text-[#F59E0B] transition"
             >
               <navItem.icon className="w-5 h-5" />
               <span className="text-[10px] font-medium">{navItem.label}</span>
@@ -243,7 +263,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             <Link
               key={navItem.href}
               href={navItem.href}
-              className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-slate-400 hover:text-[#2563EB] transition"
+              className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-slate-400 hover:text-[#F59E0B] transition"
             >
               <navItem.icon className="w-5 h-5" />
               <span className="text-[10px] font-medium">{navItem.label}</span>
@@ -267,12 +287,12 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
               exit={{ opacity: 0, scale: 0.95 }}
               className="fixed inset-0 z-50 flex items-center justify-center p-4"
             >
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200/60">
                   <div>
-                    <h2 className="text-lg font-bold text-[#0F172A]">Add B2B Tenant</h2>
-                    <p className="text-xs text-[#64748B] mt-0.5">Provision company workspace and auto-create Administrator</p>
+                    <h2 className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">Add B2B Tenant</h2>
+                    <p className="text-xs text-[#64748B] dark:text-[#9CA3AF] mt-0.5">Provision company workspace and auto-create Administrator</p>
                   </div>
                   <button onClick={() => setShowAddTenantModal(false)} className="p-2 rounded-xl hover:bg-slate-100 transition">
                     <X className="w-5 h-5 text-slate-500" />
@@ -285,50 +305,50 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                     <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 scrollbar-thin">
                       {/* Section 1: Company Workspace */}
                       <div>
-                        <span className="text-[10px] font-extrabold text-[#2563EB] tracking-wider uppercase">1. Workspace Workspace</span>
+                        <span className="text-[10px] font-extrabold text-[#F59E0B] tracking-wider uppercase">1. Workspace Workspace</span>
                         <div className="mt-2 grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Company Name *</label>
+                            <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">Company Name *</label>
                             <input
                               required
                               type="text"
                               value={companyName}
                               onChange={e => setCompanyName(e.target.value)}
                               placeholder="e.g. Acme Corporation"
-                              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition"
                             />
                           </div>
                           <div>
-                            <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Company Email</label>
+                            <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">Company Email</label>
                             <input
                               type="email"
                               value={companyEmail}
                               onChange={e => setCompanyEmail(e.target.value)}
                               placeholder="e.g. contact@acme.com"
-                              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition"
                             />
                           </div>
                         </div>
                       </div>
 
                       {/* Section 2: Administrator */}
-                      <div className="pt-2 border-t border-slate-100">
-                        <span className="text-[10px] font-extrabold text-[#2563EB] tracking-wider uppercase">2. Admin User Details</span>
+                      <div className="pt-2 border-t border-slate-100 dark:border-[#1f1f1f]">
+                        <span className="text-[10px] font-extrabold text-[#F59E0B] tracking-wider uppercase">2. Admin User Details</span>
                         <div className="mt-2 space-y-3">
                           <div>
-                            <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Admin Full Name *</label>
+                            <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">Admin Full Name *</label>
                             <input
                               required
                               type="text"
                               value={adminName}
                               onChange={e => setAdminName(e.target.value)}
                               placeholder="e.g. Rajesh Kumar"
-                              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition"
                             />
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Admin Email *</label>
+                              <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">Admin Email *</label>
                               <div className="relative">
                                 <input
                                   required
@@ -342,11 +362,11 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                                   onBlur={handleEmailBlur}
                                   placeholder="e.g. rajesh@acme.com"
                                   className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:ring-2 outline-none transition ${
-                                    emailCheckErr ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-slate-200 focus:border-blue-400 focus:ring-blue-100'
+                                    emailCheckErr ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-slate-200 focus:border-amber-400 focus:ring-amber-100'
                                   } pr-10`}
                                 />
                                 {checkingEmail && (
-                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
                                 )}
                                 {!checkingEmail && emailAvailable === true && (
                                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 font-bold text-sm" title="Email available">✓</span>
@@ -360,13 +380,13 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                               )}
                             </div>
                             <div>
-                              <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Admin Phone</label>
+                              <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">Admin Phone</label>
                               <input
                                 type="tel"
                                 value={adminPhone}
                                 onChange={e => setAdminPhone(e.target.value)}
                                 placeholder="e.g. +91 9876543210"
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition"
                               />
                             </div>
                           </div>
@@ -374,33 +394,33 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                       </div>
 
                       {/* Section 3: Admin Security Credentials */}
-                      <div className="pt-2 border-t border-slate-100">
-                        <span className="text-[10px] font-extrabold text-[#2563EB] tracking-wider uppercase">3. Admin Security Credentials</span>
+                      <div className="pt-2 border-t border-slate-100 dark:border-[#1f1f1f]">
+                        <span className="text-[10px] font-extrabold text-[#F59E0B] tracking-wider uppercase">3. Admin Security Credentials</span>
                         <div className="mt-2 grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Admin ID *</label>
+                            <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">Admin ID *</label>
                             <input
                               required
                               type="text"
                               value={generatedId}
                               onChange={e => setGeneratedId(e.target.value)}
-                              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 font-mono focus:border-blue-400 outline-none transition"
+                              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 dark:bg-[#161616] font-mono focus:border-amber-400 outline-none transition"
                             />
                           </div>
                           <div>
-                            <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Admin Password *</label>
+                            <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">Admin Password *</label>
                             <div className="relative flex items-center gap-2">
                               <input
                                 required
                                 type="text"
                                 value={generatedPwd}
                                 onChange={e => setGeneratedPwd(e.target.value)}
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 font-mono focus:border-blue-400 outline-none transition pr-10"
+                                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 dark:bg-[#161616] font-mono focus:border-amber-400 outline-none transition pr-10"
                               />
                               <button
                                 type="button"
                                 onClick={handleCopy}
-                                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 transition"
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 border border-slate-200 bg-card rounded-lg hover:bg-slate-50 dark:bg-[#161616] transition"
                                 title="Copy Password"
                               >
                                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
@@ -411,16 +431,16 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                       </div>
 
                       {/* Section 4: Subscriptions */}
-                      <div className="pt-2 border-t border-slate-100">
-                        <span className="text-[10px] font-extrabold text-[#2563EB] tracking-wider uppercase">4. Subscriptions & Status</span>
+                      <div className="pt-2 border-t border-slate-100 dark:border-[#1f1f1f]">
+                        <span className="text-[10px] font-extrabold text-[#F59E0B] tracking-wider uppercase">4. Subscriptions & Status</span>
                         <div className="mt-2 grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Plan</label>
+                            <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">Plan</label>
                             <div className="relative">
                               <select
                                 value={plan}
                                 onChange={e => setPlan(e.target.value as any)}
-                                className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-blue-400 outline-none bg-white pr-10"
+                                className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-amber-400 outline-none bg-card pr-10"
                               >
                                 <option value="Starter">Starter Plan</option>
                                 <option value="Pro">Pro Plan</option>
@@ -430,12 +450,12 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                             </div>
                           </div>
                           <div>
-                            <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Status</label>
+                            <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F9FAFB] mb-1.5 block">Status</label>
                             <div className="relative">
                               <select
                                 value={status}
                                 onChange={e => setStatus(e.target.value as any)}
-                                className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-blue-400 outline-none bg-white pr-10"
+                                className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-amber-400 outline-none bg-card pr-10"
                               >
                                 <option value="Active">Active</option>
                                 <option value="Inactive">Inactive</option>
@@ -447,15 +467,15 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                       </div>
 
                       {/* Email credentials notification checkbox */}
-                      <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50 cursor-pointer">
+                      <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-[#1f1f1f] bg-slate-50 dark:bg-[#161616]/50 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={sendCreds}
                           onChange={e => setSendCreds(e.target.checked)}
-                          className="w-4 h-4 rounded border-slate-300 text-[#2563EB] focus:ring-blue-200"
+                          className="w-4 h-4 rounded border-slate-300 text-[#F59E0B] focus:ring-amber-200"
                         />
                         <div>
-                          <span className="text-xs text-[#0F172A] font-semibold">Send workspace credentials to Admin Email</span>
+                          <span className="text-xs text-[#0F172A] dark:text-[#F9FAFB] font-semibold">Send workspace credentials to Admin Email</span>
                           <p className="text-[10px] text-slate-500 mt-0.5">Admin will receive an automated email containing login details</p>
                         </div>
                       </label>
@@ -467,14 +487,14 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                         type="button"
                         disabled={isProvisioning}
                         onClick={() => setShowAddTenantModal(false)}
-                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:bg-[#161616] transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
                         disabled={isProvisioning || checkingEmail || emailAvailable === false}
-                        className="flex-1 px-4 py-2.5 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-blue-700 transition shadow-sm shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="flex-1 px-4 py-2.5 rounded-xl bg-[#F59E0B] text-white text-sm font-semibold hover:bg-amber-600 transition shadow-sm shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isProvisioning ? (
                           <>
@@ -496,20 +516,20 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                       <Check className="w-8 h-8" />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-[#0F172A]">Tenant Provisioned Successfully!</h3>
+                      <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F9FAFB]">Tenant Provisioned Successfully!</h3>
                       <p className="text-xs text-slate-500 mt-1">Workspace created and Admin account configured successfully.</p>
                     </div>
 
-                    <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 text-left space-y-3.5">
+                    <div className="bg-slate-50 dark:bg-[#161616] border border-slate-200/60 rounded-2xl p-4 text-left space-y-3.5">
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-slate-400 font-medium">Generated Admin ID</span>
-                        <span className="font-mono font-bold text-[#0F172A]">{generatedId}</span>
+                        <span className="font-mono font-bold text-[#0F172A] dark:text-[#F9FAFB]">{generatedId}</span>
                       </div>
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-slate-400 font-medium">Temporary Password</span>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-[#0F172A]">{generatedPwd}</span>
-                          <button onClick={handleCopy} className="p-1.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 transition">
+                          <span className="font-mono font-bold text-[#0F172A] dark:text-[#F9FAFB]">{generatedPwd}</span>
+                          <button onClick={handleCopy} className="p-1.5 border border-slate-200 bg-card rounded-lg hover:bg-slate-50 dark:bg-[#161616] transition">
                             {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
                           </button>
                         </div>

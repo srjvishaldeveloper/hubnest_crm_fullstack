@@ -163,7 +163,7 @@ export default function KnowledgeBasePage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">Knowledge Base Library</h1>
+          <h1 className="text-xl font-bold text-[#0F172A] dark:text-[#F9FAFB] tracking-tight">Knowledge Base Library</h1>
           <p className="text-xs text-slate-500">Provide self-help documents, system FAQs, and training guides to solve issues quickly.</p>
         </div>
         <div className="flex items-center gap-3">
@@ -182,7 +182,7 @@ export default function KnowledgeBasePage() {
           </button>
           <button
             onClick={loadArticles}
-            className="p-2.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-600 transition"
+            className="p-2.5 bg-white border border-slate-200 hover:bg-slate-50 dark:bg-[#161616] rounded-xl text-slate-600 transition"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -200,7 +200,7 @@ export default function KnowledgeBasePage() {
             <button
               onClick={() => setSelectedCategory('')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition
-                ${selectedCategory === '' ? 'bg-blue-50 text-[#2563EB]' : 'text-slate-650 hover:bg-slate-50'}`}
+                ${selectedCategory === '' ? 'bg-blue-50 text-[#2563EB]' : 'text-slate-650 hover:bg-slate-50 dark:bg-[#161616]'}`}
             >
               All Topics
             </button>
@@ -209,7 +209,7 @@ export default function KnowledgeBasePage() {
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition
-                  ${selectedCategory === cat ? 'bg-blue-50 text-[#2563EB]' : 'text-slate-650 hover:bg-slate-50'}`}
+                  ${selectedCategory === cat ? 'bg-blue-50 text-[#2563EB]' : 'text-slate-650 hover:bg-slate-50 dark:bg-[#161616]'}`}
               >
                 {cat}
               </button>
@@ -247,10 +247,10 @@ export default function KnowledgeBasePage() {
                   <div
                     key={art.id}
                     onClick={() => setSelectedArticleId(art.id)}
-                    className={`p-4 hover:bg-slate-50/50 cursor-pointer transition flex items-start justify-between gap-4 ${active ? 'bg-blue-50/30 border-l-4 border-l-[#2563EB]' : ''}`}
+                    className={`p-4 hover:bg-slate-50 dark:bg-[#161616]/50 cursor-pointer transition flex items-start justify-between gap-4 ${active ? 'bg-blue-50/30 border-l-4 border-l-[#2563EB]' : ''}`}
                   >
                     <div className="space-y-1">
-                      <h4 className="font-bold text-[#0F172A] text-xs leading-snug">{art.title}</h4>
+                      <h4 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-xs leading-snug">{art.title}</h4>
                       <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5">
                         <Folder className="w-3 h-3" /> {art.category} • <Eye className="w-3 h-3" /> {art.views_count} views
                       </p>
@@ -290,13 +290,13 @@ export default function KnowledgeBasePage() {
                             Created {selectedArticle?.created_at && new Date(selectedArticle.created_at).toLocaleDateString()}
                           </span>
                         </div>
-                        <h2 className="text-base font-bold text-[#0F172A] tracking-tight">{selectedArticle?.title}</h2>
+                        <h2 className="text-base font-bold text-[#0F172A] dark:text-[#F9FAFB] tracking-tight">{selectedArticle?.title}</h2>
                         <p className="text-[10px] text-slate-400 mt-1 font-semibold">Author: {selectedArticle?.author_name || 'System Manager'}</p>
                       </div>
                       
                       <button
                         onClick={() => selectedArticle && handleEditClick(selectedArticle)}
-                        className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition shrink-0"
+                        className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 dark:bg-[#161616] transition shrink-0"
                       >
                         Edit Article
                       </button>
@@ -309,19 +309,19 @@ export default function KnowledgeBasePage() {
                   </div>
 
                   {/* Ratings panel */}
-                  <div className="border-t border-slate-100 pt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-8">
+                  <div className="border-t border-slate-100 dark:border-[#1f1f1f] pt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-8">
                     <div>
                       <p className="text-[11px] font-bold text-slate-450 uppercase tracking-wide">Was this article helpful?</p>
                       <div className="flex gap-2 mt-2">
                         <button
                           onClick={() => handleRate(true)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-650 border border-slate-200 transition"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-650 border border-slate-200 transition"
                         >
                           <ThumbsUp className="w-3.5 h-3.5 text-green-600" /> Helpful ({selectedArticle?.likes_count})
                         </button>
                         <button
                           onClick={() => handleRate(false)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-650 border border-slate-200 transition"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-650 border border-slate-200 transition"
                         >
                           <ThumbsDown className="w-3.5 h-3.5 text-red-600" /> Not Helpful ({selectedArticle?.dislikes_count})
                         </button>
@@ -340,7 +340,7 @@ export default function KnowledgeBasePage() {
           ) : (
             <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-8 text-center min-h-[400px] flex flex-col items-center justify-center">
               <BookMarked className="w-12 h-12 text-blue-150 mb-3" />
-              <h3 className="font-bold text-[#0F172A] text-sm">Select an Article</h3>
+              <h3 className="font-bold text-[#0F172A] dark:text-[#F9FAFB] text-sm">Select an Article</h3>
               <p className="text-xs text-slate-450 max-w-xs mt-1 leading-relaxed">
                 Click a topic on the left list to view details, update system guides, or review customer ratings.
               </p>
@@ -354,8 +354,8 @@ export default function KnowledgeBasePage() {
       {showEditor && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-slate-200/80 w-full max-w-xl shadow-xl overflow-hidden animate-scale-up">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-[#0F172A]">
+            <div className="p-6 border-b border-slate-100 dark:border-[#1f1f1f] flex items-center justify-between">
+              <h3 className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">
                 {editingArticleId ? 'Modify Help Article' : 'Compose Help Article'}
               </h3>
               <button onClick={() => setShowEditor(false)} className="text-slate-400 hover:text-slate-600 text-sm font-bold">✕</button>
@@ -404,10 +404,10 @@ export default function KnowledgeBasePage() {
                 />
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+              <div className="pt-4 border-t border-slate-100 dark:border-[#1f1f1f] flex justify-end gap-3">
                 <button
                   type="button" onClick={() => setShowEditor(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-xl font-bold hover:bg-slate-50"
+                  className="px-4 py-2 border border-slate-200 rounded-xl font-bold hover:bg-slate-50 dark:bg-[#161616]"
                 >
                   Cancel
                 </button>
