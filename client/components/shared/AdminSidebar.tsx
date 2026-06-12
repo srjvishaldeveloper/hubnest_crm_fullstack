@@ -10,7 +10,7 @@ import {
   Activity, Layers, Plug, Lock, ScrollText, Settings,
   TrendingUp, Brain, UserCheck, Briefcase, BookOpen,
   CreditCard, Shield, DollarSign, FileText, Receipt,
-  Wallet, Building2
+  Wallet, Building2, MessageSquare
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -39,7 +39,10 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
       ? [
           {
             title: 'MAIN MENU',
-            items: [{ label: 'Home', href: '/sales-manager/dashboard', icon: LayoutDashboard }],
+            items: [
+              { label: 'Home', href: '/sales-manager/dashboard', icon: LayoutDashboard },
+              { label: 'Chat', href: '/sales-manager/chat', icon: MessageSquare }
+            ],
           },
           {
             title: 'SALES',
@@ -63,14 +66,20 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
       ? [
           {
             title: 'MAIN MENU',
-            items: [{ label: 'Home', href: '/sales-executive/dashboard', icon: LayoutDashboard }],
+            items: [
+              { label: 'Home', href: '/sales-executive/dashboard', icon: LayoutDashboard },
+              { label: 'Chat', href: '/sales-executive/chat', icon: MessageSquare }
+            ],
           },
         ]
       : role === 'Support Agent' || role === 'Support Manager'
       ? [
           {
             title: 'MAIN MENU',
-            items: [{ label: 'Home', href: '/support/dashboard', icon: LayoutDashboard }],
+            items: [
+              { label: 'Home', href: '/support/dashboard', icon: LayoutDashboard },
+              { label: 'Chat', href: '/support/chat', icon: MessageSquare }
+            ],
           },
           {
             title: 'SUPPORT',
@@ -94,7 +103,10 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
       ? [
           {
             title: 'MAIN MENU',
-            items: [{ label: 'Home', href: '/finance', icon: LayoutDashboard }],
+            items: [
+              { label: 'Home', href: '/finance', icon: LayoutDashboard },
+              { label: 'Chat', href: '/finance/chat', icon: MessageSquare }
+            ],
           },
           {
             title: 'FINANCE',
@@ -122,6 +134,7 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
             items: [
               { label: 'Home', href: '/admin/dashboard', icon: LayoutDashboard },
               { label: 'Users', href: '/admin/users', icon: Users },
+              { label: 'Chat', href: '/admin/chat', icon: MessageSquare }
             ],
           },
           {

@@ -177,6 +177,11 @@ export default function MarketingSidebar({ open, collapsed, onClose }: Props) {
       ],
     },
     {
+      title: 'Team Chat',
+      href: '/marketing/chat',
+      icon: MessageSquare,
+    },
+    {
       title: 'Profile',
       href: '/marketing/profile',
       icon: UserCircle,

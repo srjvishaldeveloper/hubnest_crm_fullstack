@@ -524,6 +524,71 @@ async function getROIData(tenantId) {
   return result.rows;
 }
 
+// --- Campaign Builder helpers ---
+
+async function getCampaignContacts(tenantId, campaignId) {
+  // Get contacts linked via campaign list_id stored in content JSONB
+  const result = await query(
+    `SELECT DISTINCT l.id, l.name, l.email, l.phone
+     FROM campaigns c
+     JOIN marketing_list_contacts lc ON lc.list_id = (c.content->>'list_id')::uuid
+     JOIN leads_marketing l ON l.id = lc.lead_id
+     WHERE c.id = $1 AND c.tenant_id = $2 AND l.email IS NOT NULL`,
+    [campaignId, tenantId]
+  );
+  return result.rows;
+}
+
+async function queueCampaignLogs(tenantId, campaignId, contactIds) {
+  for (const cid of contactIds) {
+    await query(
+      `INSERT INTO campaign_logs (campaign_id, contact_id, tenant_id, status)
+       VALUES ($1, $2, $3, 'queued') ON CONFLICT DO NOTHING`,
+      [campaignId, cid, tenantId]
+    );
+  }
+}
+
+async function getCampaignStats(tenantId, campaignId) {
+  const result = await query(
+    `SELECT
+       COUNT(*) FILTER (WHERE status = 'queued')    AS queued,
+       COUNT(*) FILTER (WHERE status = 'sent')      AS sent,
+       COUNT(*) FILTER (WHERE status = 'delivered') AS delivered,
+       COUNT(*) FILTER (WHERE status = 'failed')    AS failed,
+       COUNT(*) FILTER (WHERE status = 'bounced')   AS bounced,
+       COUNT(*) AS total
+     FROM campaign_logs
+     WHERE campaign_id = $1 AND tenant_id = $2`,
+    [campaignId, tenantId]
+  );
+  return result.rows[0];
+}
+
+async function importContactsToList(tenantId, listId, contacts) {
+  let imported = 0;
+  let skipped = 0;
+  for (const c of contacts) {
+    if (!c.email && !c.phone) { skipped++; continue; }
+    const ins = await query(
+      `INSERT INTO leads_marketing (tenant_id, name, email, phone, source, status)
+       VALUES ($1, $2, $3, $4, 'CSV Import', 'New')
+       ON CONFLICT DO NOTHING RETURNING id`,
+      [tenantId, c.name || c.email || c.phone, c.email || null, c.phone || null]
+    );
+    if (ins.rows[0]) {
+      await query(
+        `INSERT INTO marketing_list_contacts (list_id, lead_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [listId, ins.rows[0].id]
+      );
+      imported++;
+    } else {
+      skipped++;
+    }
+  }
+  return { imported, skipped };
+}
+
 module.exports = {
   // Campaigns
   listCampaigns, getCampaignById, createCampaign, updateCampaign, deleteCampaign,
@@ -556,4 +621,34 @@ module.exports = {
   
   // Webhooks
   listWebhooks, createWebhook, deleteWebhook,
+
+  // Campaign Builder
+  getCampaignContacts, queueCampaignLogs, getCampaignStats, importContactsToList,
+
+  // Campaign Template Gallery
+  listCampaignTemplates, getCampaignTemplateById,
 };
+
+// ─── Campaign Template Gallery ────────────────────────────────────────────────
+
+async function listCampaignTemplates(tenantId, { type, category, search } = {}) {
+  let sql = `
+    SELECT id, name, category, type, description, thumbnail_url, tags, is_active, created_at
+    FROM campaign_templates
+    WHERE is_active = TRUE AND (tenant_id = $1 OR tenant_id IS NULL)`;
+  const params = [tenantId];
+  if (type) { params.push(type); sql += ` AND type = $${params.length}`; }
+  if (category && category !== 'all') { params.push(category); sql += ` AND category = $${params.length}`; }
+  if (search) { params.push(`%${search}%`); sql += ` AND (name ILIKE $${params.length} OR description ILIKE $${params.length})`; }
+  sql += ` ORDER BY tenant_id NULLS LAST, created_at DESC`;
+  const result = await query(sql, params);
+  return result.rows;
+}
+
+async function getCampaignTemplateById(tenantId, id) {
+  const result = await query(
+    `SELECT * FROM campaign_templates WHERE id = $1 AND (tenant_id = $2 OR tenant_id IS NULL) AND is_active = TRUE`,
+    [id, tenantId]
+  );
+  return result.rows[0] || null;
+}

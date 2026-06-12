@@ -239,11 +239,11 @@ function PhoneLoginPanel({ onSendPhoneOtp, onLoginWithPhone, phoneError, phoneLo
             <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">Mobile Number</label>
             <div className="relative">
               <Phone className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 98765 XXXXX" autoComplete="tel"
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="9876543210" autoComplete="tel"
                 className="h-[52px] w-full rounded-xl border-2 border-slate-200 dark:border-[#2a2a2a] bg-slate-50 dark:bg-[#1a1a1a] px-11 text-sm text-slate-900 dark:text-white outline-none transition placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-orange-500 focus:bg-white dark:focus:bg-[#111] focus:ring-4 focus:ring-orange-500/10"
                 disabled={phoneLoading} />
             </div>
-            <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">Include country code (e.g. +91 for India)</p>
+            <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">Enter 10-digit mobile number (e.g. 9876543210)</p>
           </div>
           <button type="submit" disabled={phoneLoading || !phone.trim()}
             className="h-[52px] w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-sm font-bold shadow-lg shadow-orange-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-orange-500/30 disabled:opacity-60 disabled:hover:translate-y-0">

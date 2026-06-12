@@ -21,7 +21,7 @@ const subscriptionRoutes = require('./modules/subscription/subscription.routes')
 const mfaRoutes = require('./modules/auth/mfa.routes');
 const smsRoutes = require('./modules/sms/sms.routes');
 const chatRoutes = require('./modules/chat/chat.routes');
-
+const orgChatRoutes = require('./modules/orgChat/orgChat.routes');
 const superAdminRoutes = require('./modules/super-admin/superAdmin.routes');
 const adminRoutes = require('./modules/admin/admin.routes');
 const managerAliasRoutes = require('./modules/sales-manager/managerAlias.routes');
@@ -80,7 +80,7 @@ app.use('/api/v1/subscription', subscriptionRoutes);
 app.use('/api/v1/mfa', mfaRoutes);
 app.use('/api/v1/sms', smsRoutes);
 app.use('/api/v1/chat', chatRoutes);
-
+app.use('/api/v1/org-chat', orgChatRoutes);
 // 404 — route not found
 app.use((req, res) => {
   sendError(res, `Cannot ${req.method} ${req.path}`, 404);

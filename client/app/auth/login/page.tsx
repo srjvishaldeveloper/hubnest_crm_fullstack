@@ -53,10 +53,10 @@ export default function LoginPage() {
   async function handleSendPhoneOtp(phone: string): Promise<boolean> {
     setPhoneError('');
     
-    // Validate phone number format (must start with + and country code)
-    const phoneRegex = /^\+[1-9]\d{7,14}$/;
-    if (!phoneRegex.test(phone.trim().replace(/\s+/g, ''))) {
-      setPhoneError('Invalid format. Please include your country code (e.g. +91) and a valid number.');
+    // Fast2SMS accepts bare 10-digit Indian numbers (with optional +91/91 prefix)
+    const normalized = phone.trim().replace(/\s+/g, '').replace(/^(\+91|91)/, '');
+    if (!/^\d{10}$/.test(normalized)) {
+      setPhoneError('Please enter a valid 10-digit mobile number (e.g. 9876543210).');
       return false;
     }
 

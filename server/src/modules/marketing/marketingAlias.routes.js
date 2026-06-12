@@ -73,6 +73,15 @@ router.get('/webhooks', authorize('campaigns', 'read'), ctrl.listWebhooks);
 router.post('/webhooks', authorize('campaigns', 'create'), ctrl.createWebhook);
 router.delete('/webhooks/:id', authorize('campaigns', 'delete'), ctrl.deleteWebhook);
 
+// Campaign Builder — send, stats, import
+router.post('/campaigns/:id/send',     authorize('campaigns', 'create'), ctrl.sendCampaign);
+router.get('/campaigns/:id/stats',     authorize('campaigns', 'read'),   ctrl.getCampaignStats);
+router.post('/contacts/import',        authorize('campaigns', 'create'), ctrl.importCampaignContacts);
+
+// Campaign Template Gallery
+router.get('/campaign-templates',      authorize('campaigns', 'read'),   ctrl.listCampaignTemplates);
+router.get('/campaign-templates/:id',  authorize('campaigns', 'read'),   ctrl.getCampaignTemplateById);
+
 // AI Studio Proxies
 router.post('/ai/:serviceName/:endpoint', authorize('campaigns', 'create'), ctrl.aiProxyHandler);
 

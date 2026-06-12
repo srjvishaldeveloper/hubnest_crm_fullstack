@@ -270,60 +270,116 @@ async function resetPassword(email, otp, newPassword) {
 }
 
 // ── Phone-based OTP login ──────────────────────────────────────────────────
+// ── Phone OTP helpers (Fast2SMS flow) ─────────────────────────────────────
+
+// Redis key helpers — phone-scoped, separate from userId-based OTP keys
+const PHONE_OTP_KEY      = (phone) => `phone_otp:${phone}`;
+const PHONE_OTP_REQ_KEY  = (phone) => `phone_otp_req:${phone}`;
+const PHONE_OTP_TRY_KEY  = (phone) => `phone_otp_try:${phone}`;
+const PHONE_OTP_TTL      = 300;  // 5 minutes
+const PHONE_OTP_REQ_TTL  = 600;  // 10 minute window for rate limit
+const MAX_OTP_REQUESTS   = 3;    // max sends per 10 min
+const MAX_OTP_TRIES      = 3;    // max verify attempts per OTP
+
 async function sendPhoneOtp(phone) {
-  const normalizedPhone = smsService.normalizePhone(phone);
-  if (!normalizedPhone) {
-    throw Object.assign(new Error('Invalid phone number format'), { statusCode: 400 });
+  // Validate 10-digit Indian number (accepts bare 10 digits or +91 prefixed)
+  const bare = phone.replace(/\s+/g, '').replace(/^(\+91|91)/, '');
+  if (!/^\d{10}$/.test(bare)) {
+    throw Object.assign(new Error('Enter a valid 10-digit Indian mobile number'), { statusCode: 400 });
   }
+
+  const normalizedPhone = `+91${bare}`;
 
   const user = await findByPhone(normalizedPhone);
   if (!user) {
     throw Object.assign(new Error('No account found with this phone number'), { statusCode: 404 });
   }
-
   if (user.status !== 'Active') {
     throw Object.assign(new Error('Account is inactive or suspended. Contact your administrator.'), { statusCode: 403 });
   }
-
   if (!ALLOWED_ROLES.has(user.role_name)) {
     throw Object.assign(new Error('Access denied. Insufficient privileges to login.'), { statusCode: 403 });
   }
 
-  // Use Twilio Verify API to generate and send OTP
-  const smsResult = await smsService.sendOTPViaSMS(normalizedPhone, { userId: user.id, channel: 'sms' });
-
-  if (!smsResult.success) {
-    logger.error(`Twilio Verify failed for ${normalizedPhone}: ${smsResult.error}`);
-    throw Object.assign(new Error(`Failed to send OTP via SMS: ${smsResult.error}`), { statusCode: 500 });
+  // Rate limit: max 3 OTP sends per phone per 10 minutes
+  const redis = require('../../config/redis');
+  const reqCount = parseInt((await redis.get(PHONE_OTP_REQ_KEY(bare))) || '0', 10);
+  if (reqCount >= MAX_OTP_REQUESTS) {
+    throw Object.assign(
+      new Error('Too many OTP requests. Please wait 10 minutes before trying again.'),
+      { statusCode: 429 }
+    );
   }
+  const newReqCount = await redis.incr(PHONE_OTP_REQ_KEY(bare));
+  if (newReqCount === 1) await redis.expire(PHONE_OTP_REQ_KEY(bare), PHONE_OTP_REQ_TTL);
+
+  // Generate OTP, store in Redis
+  const crypto = require('crypto');
+  const otp = crypto.randomInt(100000, 999999).toString();
+  await redis.set(PHONE_OTP_KEY(bare), otp, 'EX', PHONE_OTP_TTL);
+  // Clear previous attempt counter when fresh OTP is issued
+  await redis.del(PHONE_OTP_TRY_KEY(bare));
+
+  // Send via Fast2SMS
+  await smsService.sendOTPFast2SMS(bare, otp);
 
   try {
-    await mfaService.logAuthEvent(user.id, 'otp_sent', { metadata: { method: 'phone' } });
+    await mfaService.logAuthEvent(user.id, 'otp_sent', { metadata: { method: 'phone_fast2sms' } });
   } catch (e) { /* audit optional */ }
+
+  logger.info(`Phone OTP sent via Fast2SMS to ${bare}`);
 
   return {
     userId: user.id,
     maskedPhone: maskPhone(normalizedPhone),
-    message: 'OTP sent to your phone number via Twilio Verify',
+    message: 'OTP sent to your phone number',
   };
 }
 
 async function loginWithPhone(phone, otp, ipAddress = null, userAgent = null) {
-  const normalizedPhone = smsService.normalizePhone(phone);
-  if (!normalizedPhone) {
-    throw Object.assign(new Error('Invalid phone number format'), { statusCode: 400 });
+  const bare = phone.replace(/\s+/g, '').replace(/^(\+91|91)/, '');
+  if (!/^\d{10}$/.test(bare)) {
+    throw Object.assign(new Error('Enter a valid 10-digit Indian mobile number'), { statusCode: 400 });
   }
+  const normalizedPhone = `+91${bare}`;
 
   const user = await findByPhone(normalizedPhone);
   if (!user) {
     throw Object.assign(new Error('Invalid phone number or OTP'), { statusCode: 401 });
   }
 
-  // Use Twilio Verify to check the OTP
-  const verifyResult = await smsService.verifyOTPViaSMS(normalizedPhone, otp);
-  if (!verifyResult.success) {
-    throw Object.assign(new Error(verifyResult.error || 'Invalid or expired OTP'), { statusCode: 400 });
+  const redis = require('../../config/redis');
+
+  // Check attempt limit (max 3 wrong OTPs before lockout)
+  const tryKey  = PHONE_OTP_TRY_KEY(bare);
+  const tries   = parseInt((await redis.get(tryKey)) || '0', 10);
+  if (tries >= MAX_OTP_TRIES) {
+    throw Object.assign(
+      new Error('Too many failed attempts. Please request a new OTP.'),
+      { statusCode: 429 }
+    );
   }
+
+  // Fetch stored OTP
+  const stored = await redis.get(PHONE_OTP_KEY(bare));
+  if (!stored) {
+    throw Object.assign(new Error('OTP has expired. Please request a new one.'), { statusCode: 400 });
+  }
+
+  if (String(otp).trim() !== stored) {
+    // Increment attempt counter with same TTL as the OTP key
+    const ttl = await redis.ttl(PHONE_OTP_KEY(bare));
+    await redis.set(tryKey, String(tries + 1), 'EX', ttl > 0 ? ttl : PHONE_OTP_TTL);
+    const remaining = MAX_OTP_TRIES - (tries + 1);
+    throw Object.assign(
+      new Error(`Invalid OTP.${remaining > 0 ? ` ${remaining} attempt(s) remaining.` : ' Please request a new OTP.'}`),
+      { statusCode: 400 }
+    );
+  }
+
+  // OTP matched — clean up keys
+  await redis.del(PHONE_OTP_KEY(bare));
+  await redis.del(PHONE_OTP_TRY_KEY(bare));
 
   const tokenPayload = {
     userId: user.id,
@@ -338,13 +394,12 @@ async function loginWithPhone(phone, otp, ipAddress = null, userAgent = null) {
   const refreshToken = tokenService.generateRefreshToken({ userId: user.id });
 
   await tokenService.saveRefreshToken(user.id, refreshToken, ipAddress, userAgent);
-  await otpService.deleteOTP(user.id);
 
   try {
-    await mfaService.logAuthEvent(user.id, 'login_success', { ipAddress, userAgent, metadata: { method: 'phone' } });
+    await mfaService.logAuthEvent(user.id, 'login_success', { ipAddress, userAgent, metadata: { method: 'phone_fast2sms' } });
   } catch (e) { /* audit optional */ }
 
-  logger.info(`Phone OTP login successful: ${user.id}`);
+  logger.info(`Phone OTP login successful (Fast2SMS): ${user.id}`);
 
   return {
     accessToken,

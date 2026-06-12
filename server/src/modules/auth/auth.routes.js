@@ -26,9 +26,12 @@ router.post('/reset-password',                    resetPasswordValidator,  ctrl.
 // Google OAuth login (no OTP step — Google already verified the identity)
 router.post('/google',          loginRateLimiter,                          ctrl.googleLogin);
 
-// Phone-based login (OTP via SMS)
-router.post('/send-phone-otp',  otpRateLimiter,                            ctrl.sendPhoneOtp);
-router.post('/login-phone',     otpRateLimiter,                            ctrl.loginWithPhone);
+// Phone-based login (OTP via Fast2SMS)
+router.post('/send-phone-otp',  otpRateLimiter, ctrl.sendPhoneOtp);
+router.post('/login-phone',     otpRateLimiter, ctrl.loginWithPhone);
+// Spec-named aliases
+router.post('/send-otp',        otpRateLimiter, ctrl.sendPhoneOtp);
+router.post('/verify-otp-phone',otpRateLimiter, ctrl.loginWithPhone);
 // Super Admin only — all tenant management endpoints require authentication
 router.post('/send-credentials',   authenticate, authorizeSuperAdmin, ctrl.sendCredentials);
 router.post('/create-tenant',      authenticate, authorizeSuperAdmin, ctrl.createTenant);

@@ -4,7 +4,7 @@ const redis = require('./config/redis');
 const env = require('./config/env');
 const logger = require('./utils/logger');
 const { initChatSocket } = require('./modules/chat/chat.socket');
-
+const { initOrgChatSocket } = require('./modules/orgChat/orgChat.socket');
 async function bootstrap() {
   try {
     // Verify PostgreSQL connectivity
@@ -21,6 +21,7 @@ async function bootstrap() {
 
     // Initialize Chat WebSockets
     initChatSocket(server);
+    initOrgChatSocket(server);
 
     // Graceful shutdown handler
     const gracefulShutdown = async (signal) => {

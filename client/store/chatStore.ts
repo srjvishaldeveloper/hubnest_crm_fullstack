@@ -164,7 +164,7 @@ export const useChatStore = create<ChatStoreState>((set, get) => {
 
             const toast = document.createElement('div');
             toast.style.cssText = 'pointer-events:auto;display:flex;align-items:center;gap:12px;padding:12px 16px;background:linear-gradient(135deg,#1a1a2e,#16162a);border:1px solid rgba(255,255,255,0.08);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.4);color:white;font-family:Inter,system-ui,sans-serif;max-width:340px;animation:slideIn 0.3s ease-out;cursor:pointer;transition:transform 0.2s,opacity 0.3s;';
-            const msgPreview = msg.message_type === 'text' ? (msg.message.length > 50 ? msg.message.substring(0, 50) + '...' : msg.message) : (msg.message_type === 'image' ? '📷 Image' : '📎 File: ' + msg.message);
+            const msgPreview = msg.message_type === 'text' ? ((msg.message ?? '').length > 50 ? (msg.message ?? '').substring(0, 50) + '...' : (msg.message ?? '')) : (msg.message_type === 'image' ? '📷 Image' : '📎 File: ' + (msg.message ?? ''));
             toast.innerHTML = `
               <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(245,158,11,0.3);">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>

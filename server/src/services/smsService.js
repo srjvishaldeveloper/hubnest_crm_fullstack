@@ -214,6 +214,50 @@ async function sendOTPWithFallback(phone, email, otp, userName, { userId = null 
   return { method: 'none', success: false, error: 'No delivery channel available' };
 }
 
+// ── Fast2SMS OTP (phone login) ────────────────────────────────────────────
+async function sendOTPFast2SMS(phone, otp) {
+  const apiKey = process.env.FAST2SMS_API_KEY;
+  if (!apiKey) {
+    logger.warn('Fast2SMS API key not configured — logging OTP to console for dev');
+    logger.warn(`[DEV] Fast2SMS OTP for ${phone}: ${otp}`);
+    return { success: true, dev: true };
+  }
+
+  // Strip leading +91 or 91 — Fast2SMS wants bare 10-digit number
+  let bare = phone.replace(/\s+/g, '').replace(/-/g, '');
+  if (bare.startsWith('+91')) bare = bare.slice(3);
+  else if (bare.startsWith('91') && bare.length === 12) bare = bare.slice(2);
+
+  try {
+    const res = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+      method: 'POST',
+      headers: {
+        authorization: apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        route: 'q',
+        message: `Your HubNest CRM verification code is: ${otp}`,
+        language: 'english',
+        flash: 0,
+        numbers: bare,
+      }),
+    });
+
+    const data = await res.json();
+    if (!data.return) {
+      logger.error('Fast2SMS OTP failed', { phone: bare, message: data.message });
+      throw new Error(data.message || 'Fast2SMS API error');
+    }
+
+    logger.info('Fast2SMS OTP sent', { phone: bare, requestId: data.request_id });
+    return { success: true, requestId: data.request_id };
+  } catch (err) {
+    logger.error('Fast2SMS request error', { phone: bare, message: err.message });
+    throw err;
+  }
+}
+
 // ── Send credentials via SMS ──────────────────────────────────────────────
 async function sendCredentialsSMS(phone, { email, password, adminId, companyName, loginUrl, role, userId = null } = {}) {
   const url = loginUrl || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/auth/login` : 'https://app.hubnestcrm.com/auth/login');
@@ -349,6 +393,7 @@ module.exports = {
   sendOTPViaSMS,
   verifyOTPViaSMS,
   sendOTPWithFallback,
+  sendOTPFast2SMS,
   sendCredentialsSMS,
   sendPhoneVerificationOTP,
   getSmsLogs,

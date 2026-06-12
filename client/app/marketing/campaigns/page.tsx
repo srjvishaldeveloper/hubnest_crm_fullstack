@@ -114,7 +114,7 @@ export default function CampaignsPage() {
       setLoading(true);
       setError('');
       try {
-        const res = await api.get('/campaigns');
+        const res = await api.get('/marketing/campaigns');
         const data = res.data?.data || res.data?.campaigns || res.data || [];
         setCampaigns(Array.isArray(data) ? data : []);
       } catch (err: any) {
@@ -193,8 +193,8 @@ export default function CampaignsPage() {
             <Filter className="w-4 h-4 text-slate-500" />
           </button>
           <Link
-            href="/marketing/campaigns"
-            className="flex items-center gap-1.5 px-3 py-2 bg-[#4F46E5] hover:bg-indigo-600 text-white text-xs font-semibold rounded-xl transition shadow-sm"
+            href="/marketing/campaigns/create"
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#F97316] hover:bg-orange-600 text-white text-xs font-semibold rounded-xl transition shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
             Create Campaign

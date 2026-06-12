@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
-// Auth pages that never require a token
-const AUTH_PUBLIC_PATHS = [
+const secret = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'jobnest_jwt_secret_please_change_in_production_min64chars_xxxx'
+);
+
+// Paths that never require authentication
+const PUBLIC_PATHS = [
   '/auth/login',
   '/auth/verify-otp',
   '/auth/forgot-password',
   '/auth/register',
   '/auth/reset-password',
+  '/public',          // public form links: /public/form/[id]
   '/unauthorized',
   '/docs',
   '/about',
@@ -24,24 +29,26 @@ const AUTH_PUBLIC_PATHS = [
   '/compliance',
 ];
 
-const ROLE_DASHBOARD_MAP: Record<string, string> = {
-  'Super Admin': '/super-admin/dashboard',
-  'Admin': '/admin/dashboard',
-  'Sales Manager': '/sales-manager/dashboard',
-  'Sales Executive': '/sales/dashboard',
-  'Marketing Head': '/marketing/dashboard',
-  'Marketing Executive': '/marketing/dashboard',
-  'Support Manager': '/support/dashboard',
-  'Support Agent': '/support/dashboard',
-  'Finance Executive': '/finance/dashboard',
+const ROLE_DASHBOARD: Record<string, string> = {
+  'Super Admin':        '/super-admin/dashboard',
+  'Admin':              '/admin/dashboard',
+  'Sales Manager':      '/sales-manager/dashboard',
+  'Sales Executive':    '/sales-executive/dashboard',
+  'Marketing Head':     '/marketing/dashboard',
+  'Marketing Executive':'/marketing/dashboard',
+  'Support Manager':    '/support/dashboard',
+  'Support Agent':      '/support/dashboard',
+  'Finance Executive':  '/finance/dashboard',
 };
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET || '');
+function isPublicPath(pathname: string) {
+  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
+}
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Always pass through static files, Next internals, and API routes
+  // Always pass through static files and Next internals
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
@@ -50,31 +57,47 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Root path — redirect to role dashboard if a valid token is present
+  // /public/* is always accessible (unauthenticated public forms etc.)
+  if (pathname.startsWith('/public')) {
+    return NextResponse.next();
+  }
+
+  // Other public paths — always allow
+  if (isPublicPath(pathname)) {
+    // If user is already logged in, redirect them to their dashboard
+    const token = request.cookies.get('accessToken')?.value;
+    if (token) {
+      try {
+        const { payload } = await jwtVerify(token, secret);
+        const role = payload.role as string;
+        const dashboard = ROLE_DASHBOARD[role];
+        if (dashboard && pathname !== '/') {
+          return NextResponse.redirect(new URL(dashboard, request.url));
+        }
+      } catch {
+        // Invalid token — let them through to the login page
+      }
+    }
+    return NextResponse.next();
+  }
+
+  // Root path — redirect authenticated users to their dashboard
   if (pathname === '/') {
     const token = request.cookies.get('accessToken')?.value;
     if (token) {
       try {
         const { payload } = await jwtVerify(token, secret);
         const role = payload.role as string;
-        const dashboard = ROLE_DASHBOARD_MAP[role];
-        if (dashboard) {
-          return NextResponse.redirect(new URL(dashboard, request.url));
-        }
+        const dashboard = ROLE_DASHBOARD[role];
+        if (dashboard) return NextResponse.redirect(new URL(dashboard, request.url));
       } catch {
-        // Token invalid or expired — show landing page
+        // Ignore — show landing page
       }
     }
     return NextResponse.next();
   }
 
-  // Auth-related public paths — always allow through
-  if (AUTH_PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
-    return NextResponse.next();
-  }
-
-  // ── Protected routes below this line ─────────────────────────────────────
-
+  // ── All routes below require authentication ────────────────────────────────
   const token =
     request.cookies.get('accessToken')?.value ||
     request.headers.get('authorization')?.split(' ')[1];
@@ -89,80 +112,66 @@ export async function proxy(request: NextRequest) {
     const { payload } = await jwtVerify(token, secret);
     const role = payload.role as string;
 
-    // /super-admin/*
+    // Per-role path guards
     if (pathname.startsWith('/super-admin') && role !== 'Super Admin') {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
 
-    // /admin/*
     if (pathname.startsWith('/admin') && role !== 'Admin' && role !== 'Super Admin') {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
 
-    // /sales-manager/*
     if (
       pathname.startsWith('/sales-manager') &&
-      role !== 'Sales Manager' &&
-      role !== 'Admin' &&
-      role !== 'Super Admin'
+      role !== 'Sales Manager' && role !== 'Admin' && role !== 'Super Admin'
     ) {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
 
-    // /sales/*
+    if (
+      pathname.startsWith('/sales-executive') &&
+      role !== 'Sales Executive' && role !== 'Sales Manager' && role !== 'Admin' && role !== 'Super Admin'
+    ) {
+      return NextResponse.redirect(new URL('/unauthorized', request.url));
+    }
+
     if (
       pathname.startsWith('/sales') &&
-      role !== 'Sales Executive' &&
-      role !== 'Sales Manager' &&
-      role !== 'Admin' &&
-      role !== 'Super Admin'
+      role !== 'Sales Executive' && role !== 'Sales Manager' && role !== 'Admin' && role !== 'Super Admin'
     ) {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
 
-    // /marketing/*
     if (
       pathname.startsWith('/marketing') &&
-      role !== 'Marketing Head' &&
-      role !== 'Marketing Executive' &&
-      role !== 'Admin' &&
-      role !== 'Super Admin'
+      role !== 'Marketing Head' && role !== 'Marketing Executive' && role !== 'Admin' && role !== 'Super Admin'
     ) {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
 
-    // /support/*
     if (
       pathname.startsWith('/support') &&
-      role !== 'Support Manager' &&
-      role !== 'Support Agent' &&
-      role !== 'Admin' &&
-      role !== 'Super Admin'
+      role !== 'Support Manager' && role !== 'Support Agent' && role !== 'Admin' && role !== 'Super Admin'
     ) {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
 
-    // /finance/*
     if (
       pathname.startsWith('/finance') &&
-      role !== 'Finance Executive' &&
-      role !== 'Admin' &&
-      role !== 'Super Admin'
+      role !== 'Finance Executive' && role !== 'Admin' && role !== 'Super Admin'
     ) {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
 
-    // /dashboard — redirect to role-specific dashboard
+    // /dashboard → redirect to role-specific dashboard
     if (pathname.startsWith('/dashboard')) {
-      const dashboard = ROLE_DASHBOARD_MAP[role];
-      if (dashboard) {
-        return NextResponse.redirect(new URL(dashboard, request.url));
-      }
+      const dashboard = ROLE_DASHBOARD[role];
+      if (dashboard) return NextResponse.redirect(new URL(dashboard, request.url));
     }
 
     return NextResponse.next();
   } catch {
-    // Token invalid or expired — clear cookie and redirect to login
+    // Token invalid or expired
     const response = NextResponse.redirect(new URL('/auth/login', request.url));
     response.cookies.delete('accessToken');
     return response;

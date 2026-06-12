@@ -286,6 +286,70 @@ async function deleteWebhook(req, res) {
   sendSuccess(res, {}, 'Webhook deleted');
 }
 
+// --- Campaign Builder: Send + Stats + Import ---
+
+async function sendCampaign(req, res) {
+  const { id } = req.params;
+  const { tenantId = req.user.tenant_id } = {};
+  try {
+    const campaign = await svc.getCampaignById(tenantId, id);
+    if (!campaign) return sendError(res, 'Campaign not found', 404);
+
+    // Get contacts for the campaign's list
+    const contacts = await svc.getCampaignContacts(tenantId, id);
+    if (!contacts.length) return sendError(res, 'No contacts found for this campaign', 400);
+
+    // Queue logs as 'queued' initially
+    await svc.queueCampaignLogs(tenantId, id, contacts.map(c => c.id));
+
+    // Update campaign status to Sending
+    await svc.updateCampaign(tenantId, id, { status: 'Sending' });
+
+    sendSuccess(res, {
+      queued: contacts.length,
+      campaignId: id,
+      status: 'Sending',
+    }, `Campaign queued for ${contacts.length} contacts`);
+  } catch (err) {
+    sendError(res, err.message, 500);
+  }
+}
+
+async function getCampaignStats(req, res) {
+  try {
+    const stats = await svc.getCampaignStats(req.user.tenant_id, req.params.id);
+    sendSuccess(res, { stats });
+  } catch (err) {
+    sendError(res, err.message, 500);
+  }
+}
+
+async function importCampaignContacts(req, res) {
+  const { listId, contacts, createList, listName } = req.body;
+  const tenantId = req.user.tenant_id;
+
+  if (!Array.isArray(contacts) || !contacts.length) {
+    return sendError(res, 'contacts array is required', 400);
+  }
+
+  try {
+    let targetListId = listId;
+
+    // Auto-create list if requested
+    if (createList && listName) {
+      const newList = await svc.createContactList(tenantId, { name: listName, description: 'Imported via Campaign Builder' });
+      targetListId = newList.id;
+    }
+
+    if (!targetListId) return sendError(res, 'listId or createList+listName required', 400);
+
+    const { imported, skipped } = await svc.importContactsToList(tenantId, targetListId, contacts);
+    sendSuccess(res, { imported, skipped, listId: targetListId }, `${imported} contacts imported`);
+  } catch (err) {
+    sendError(res, err.message, 500);
+  }
+}
+
 // --- AI Studio proxies ---
 async function aiProxyHandler(req, res) {
   const { serviceName, endpoint } = req.params;
@@ -350,6 +414,26 @@ module.exports = {
   // Webhooks
   listWebhooks, createWebhook, deleteWebhook,
   
+  // Campaign Builder
+  sendCampaign, getCampaignStats, importCampaignContacts,
+
+  // Campaign Template Gallery
+  listCampaignTemplates, getCampaignTemplateById,
+
   // AI Proxy
   aiProxyHandler
 };
+
+// ─── Campaign Template Gallery ────────────────────────────────────────────────
+
+async function listCampaignTemplates(req, res) {
+  const { type, category, search } = req.query;
+  const templates = await svc.listCampaignTemplates(req.user.tenant_id, { type, category, search });
+  sendSuccess(res, { templates });
+}
+
+async function getCampaignTemplateById(req, res) {
+  const tpl = await svc.getCampaignTemplateById(req.user.tenant_id, req.params.id);
+  if (!tpl) return sendError(res, 'Template not found', 404);
+  sendSuccess(res, { template: tpl });
+}
