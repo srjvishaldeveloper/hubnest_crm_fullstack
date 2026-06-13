@@ -14,6 +14,7 @@ import {
   CartesianGrid, Tooltip, PieChart, Pie, Cell, LineChart,
 } from 'recharts';
 import { motion } from 'framer-motion';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -144,6 +145,11 @@ export default function MarketingDashboard() {
   const [roiChartData, setRoiChartData] = useState<ROIData[]>([]);
   const [error, setError] = useState('');
 
+  // Dashboard Sections Order
+  const [sectionsOrder, setSectionsOrder] = useState([
+    'header', 'kpis', 'performance', 'roi', 'top_low', 'quick_actions', 'ai_insights', 'today_summary'
+  ]);
+
   useEffect(() => {
     async function fetchAll() {
       setLoading(true);
@@ -151,7 +157,7 @@ export default function MarketingDashboard() {
       try {
         const [dashRes, campRes, roiRes] = await Promise.allSettled([
           api.get('/marketing/dashboard'),
-          api.get('/campaigns'),
+          api.get('/marketing/campaigns'),
           api.get('/marketing/roi'),
         ]);
 
@@ -159,7 +165,7 @@ export default function MarketingDashboard() {
           setDashboardData(dashRes.value.data?.data || dashRes.value.data || {});
         }
         if (campRes.status === 'fulfilled') {
-          const campData = campRes.value.data?.data || campRes.value.data?.campaigns || campRes.value.data || [];
+          const campData = campRes.value.data?.data?.campaigns || campRes.value.data?.campaigns || campRes.value.data?.data || campRes.value.data || [];
           setCampaigns(Array.isArray(campData) ? campData : []);
         }
         if (roiRes.status === 'fulfilled') {
@@ -179,10 +185,14 @@ export default function MarketingDashboard() {
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
 
   // Compute KPIs from API data
+  // Use campaigns array length as source of truth (API returns actual campaign list)
+  const totalCampaignsCount = campaigns.length || dashboardData.totalCampaigns || 0;
+  const activeCampaignsCount = campaigns.filter(c => c.status === 'active' || c.status === 'Active').length || dashboardData.activeCampaigns || 0;
+
   const kpis = [
     {
-      title: `Total Campaigns (Active)`,
-      value: String(dashboardData.activeCampaigns ?? dashboardData.totalCampaigns ?? campaigns.filter(c => c.status === 'active' || c.status === 'Active').length),
+      title: `Total Campaigns`,
+      value: `${totalCampaignsCount} (${activeCampaignsCount} active)`,
       change: '',
       up: true,
       icon: Megaphone,
@@ -276,15 +286,42 @@ export default function MarketingDashboard() {
 
   if (loading) return <LoadingSpinner />;
 
-  return (
-    <div className="space-y-6 pb-4">
+  const onDragEnd = (result: any) => {
+    if (!result.destination) return;
+    const items = Array.from(sectionsOrder);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    setSectionsOrder(items);
+  };
 
-      {/* ── Section 1: Greeting Header ── */}
-      <motion.div
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col lg:flex-row lg:items-start gap-4"
-      >
+  const renderSection = (id: string, provided?: any, snapshot?: any) => {
+    const isDragging = snapshot?.isDragging;
+    const dragProps = provided ? {
+      ref: provided.innerRef,
+      ...provided.draggableProps,
+      ...provided.dragHandleProps,
+      style: {
+        ...provided.draggableProps.style,
+        opacity: isDragging ? 0.8 : 1,
+      }
+    } : {};
+
+    const DragHandle = () => (
+      <div className="flex justify-center -mt-2 mb-2 opacity-0 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
+        <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full" />
+      </div>
+    );
+
+    switch (id) {
+      case 'header':
+        return (
+          <div {...dragProps} className={isDragging ? 'shadow-2xl rounded-2xl bg-slate-50 dark:bg-[#0d0d0d] p-4 ring-2 ring-indigo-500' : ''}>
+            <DragHandle />
+            <motion.div
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col lg:flex-row lg:items-start gap-4"
+            >
         {/* Greeting */}
         <div className="flex-1">
           <h1 className="text-2xl font-extrabold text-[#0F172A] dark:text-[#F9FAFB]">
@@ -300,8 +337,8 @@ export default function MarketingDashboard() {
             <span className="text-[10px] font-bold uppercase tracking-widest text-violet-200">AI Insight</span>
           </div>
           <p className="text-sm font-medium leading-relaxed">
-            {campaigns.length > 0
-              ? `You have ${campaigns.filter(c => c.status === 'active' || c.status === 'Active').length} active campaigns generating leads.`
+            {totalCampaignsCount > 0
+              ? `You have ${totalCampaignsCount} campaign${totalCampaignsCount !== 1 ? 's' : ''}, ${activeCampaignsCount} active.`
               : 'Create your first campaign to start generating leads.'}
           </p>
         </div>
@@ -317,13 +354,13 @@ export default function MarketingDashboard() {
           </button>
         </div>
       </motion.div>
-
-      {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">{error}</div>
-      )}
-
-      {/* ── Section 2: KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      </div>
+        );
+      case 'kpis':
+        return (
+          <div {...dragProps} className={isDragging ? 'shadow-2xl rounded-2xl bg-slate-50 dark:bg-[#0d0d0d] p-4 ring-2 ring-indigo-500' : ''}>
+            <DragHandle />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((k, i) => {
           const Icon = k.icon;
           return (
@@ -345,9 +382,13 @@ export default function MarketingDashboard() {
           );
         })}
       </div>
-
-      {/* ── Section 3: Campaign Performance Table + Leads Summary ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+      </div>
+        );
+      case 'performance':
+        return (
+          <div {...dragProps} className={isDragging ? 'shadow-2xl rounded-2xl bg-slate-50 dark:bg-[#0d0d0d] p-4 ring-2 ring-indigo-500' : ''}>
+            <DragHandle />
+            <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         {/* Campaign Table */}
         <div className="xl:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <SectionHeader title="Campaign Performance" sub={`Top ${campaignTableData.length} campaigns`} link="/marketing/campaigns" />
@@ -437,9 +478,13 @@ export default function MarketingDashboard() {
           )}
         </div>
       </div>
-
-      {/* ── Section 4: Cost & Budget + ROI Analytics ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      </div>
+        );
+      case 'roi':
+        return (
+          <div {...dragProps} className={isDragging ? 'shadow-2xl rounded-2xl bg-slate-50 dark:bg-[#0d0d0d] p-4 ring-2 ring-indigo-500' : ''}>
+            <DragHandle />
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Cost & Budget */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <SectionHeader title="Cost & Budget Tracking" />
@@ -492,9 +537,13 @@ export default function MarketingDashboard() {
           )}
         </div>
       </div>
-
-      {/* ── Section 5: Top / Low Performing ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      </div>
+        );
+      case 'top_low':
+        return (
+          <div {...dragProps} className={isDragging ? 'shadow-2xl rounded-2xl bg-slate-50 dark:bg-[#0d0d0d] p-4 ring-2 ring-indigo-500' : ''}>
+            <DragHandle />
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Top Performers */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <SectionHeader title="Top Performing Campaigns" sub="Ranked by ROI" />
@@ -553,9 +602,13 @@ export default function MarketingDashboard() {
           )}
         </div>
       </div>
-
-      {/* ── Section 6: Quick Actions ── */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+      </div>
+        );
+      case 'quick_actions':
+        return (
+          <div {...dragProps} className={isDragging ? 'shadow-2xl rounded-2xl bg-slate-50 dark:bg-[#0d0d0d] p-4 ring-2 ring-indigo-500' : ''}>
+            <DragHandle />
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <SectionHeader title="Quick Actions" />
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
           {quickActions.map((a) => {
@@ -573,9 +626,13 @@ export default function MarketingDashboard() {
           })}
         </div>
       </div>
-
-      {/* ── Section 7: AI Insights ── */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+      </div>
+        );
+      case 'ai_insights':
+        return (
+          <div {...dragProps} className={isDragging ? 'shadow-2xl rounded-2xl bg-slate-50 dark:bg-[#0d0d0d] p-4 ring-2 ring-indigo-500' : ''}>
+            <DragHandle />
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <SectionHeader title="AI Insights" sub="Smart recommendations for your campaigns" />
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {aiInsights.map((ins) => (
@@ -590,9 +647,13 @@ export default function MarketingDashboard() {
           ))}
         </div>
       </div>
-
-      {/* ── Section 8: Today's Summary ── */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+      </div>
+        );
+      case 'today_summary':
+        return (
+          <div {...dragProps} className={isDragging ? 'shadow-2xl rounded-2xl bg-slate-50 dark:bg-[#0d0d0d] p-4 ring-2 ring-indigo-500' : ''}>
+            <DragHandle />
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <SectionHeader title="Today's Summary" />
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           {todaySummary.map((item) => {
@@ -609,7 +670,33 @@ export default function MarketingDashboard() {
           })}
         </div>
       </div>
+      </div>
+        );
+      default:
+        return null;
+    }
+  };
 
+  return (
+    <div className="space-y-6 pb-4">
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">{error}</div>
+      )}
+
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="dashboard-sections">
+          {(provided) => (
+            <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-6">
+              {sectionsOrder.map((sectionId, index) => (
+                <Draggable key={sectionId} draggableId={sectionId} index={index}>
+                  {(provided, snapshot) => renderSection(sectionId, provided, snapshot)}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
     </div>
   );
 }

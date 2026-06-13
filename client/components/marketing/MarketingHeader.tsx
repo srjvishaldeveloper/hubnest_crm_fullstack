@@ -4,9 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '../../store/authStore';
-import { Menu, Bell, Search, Plus, ChevronDown, MessageSquare, LogOut } from 'lucide-react';
+import { Menu, Search, Plus, ChevronDown, MessageSquare, LogOut, Megaphone, Users, Target, LayoutTemplate, Workflow } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ThemeToggle from '../shared/ThemeToggle';
+import NotificationDropdown from '../shared/NotificationDropdown';
 
 interface Props {
   onToggleSidebar: () => void;
@@ -123,10 +124,7 @@ export default function MarketingHeader({ onToggleSidebar, sidebarOpen }: Props)
           </div>
 
           {/* Notifications */}
-          <button className="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition group">
-            <Bell className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-white transition" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#4F46E5] rounded-full ring-2 ring-white dark:ring-[#0F172A]" />
-          </button>
+          <NotificationDropdown />
 
           {/* Messages */}
           <button className="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition group hidden sm:flex">

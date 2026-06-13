@@ -84,11 +84,17 @@ export default function CampaignScheduler() {
     setLoading(true);
     try {
       const [scheduledRes, draftRes] = await Promise.all([
-        api.get('/campaigns', { params: { status: 'Scheduled' } }),
-        api.get('/campaigns', { params: { status: 'Draft' } }),
+        api.get('/marketing/campaigns', { params: { status: 'Scheduled' } }),
+        api.get('/marketing/campaigns', { params: { status: 'Draft' } }),
       ]);
-      setCampaigns(scheduledRes.data?.campaigns || scheduledRes.data?.data || []);
-      setDraftCampaigns(draftRes.data?.campaigns || draftRes.data?.data || []);
+      const extractCampaigns = (res: any) => {
+        const d = res.data;
+        return d?.data?.campaigns || d?.data || d?.campaigns || [];
+      };
+      const scheduled = extractCampaigns(scheduledRes);
+      const drafts = extractCampaigns(draftRes);
+      setCampaigns(Array.isArray(scheduled) ? scheduled : []);
+      setDraftCampaigns(Array.isArray(drafts) ? drafts : []);
     } catch {
       setCampaigns([]);
       setDraftCampaigns([]);
@@ -122,7 +128,7 @@ export default function CampaignScheduler() {
 
   async function handleStatusChange(id: string | number, status: string) {
     try {
-      await api.patch(`/campaigns/${id}`, { status });
+      await api.patch(`/marketing/campaigns/${id}`, { status });
       setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status } : c));
       showToast(`Campaign updated to ${status}.`);
     } catch { showToast('Update failed.'); }
@@ -132,7 +138,7 @@ export default function CampaignScheduler() {
     if (!editDate) return;
     setSaving(true);
     try {
-      await api.patch(`/campaigns/${id}`, { scheduled_at: editDate });
+      await api.patch(`/marketing/campaigns/${id}`, { scheduled_at: editDate });
       setCampaigns(prev => prev.map(c => c.id === id ? { ...c, scheduled_at: editDate } : c));
       setEditingId(null);
       setEditDate('');
@@ -145,7 +151,7 @@ export default function CampaignScheduler() {
     if (!selectedDraft || !scheduleDate) return;
     setSaving(true);
     try {
-      await api.patch(`/campaigns/${selectedDraft}`, { status: 'Scheduled', scheduled_at: scheduleDate });
+      await api.patch(`/marketing/campaigns/${selectedDraft}`, { status: 'Scheduled', scheduled_at: scheduleDate });
       const draft = draftCampaigns.find(d => String(d.id) === selectedDraft);
       if (draft) {
         setCampaigns(prev => [{ ...draft, status: 'Scheduled', scheduled_at: scheduleDate }, ...prev]);

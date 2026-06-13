@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Mail, MessageSquare, Send, ChevronRight, ChevronLeft, Check,
   Upload, X, Users, Calendar, Clock, Globe, Loader2,
   Sparkles, AlertCircle, CheckCircle2, ArrowLeft, FileText,
-  Smartphone, Plus,
+  Smartphone, Plus, Bold, Italic, Underline, Strikethrough,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify,
+  List, ListOrdered, Link2, Image, Palette, Type,
+  Heading1, Heading2, Minus, Code, Quote, Undo2, Redo2,
 } from 'lucide-react';
 import api from '../../../../services/api';
 import TemplateGallery, { type CampaignTemplate } from '../../../../components/marketing/TemplateGallery';
@@ -347,42 +350,265 @@ function ContactImporter({ contactLists, onClose, onImported }: {
   );
 }
 
-// ─── Rich Text Editor ───────────────────────────────────────────────────────────
-function RichTextEditor({ value, onChange, error }: { value: string, onChange: (val: string) => void, error?: string }) {
+// ─── Rich Text Editor ─────────────────────────────────────────────────────────
+const PERSONALIZATION_TAGS = [
+  '{{first_name}}', '{{last_name}}', '{{full_name}}', '{{email}}',
+  '{{phone}}', '{{company}}', '{{city}}', '{{deal_value}}', '{{unsubscribe_link}}',
+];
+
+const FONT_SIZES = ['12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px'];
+const COLORS = ['#000000', '#374151', '#6B7280', '#EF4444', '#F97316', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'];
+
+function ToolBtn({
+  onClick, title, children, active,
+}: {
+  onClick: () => void; title: string; children: React.ReactNode; active?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`w-7 h-7 flex items-center justify-center rounded-md transition-all text-xs select-none ${
+        active ? 'bg-orange-100 text-orange-600' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Sep() {
+  return <div className="w-px h-5 bg-gray-200 mx-0.5" />;
+}
+
+function RichTextEditor({ value, onChange, error }: { value: string; onChange: (val: string) => void; error?: string }) {
   const editorRef = useRef<HTMLDivElement>(null);
-  
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [showPersonalization, setShowPersonalization] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showFontSize, setShowFontSize] = useState(false);
+  const [wordCount, setWordCount] = useState(0);
+
   useEffect(() => {
     if (editorRef.current && !editorRef.current.innerHTML && value) {
       editorRef.current.innerHTML = value;
     }
-  }, [value]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleInput = () => {
-    if (editorRef.current) onChange(editorRef.current.innerHTML);
-  };
+  const handleInput = useCallback(() => {
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML);
+      const text = editorRef.current.innerText || '';
+      setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
+    }
+  }, [onChange]);
 
-  const exec = (cmd: string, val?: string) => {
+  const exec = useCallback((cmd: string, val?: string) => {
+    editorRef.current?.focus();
     document.execCommand(cmd, false, val);
     handleInput();
+  }, [handleInput]);
+
+  const insertTag = (tag: string) => {
+    editorRef.current?.focus();
+    document.execCommand('insertText', false, tag);
+    handleInput();
+    setShowPersonalization(false);
+  };
+
+  const insertLink = () => {
+    if (!linkUrl) return;
+    exec('createLink', linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`);
+    setShowLinkInput(false);
+    setLinkUrl('');
+  };
+
+  const setFontSize = (size: string) => {
+    editorRef.current?.focus();
+    document.execCommand('fontSize', false, '7');
+    const el = editorRef.current?.querySelector('font[size="7"]') as HTMLElement | null;
+    if (el) { el.removeAttribute('size'); el.style.fontSize = size; }
+    handleInput();
+    setShowFontSize(false);
+  };
+
+  const setColor = (color: string) => {
+    exec('foreColor', color);
+    setShowColorPicker(false);
+  };
+
+  const insertDivider = () => {
+    exec('insertHTML', '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />');
+  };
+
+  const insertImage = () => {
+    const url = prompt('Enter image URL:');
+    if (url) exec('insertHTML', `<img src="${url}" alt="Image" style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" />`);
+  };
+
+  const insertBlockquote = () => {
+    exec('insertHTML', '<blockquote style="border-left:3px solid #F97316;padding:8px 16px;margin:8px 0;background:#fff7ed;color:#92400e;border-radius:0 8px 8px 0;font-style:italic;"></blockquote>');
+  };
+
+  const insertCode = () => {
+    exec('insertHTML', '<code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.875em;color:#374151;"></code>');
   };
 
   return (
-    <div className={`border rounded-xl overflow-hidden flex flex-col transition-all ${error ? 'border-red-300 ring-1 ring-red-100' : 'border-gray-200 focus-within:border-orange-400 focus-within:ring-1 focus-within:ring-orange-400'}`}>
-      <div className="flex items-center gap-1 bg-gray-50/80 p-1.5 border-b border-gray-100">
-        <button type="button" onClick={() => exec('bold')} className="p-1.5 hover:bg-white rounded text-gray-600 font-bold text-sm w-8 h-8 flex items-center justify-center transition-colors">B</button>
-        <button type="button" onClick={() => exec('italic')} className="p-1.5 hover:bg-white rounded text-gray-600 italic text-sm w-8 h-8 flex items-center justify-center transition-colors">I</button>
-        <button type="button" onClick={() => exec('underline')} className="p-1.5 hover:bg-white rounded text-gray-600 underline text-sm w-8 h-8 flex items-center justify-center transition-colors">U</button>
-        <div className="w-px h-4 bg-gray-200 mx-1" />
-        <button type="button" onClick={() => exec('insertUnorderedList')} className="p-1.5 hover:bg-white rounded text-gray-600 text-xs px-2 h-8 flex items-center justify-center transition-colors">Bullet</button>
-        <button type="button" onClick={() => exec('insertOrderedList')} className="p-1.5 hover:bg-white rounded text-gray-600 text-xs px-2 h-8 flex items-center justify-center transition-colors">Number</button>
+    <div className={`border rounded-xl overflow-visible flex flex-col transition-all ${
+      error ? 'border-red-300 ring-1 ring-red-100' : 'border-gray-200 focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100'
+    }`}>
+      {/* ── Toolbar ── */}
+      <div className="bg-gray-50/90 border-b border-gray-100 p-1.5 flex flex-wrap items-center gap-0.5">
+        {/* Undo / Redo */}
+        <ToolBtn onClick={() => exec('undo')} title="Undo"><Undo2 className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn onClick={() => exec('redo')} title="Redo"><Redo2 className="w-3.5 h-3.5" /></ToolBtn>
+        <Sep />
+
+        {/* Headings */}
+        <ToolBtn onClick={() => exec('formatBlock', 'h1')} title="Heading 1"><Heading1 className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn onClick={() => exec('formatBlock', 'h2')} title="Heading 2"><Heading2 className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn onClick={() => exec('formatBlock', 'p')} title="Paragraph"><Type className="w-3.5 h-3.5" /></ToolBtn>
+
+        {/* Font size */}
+        <div className="relative">
+          <ToolBtn onClick={() => { setShowFontSize(v => !v); setShowColorPicker(false); setShowPersonalization(false); setShowLinkInput(false); }} title="Font size">
+            <span className="text-[10px] font-bold">Aa</span>
+          </ToolBtn>
+          {showFontSize && (
+            <div className="absolute top-8 left-0 z-30 bg-white rounded-xl border border-gray-200 shadow-lg p-1 min-w-[90px]">
+              {FONT_SIZES.map(s => (
+                <button key={s} type="button" onClick={() => setFontSize(s)}
+                  className="w-full text-left px-3 py-1 text-xs hover:bg-orange-50 hover:text-orange-600 rounded-lg transition-colors">
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <Sep />
+
+        {/* Text formatting */}
+        <ToolBtn onClick={() => exec('bold')} title="Bold"><Bold className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn onClick={() => exec('italic')} title="Italic"><Italic className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn onClick={() => exec('underline')} title="Underline"><Underline className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn onClick={() => exec('strikeThrough')} title="Strikethrough"><Strikethrough className="w-3.5 h-3.5" /></ToolBtn>
+
+        {/* Color */}
+        <div className="relative">
+          <ToolBtn onClick={() => { setShowColorPicker(v => !v); setShowFontSize(false); setShowPersonalization(false); setShowLinkInput(false); }} title="Text color">
+            <Palette className="w-3.5 h-3.5" />
+          </ToolBtn>
+          {showColorPicker && (
+            <div className="absolute top-8 left-0 z-30 bg-white rounded-xl border border-gray-200 shadow-lg p-2">
+              <div className="grid grid-cols-5 gap-1">
+                {COLORS.map(c => (
+                  <button key={c} type="button" onClick={() => setColor(c)}
+                    className="w-6 h-6 rounded-md border border-white/20 hover:scale-110 transition-transform shadow-sm"
+                    style={{ background: c }} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <Sep />
+
+        {/* Alignment */}
+        <ToolBtn onClick={() => exec('justifyLeft')} title="Align left"><AlignLeft className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn onClick={() => exec('justifyCenter')} title="Align center"><AlignCenter className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn onClick={() => exec('justifyRight')} title="Align right"><AlignRight className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn onClick={() => exec('justifyFull')} title="Justify"><AlignJustify className="w-3.5 h-3.5" /></ToolBtn>
+        <Sep />
+
+        {/* Lists */}
+        <ToolBtn onClick={() => exec('insertUnorderedList')} title="Bullet list"><List className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn onClick={() => exec('insertOrderedList')} title="Numbered list"><ListOrdered className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn onClick={insertBlockquote} title="Blockquote"><Quote className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn onClick={insertCode} title="Inline code"><Code className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn onClick={insertDivider} title="Divider line"><Minus className="w-3.5 h-3.5" /></ToolBtn>
+        <Sep />
+
+        {/* Link */}
+        <div className="relative">
+          <ToolBtn onClick={() => { setShowLinkInput(v => !v); setShowColorPicker(false); setShowFontSize(false); setShowPersonalization(false); }} title="Insert link">
+            <Link2 className="w-3.5 h-3.5" />
+          </ToolBtn>
+          {showLinkInput && (
+            <div className="absolute top-8 left-0 z-30 bg-white rounded-xl border border-gray-200 shadow-lg p-2 flex gap-1.5 min-w-[260px]">
+              <input
+                autoFocus
+                value={linkUrl}
+                onChange={e => setLinkUrl(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') insertLink(); if (e.key === 'Escape') setShowLinkInput(false); }}
+                placeholder="https://example.com"
+                className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-orange-400"
+              />
+              <button type="button" onClick={insertLink}
+                className="px-2.5 py-1.5 bg-orange-500 text-white text-xs font-semibold rounded-lg hover:bg-orange-600 transition-colors">
+                Add
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Image */}
+        <ToolBtn onClick={insertImage} title="Insert image"><Image className="w-3.5 h-3.5" /></ToolBtn>
+        <Sep />
+
+        {/* Personalization tags */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => { setShowPersonalization(v => !v); setShowColorPicker(false); setShowFontSize(false); setShowLinkInput(false); }}
+            className="flex items-center gap-1 px-2 h-7 rounded-md text-[11px] font-semibold bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors border border-orange-100"
+          >
+            <Sparkles className="w-3 h-3" /> {'{{…}}'}
+          </button>
+          {showPersonalization && (
+            <div className="absolute top-8 right-0 z-30 bg-white rounded-xl border border-gray-200 shadow-lg p-1.5 min-w-[170px]">
+              <p className="text-[10px] text-gray-400 font-semibold uppercase px-2 py-1 tracking-wider">Insert Variable</p>
+              {PERSONALIZATION_TAGS.map(tag => (
+                <button key={tag} type="button" onClick={() => insertTag(tag)}
+                  className="w-full text-left px-2.5 py-1.5 text-xs text-gray-700 hover:bg-orange-50 hover:text-orange-600 rounded-lg font-mono transition-colors">
+                  {tag}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* ── Editor area ── */}
       <div
         ref={editorRef}
         contentEditable
+        suppressContentEditableWarning
         onInput={handleInput}
         onBlur={handleInput}
-        className="p-4 min-h-[220px] max-h-[400px] overflow-y-auto outline-none text-sm text-gray-800 prose prose-sm max-w-none"
+        data-placeholder="Start writing your email content here… Use the toolbar above to format, or click {{…}} to insert personalization variables."
+        className="p-4 min-h-[280px] max-h-[480px] overflow-y-auto outline-none text-sm text-gray-800 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-2 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-2 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-orange-500 [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-orange-400 [&_blockquote]:pl-4 [&_blockquote]:py-1 [&_code]:bg-gray-100 [&_code]:px-1.5 [&_code]:rounded [&_code]:font-mono empty:before:content-[attr(data-placeholder)] empty:before:text-gray-300 empty:before:pointer-events-none"
       />
+
+      {/* ── Footer: word count + HTML toggle ── */}
+      <div className="px-3 py-1.5 bg-gray-50/80 border-t border-gray-100 flex items-center justify-between">
+        <span className="text-[11px] text-gray-400">{wordCount} word{wordCount !== 1 ? 's' : ''}</span>
+        <button
+          type="button"
+          onClick={() => {
+            const html = editorRef.current?.innerHTML || '';
+            const view = prompt('Current HTML (edit carefully):', html);
+            if (view !== null && editorRef.current) {
+              editorRef.current.innerHTML = view;
+              handleInput();
+            }
+          }}
+          className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors font-mono"
+        >
+          {'</> HTML'}
+        </button>
+      </div>
     </div>
   );
 }

@@ -4,7 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '../../store/authStore';
-import { Menu, Bell, Search, Plus, ChevronDown, MessageSquare } from 'lucide-react';
+import { Bell, Menu, Search, MessageSquare, Plus, ChevronDown } from 'lucide-react';
+import NotificationDropdown from '../shared/NotificationDropdown';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface Props {
@@ -57,10 +58,7 @@ export default function SalesHeader({ onToggleSidebar, sidebarOpen }: Props) {
             />
           </div>
 
-          <button className="relative p-2 rounded-xl hover:bg-slate-100 transition group">
-            <Bell className="w-4.5 h-4.5 text-slate-500 group-hover:text-slate-700 transition" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#2563EB] rounded-full ring-2 ring-white" />
-          </button>
+          <NotificationDropdown />
 
           <button className="relative p-2 rounded-xl hover:bg-slate-100 transition group hidden sm:flex">
             <MessageSquare className="w-4.5 h-4.5 text-slate-500 group-hover:text-slate-700 transition" />

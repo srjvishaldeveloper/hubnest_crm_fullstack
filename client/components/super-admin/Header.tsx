@@ -8,7 +8,6 @@ import { useSuperAdminUIStore } from '../../store/uiStore';
 import {
   Menu,
   Search,
-  Bell,
   MessageSquare,
   Plus,
   ChevronDown,
@@ -17,6 +16,7 @@ import ThemeToggle from '../shared/ThemeToggle';
 import GlobalSearch from '../shared/GlobalSearch';
 import { useChatStore } from '../../store/chatStore';
 import ChatDrawer from '../shared/ChatDrawer';
+import NotificationDropdown from '../shared/NotificationDropdown';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -87,10 +87,7 @@ export default function Header({ onToggleSidebar, sidebarOpen }: HeaderProps) {
             <GlobalSearch isOpen={showSearch} onClose={() => setShowSearch(false)} role="super-admin" />
 
             {/* Notifications */}
-            <button className="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-[#1C2230] transition-all duration-200 group">
-              <Bell className="w-5 h-5 text-slate-500 dark:text-[#9CA3AF] group-hover:text-slate-700 dark:group-hover:text-[#F9FAFB] transition-colors" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-[#111827]" />
-            </button>
+            <NotificationDropdown />
 
             {/* Messages */}
             <button

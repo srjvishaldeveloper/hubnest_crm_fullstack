@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import api from '../../../../services/api';
+import api from '../../../services/api';
 import { Grid3X3, RefreshCw, XCircle, Save, Loader2, CheckCircle } from 'lucide-react';
 
 interface PermissionMatrix {
@@ -20,7 +20,7 @@ export default function PermissionsPage() {
 
   const fetchData = () => {
     setLoading(true); setError('');
-    api.get('/super-admin/permissions')
+    api.get('/admin/permissions')
       .then(r => {
         const d = r.data?.data;
         setData(d);
@@ -48,7 +48,7 @@ export default function PermissionsPage() {
     if (!local) return;
     setSaving(true);
     try {
-      await api.put('/super-admin/permissions', { matrix: local.matrix });
+      await api.put('/admin/permissions', { matrix: local.matrix });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch { } finally { setSaving(false); }

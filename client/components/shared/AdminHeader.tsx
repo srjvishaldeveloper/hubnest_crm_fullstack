@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import { Menu, Search, Bell, Plus, X, Command, MessageSquare, BookOpen, ChevronDown, LogOut } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import GlobalSearch from './GlobalSearch';
+import NotificationDropdown from './NotificationDropdown';
 import { useChatStore } from '../../store/chatStore';
 import ChatDrawer from './ChatDrawer';
 
@@ -121,16 +122,7 @@ export default function AdminHeader({ onToggleSidebar, sidebarOpen, role = 'Admi
           <GlobalSearch isOpen={showSearch} onClose={() => setShowSearch(false)} role="tenant-admin" />
 
           {/* Bell Icon */}
-          <button className="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-[#2A2A2A] transition group">
-            <Bell className="w-[18px] h-[18px] text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-white transition" />
-            {unreadTotal > 0 ? (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-[8px] font-extrabold text-white rounded-full flex items-center justify-center border-2 border-white dark:border-[#1A1A1A]">
-                {unreadTotal > 99 ? '99+' : unreadTotal}
-              </span>
-            ) : (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#2563EB] rounded-full ring-2 ring-white dark:ring-[#1A1A1A]" />
-            )}
-          </button>
+          <NotificationDropdown />
 
           {/* Chat Icon (Only for Org Admin) */}
           {role === 'Admin' && (

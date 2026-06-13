@@ -44,12 +44,15 @@ export default function PublicFormPage() {
         if (!res.ok) throw new Error('Failed to load form');
         const json = await res.json();
         const f: PublicForm = json.data?.form || json.form || json;
-        // Ensure fields is always an array
-        f.fields = Array.isArray(f.fields)
+        f.fields = (Array.isArray(f.fields)
           ? f.fields
           : typeof f.fields === 'string'
           ? JSON.parse(f.fields)
-          : [];
+          : []).map((field: any, idx: number) => {
+            const label = field.label || field.name || 'Untitled Field';
+            const name = field.name || (label.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + idx);
+            return { ...field, name, label };
+          });
         setForm(f);
         const initial: Record<string, string> = {};
         f.fields.forEach((field) => { initial[field.name] = ''; });
@@ -71,6 +74,11 @@ export default function PublicFormPage() {
       });
       if (!res.ok) throw new Error('Submission failed');
       setStatus('success');
+      if (form?.settings?.redirectUrl) {
+        setTimeout(() => {
+          window.location.href = form.settings!.redirectUrl!;
+        }, 1000);
+      }
     } catch {
       setStatus('error');
       setErrorMsg('Your submission could not be saved. Please try again.');
@@ -95,16 +103,18 @@ export default function PublicFormPage() {
     );
   }
 
-  // --- Not found ---
-  if (status === 'not_found') {
+  // --- Error / Inactive ---
+  if (status === 'not_found' || (form && form.settings?.status === 'inactive')) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a] flex items-center justify-center p-4">
         <div className="max-w-sm text-center space-y-4">
-          <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto">
+          <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mx-auto ring-4 ring-amber-50 dark:ring-amber-900/10">
             <AlertTriangle className="w-7 h-7 text-amber-500" />
           </div>
-          <h1 className="text-xl font-bold text-slate-800">Form Not Found</h1>
-          <p className="text-sm text-slate-500">This form link is no longer active or the form has been removed.</p>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-[#ededed]">Form Not Available</h1>
+          <p className="text-sm text-slate-500 dark:text-[#a3a3a3]">
+            This form is no longer active or has been removed.
+          </p>
         </div>
       </div>
     );
@@ -153,53 +163,57 @@ export default function PublicFormPage() {
   const fields = form.fields;
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4">
-      <div className="max-w-lg mx-auto">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a] py-12 px-4 flex flex-col items-center justify-center font-sans">
+      <div className="max-w-lg w-full mx-auto relative group">
+        {/* Decorative background glow */}
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-3xl blur opacity-20 group-hover:opacity-30 transition duration-1000 group-hover:duration-200"></div>
+        
         {/* Card */}
-        <div className="bg-white rounded-3xl shadow-lg shadow-slate-200/60 border border-slate-200/80 overflow-hidden">
+        <div className="relative bg-white dark:bg-[#161616] rounded-3xl shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-200/80 dark:border-[#2a2a2a] overflow-hidden">
           {/* Header accent bar */}
-          <div className="h-2" style={{ backgroundColor: accent }} />
+          <div className="h-1.5 w-full" style={{ backgroundColor: accent }} />
 
           {/* Title */}
-          <div className="px-8 pt-8 pb-6 border-b border-slate-100">
-            <h1 className="text-2xl font-bold text-slate-900">{form.name}</h1>
+          <div className="px-8 pt-8 pb-6 border-b border-slate-100 dark:border-[#1f1f1f]">
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-[#ededed] tracking-tight">{form.name}</h1>
             {form.description && (
-              <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">{form.description}</p>
+              <p className="text-sm text-slate-500 dark:text-[#a3a3a3] mt-2 leading-relaxed">{form.description}</p>
             )}
           </div>
 
           {/* Form fields */}
-          <form onSubmit={handleSubmit} className="px-8 py-7 space-y-5">
+          <form onSubmit={handleSubmit} className="px-8 py-7 space-y-6">
             {fields.length === 0 ? (
               <p className="text-sm text-slate-400 text-center py-6">This form has no fields configured yet.</p>
             ) : (
               fields.map((field) => {
                 const fieldType = field.type || 'text';
-                const label = field.label || field.name;
+                const label = field.label || 'Untitled Field';
+                const fieldName = field.name;
                 const inputBase =
-                  'w-full text-sm px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition placeholder:text-slate-400 text-slate-800';
+                  'w-full text-sm px-4 py-3 rounded-xl border border-slate-200 dark:border-[#2a2a2a] bg-slate-50 dark:bg-[#0d0d0d] outline-none focus:border-indigo-500 dark:focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-[#666] text-slate-800 dark:text-[#ededed] font-medium';
 
                 return (
-                  <div key={field.name} className="space-y-1.5">
-                    <label className="block text-[13px] font-semibold text-slate-700">
+                  <div key={fieldName} className="space-y-2">
+                    <label className="block text-[13px] font-bold text-slate-700 dark:text-[#a3a3a3]">
                       {label}
-                      {field.required && <span className="text-red-500 ml-0.5">*</span>}
+                      {field.required && <span className="text-red-500 ml-1">*</span>}
                     </label>
 
                     {fieldType === 'textarea' ? (
                       <textarea
                         required={field.required}
                         placeholder={field.placeholder || ''}
-                        value={values[field.name] || ''}
-                        onChange={(e) => updateValue(field.name, e.target.value)}
+                        value={values[fieldName] || ''}
+                        onChange={(e) => updateValue(fieldName, e.target.value)}
                         rows={4}
                         className={`${inputBase} resize-none`}
                       />
                     ) : fieldType === 'select' && field.options ? (
                       <select
                         required={field.required}
-                        value={values[field.name] || ''}
-                        onChange={(e) => updateValue(field.name, e.target.value)}
+                        value={values[fieldName] || ''}
+                        onChange={(e) => updateValue(fieldName, e.target.value)}
                         className={inputBase}
                       >
                         <option value="">Select an option…</option>
@@ -213,11 +227,11 @@ export default function PublicFormPage() {
                           <label key={opt} className="flex items-center gap-2.5 cursor-pointer">
                             <input
                               type="radio"
-                              name={field.name}
+                              name={fieldName}
                               value={opt}
                               required={field.required}
-                              checked={values[field.name] === opt}
-                              onChange={(e) => updateValue(field.name, e.target.value)}
+                              checked={values[fieldName] === opt}
+                              onChange={(e) => updateValue(fieldName, e.target.value)}
                               className="w-4 h-4 accent-indigo-600"
                             />
                             <span className="text-sm text-slate-700">{opt}</span>
@@ -225,23 +239,26 @@ export default function PublicFormPage() {
                         ))}
                       </div>
                     ) : fieldType === 'checkbox' ? (
-                      <label className="flex items-center gap-2.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          required={field.required}
-                          checked={values[field.name] === 'true'}
-                          onChange={(e) => updateValue(field.name, e.target.checked ? 'true' : 'false')}
-                          className="w-4 h-4 accent-indigo-600"
-                        />
-                        <span className="text-sm text-slate-700">{field.placeholder || label}</span>
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <div className="relative flex items-center justify-center w-5 h-5 rounded border border-slate-300 dark:border-[#333] bg-white dark:bg-[#0d0d0d] group-hover:border-indigo-500 transition-colors">
+                          <input
+                            type="checkbox"
+                            required={field.required}
+                            checked={values[fieldName] === 'true'}
+                            onChange={(e) => updateValue(fieldName, e.target.checked ? 'true' : 'false')}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                          />
+                          {values[fieldName] === 'true' && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500" />}
+                        </div>
+                        <span className="text-sm font-medium text-slate-700 dark:text-[#ededed]">{field.placeholder || label}</span>
                       </label>
                     ) : (
                       <input
                         type={fieldType}
                         required={field.required}
                         placeholder={field.placeholder || ''}
-                        value={values[field.name] || ''}
-                        onChange={(e) => updateValue(field.name, e.target.value)}
+                        value={values[fieldName] || ''}
+                        onChange={(e) => updateValue(fieldName, e.target.value)}
                         className={inputBase}
                       />
                     )}
@@ -250,36 +267,41 @@ export default function PublicFormPage() {
               })
             )}
 
-            {fields.length > 0 && (
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={status === 'submitting'}
-                  style={{ backgroundColor: accent }}
-                  className="w-full flex items-center justify-center gap-2 py-3 text-white text-sm font-bold rounded-xl hover:opacity-90 transition shadow-sm disabled:opacity-60"
-                >
-                  {status === 'submitting' ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</>
-                  ) : (
-                    <><Send className="w-4 h-4" /> {form.settings?.submit_label || 'Submit'}</>
+              {fields.length > 0 && (
+                <div className="pt-4 space-y-4">
+                  <button
+                    type="submit"
+                    disabled={status === 'submitting'}
+                    style={{ backgroundColor: accent }}
+                    className="w-full py-3.5 px-4 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-70 shadow-lg shadow-indigo-500/20 active:scale-[0.98]"
+                  >
+                    {status === 'submitting' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        {form.settings?.submitText || 'Submit'}
+                        <Send className="w-4 h-4 ml-1" />
+                      </>
+                    )}
+                  </button>
+                  {status === 'error' && errorMsg && (
+                    <p className="text-xs text-red-500 text-center bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 py-2 rounded-lg">{errorMsg}</p>
                   )}
-                </button>
-              </div>
-            )}
-
-            {status === 'error' && errorMsg && (
-              <p className="text-xs text-red-500 text-center">{errorMsg}</p>
-            )}
-          </form>
-
-          {/* Footer */}
-          <div className="px-8 pb-6 pt-0">
-            <p className="text-center text-[11px] text-slate-400">
-              Powered by <span className="font-semibold text-slate-500">HubNest CRM</span>
+                  {status === 'success' && (
+                    <p className="text-xs text-green-600 dark:text-green-400 text-center bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/30 py-2 rounded-lg">{form.settings?.successMessage || 'Form submitted successfully!'}</p>
+                  )}
+                </div>
+              )}
+            </form>
+          </div>
+          
+          {/* Footer branding */}
+          <div className="py-6 text-center">
+            <p className="text-[11px] font-medium text-slate-400 dark:text-[#666]">
+              Powered by <span className="font-bold text-slate-900 dark:text-[#ededed]">HubNest CRM</span>
             </p>
           </div>
         </div>
       </div>
-    </div>
   );
 }

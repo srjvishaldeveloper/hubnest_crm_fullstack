@@ -108,6 +108,8 @@ export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selected, setSelected] = useState<number[]>([]);
+  const [processing, setProcessing] = useState<number | 'bulk' | null>(null);
 
   useEffect(() => {
     async function fetchCampaigns() {
@@ -115,7 +117,7 @@ export default function CampaignsPage() {
       setError('');
       try {
         const res = await api.get('/marketing/campaigns');
-        const data = res.data?.data || res.data?.campaigns || res.data || [];
+        const data = res.data?.data?.campaigns || res.data?.campaigns || res.data?.data || res.data || [];
         setCampaigns(Array.isArray(data) ? data : []);
       } catch (err: any) {
         setError('Failed to load campaigns');
@@ -126,9 +128,69 @@ export default function CampaignsPage() {
     fetchCampaigns();
   }, []);
 
+  const handleAction = async (id: number, action: string) => {
+    setProcessing(id);
+    try {
+      if (action === 'Delete') {
+        if (!confirm('Are you sure you want to delete this campaign?')) return setProcessing(null);
+        await api.delete(`/marketing/campaigns/${id}`);
+        setCampaigns(prev => prev.filter(c => c.id !== id));
+      } else if (action === 'Pause') {
+        const c = campaigns.find(x => x.id === id);
+        const newStatus = c?.status.toLowerCase() === 'active' ? 'paused' : 'active';
+        await api.patch(`/marketing/campaigns/${id}`, { status: newStatus });
+        setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: newStatus } : c));
+      } else if (action === 'Duplicate') {
+        const c = campaigns.find(x => x.id === id);
+        if (c) {
+          const res = await api.post('/marketing/campaigns', { ...c, name: `${c.name} (Copy)`, id: undefined, status: 'draft' });
+          if (res.data?.data) setCampaigns(prev => [res.data.data, ...prev]);
+          else fetchCampaigns();
+        }
+      }
+    } catch {}
+    setProcessing(null);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!selected.length || !confirm(`Delete ${selected.length} campaigns?`)) return;
+    setProcessing('bulk');
+    try {
+      await Promise.all(selected.map(id => api.delete(`/marketing/campaigns/${id}`)));
+      setCampaigns(prev => prev.filter(c => !selected.includes(c.id)));
+      setSelected([]);
+    } catch {}
+    setProcessing(null);
+  };
+
   const filtered = campaigns.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase())
   ).slice(0, visibleCount);
+
+  const exportToCSV = () => {
+    if (campaigns.length === 0) return;
+    const headers = ['ID', 'Name', 'Type', 'Platform', 'Status', 'Budget', 'Leads', 'CPL', 'ROI'];
+    const rows = campaigns.map(c => [
+      c.id,
+      `"${c.name.replace(/"/g, '""')}"`,
+      c.type || 'N/A',
+      c.platform || 'N/A',
+      c.status,
+      c.budget || 0,
+      c.leads_count || 0,
+      c.cost_per_lead || 0,
+      c.roi || 0
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `campaigns_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Compute stats from API data
   const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'Active').length;
@@ -189,16 +251,25 @@ export default function CampaignsPage() {
               className="bg-transparent text-xs text-slate-700 outline-none w-full placeholder:text-slate-400"
             />
           </div>
+          {selected.length > 0 && (
+            <button onClick={handleBulkDelete} disabled={processing === 'bulk'}
+              className="px-3 py-2 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 text-xs font-semibold rounded-xl transition shadow-sm flex items-center gap-1.5"
+            >
+              {processing === 'bulk' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              Delete ({selected.length})
+            </button>
+          )}
           <button className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 dark:bg-[#161616] transition">
             <Filter className="w-4 h-4 text-slate-500" />
           </button>
-          <Link
-            href="/marketing/campaigns/create"
-            className="flex items-center gap-1.5 px-3 py-2 bg-[#F97316] hover:bg-orange-600 text-white text-xs font-semibold rounded-xl transition shadow-sm"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Create Campaign
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <button onClick={exportToCSV} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#161616] border border-slate-200 dark:border-[#1f1f1f] rounded-xl text-sm font-semibold text-slate-700 dark:text-[#ededed] hover:bg-slate-50 transition shadow-sm">
+            <FileText className="w-4 h-4" /> Export CSV
+          </button>
+          <Link href="/marketing/campaigns/create" className="flex items-center gap-2 px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-sm font-semibold transition shadow-sm shadow-indigo-200 dark:shadow-none">
+            <Plus className="w-4 h-4" /> New Campaign
           </Link>
+        </div>
         </div>
       </div>
 
@@ -246,6 +317,12 @@ export default function CampaignsPage() {
               <div key={c.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <input 
+                      type="checkbox" 
+                      checked={selected.includes(c.id)} 
+                      onChange={e => setSelected(prev => e.target.checked ? [...prev, c.id] : prev.filter(id => id !== c.id))}
+                      className="w-4 h-4 accent-[#4F46E5] rounded shrink-0 mr-1"
+                    />
                     <div className="w-10 h-10 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center shrink-0">
                       <Megaphone className="w-5 h-5 text-[#4F46E5]" />
                     </div>
@@ -282,14 +359,15 @@ export default function CampaignsPage() {
                           >
                             {[
                               { label: 'Edit', icon: Edit2, color: 'text-slate-700' },
-                              { label: 'Pause', icon: Pause, color: 'text-amber-600' },
+                              { label: c.status.toLowerCase() === 'active' ? 'Pause' : 'Activate', icon: Pause, color: 'text-amber-600', action: 'Pause' },
                               { label: 'Duplicate', icon: Copy, color: 'text-blue-600' },
                               { label: 'Delete', icon: Trash2, color: 'text-red-500' },
                             ].map(item => {
                               const Icon = item.icon;
+                              const act = item.action || item.label;
                               return (
-                                <button key={item.label} onClick={() => setMenuOpen(null)} className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 dark:bg-[#161616] ${item.color}`}>
-                                  <Icon className="w-3.5 h-3.5" /> {item.label}
+                                <button key={item.label} onClick={() => { setMenuOpen(null); handleAction(c.id, act); }} className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 dark:bg-[#161616] ${item.color}`}>
+                                  {processing === c.id && (act === 'Delete' || act === 'Pause' || act === 'Duplicate') ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Icon className="w-3.5 h-3.5" />} {item.label}
                                 </button>
                               );
                             })}
@@ -335,21 +413,36 @@ export default function CampaignsPage() {
             <h3 className="text-[13px] font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-3">Quick Actions</h3>
             <div className="space-y-2">
               {[
-                { label: 'Create Campaign', icon: Plus, color: 'text-violet-600 bg-violet-50' },
-                { label: 'View Leads', icon: Users, color: 'text-blue-600 bg-blue-50' },
-                { label: 'A/B Testing', icon: Activity, color: 'text-pink-600 bg-pink-50' },
-                { label: 'Automation', icon: Zap, color: 'text-indigo-600 bg-indigo-50' },
-                { label: 'Budget Manager', icon: DollarSign, color: 'text-amber-600 bg-amber-50' },
-                { label: 'Reports', icon: FileText, color: 'text-green-600 bg-green-50' },
+                { label: 'Create Campaign', icon: Plus, color: 'text-violet-600 bg-violet-50', link: '/marketing/campaigns/create' },
+                { label: 'View Leads', icon: Users, color: 'text-blue-600 bg-blue-50', link: '/crm/leads' },
+                { label: 'A/B Testing', icon: Activity, color: 'text-pink-600 bg-pink-50', link: '/marketing/campaigns/ab-testing' },
+                { label: 'Automation', icon: Zap, color: 'text-indigo-600 bg-indigo-50', link: '/marketing/automation' },
+                { label: 'Budget Manager', icon: DollarSign, color: 'text-amber-600 bg-amber-50', link: '/marketing/campaigns/budget' },
+                { label: 'Export Reports (CSV)', icon: FileText, color: 'text-green-600 bg-green-50', action: exportToCSV },
               ].map(item => {
                 const Icon = item.icon;
-                return (
-                  <button key={item.label} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:bg-[#161616] transition text-left">
+                
+                const ButtonContent = (
+                  <>
                     <div className={`w-7 h-7 rounded-lg ${item.color} flex items-center justify-center shrink-0`}>
                       <Icon className="w-3.5 h-3.5" />
                     </div>
                     <span className="text-xs font-semibold text-slate-700">{item.label}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 ml-auto" />
+                  </>
+                );
+
+                if (item.link) {
+                  return (
+                    <Link key={item.label} href={item.link} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:bg-[#161616] transition text-left">
+                      {ButtonContent}
+                    </Link>
+                  );
+                }
+
+                return (
+                  <button key={item.label} onClick={item.action} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:bg-[#161616] transition text-left">
+                    {ButtonContent}
                   </button>
                 );
               })}

@@ -38,13 +38,17 @@ router.delete('/segments/:id', authorize('campaigns', 'delete'), ctrl.deleteSegm
 // Visual Workflows
 router.get('/workflows', authorize('campaigns', 'read'), ctrl.listWorkflows);
 router.post('/workflows', authorize('campaigns', 'create'), ctrl.createWorkflow);
+router.get('/workflows/:id', authorize('campaigns', 'read'), ctrl.getWorkflow);
 router.patch('/workflows/:id', authorize('campaigns', 'update'), ctrl.updateWorkflow);
 router.delete('/workflows/:id', authorize('campaigns', 'delete'), ctrl.deleteWorkflow);
 router.get('/workflows/:id/runs', authorize('campaigns', 'read'), ctrl.getWorkflowRuns);
+router.post('/workflows/:id/execute', authorize('campaigns', 'update'), ctrl.executeWorkflow);
 
 // Form Builder
 router.get('/forms', authorize('campaigns', 'read'), ctrl.listForms);
 router.post('/forms', authorize('campaigns', 'create'), ctrl.createForm);
+router.patch('/forms/:id', authorize('campaigns', 'update'), ctrl.updateForm);
+router.delete('/forms/:id', authorize('campaigns', 'delete'), ctrl.deleteFormCtrl);
 router.get('/forms/:id/public', ctrl.getFormPublic);
 router.post('/forms/:id/submit', ctrl.submitForm);
 router.get('/forms/:id/submissions', authorize('campaigns', 'read'), ctrl.getFormSubmissions);
@@ -84,5 +88,11 @@ router.get('/campaign-templates/:id',  authorize('campaigns', 'read'),   ctrl.ge
 
 // AI Studio Proxies
 router.post('/ai/:serviceName/:endpoint', authorize('campaigns', 'create'), ctrl.aiProxyHandler);
+
+// Integration Settings (Meta / WhatsApp / etc.)
+router.get('/integrations',             authorize('campaigns', 'read'),   ctrl.getIntegrationSettings);
+router.post('/integrations',            authorize('campaigns', 'update'), ctrl.upsertIntegrationSettings);
+router.delete('/integrations/:provider',authorize('campaigns', 'update'), ctrl.deleteIntegrationSettings);
+router.post('/integrations/:provider/test', authorize('campaigns', 'update'), ctrl.testIntegration);
 
 module.exports = router;

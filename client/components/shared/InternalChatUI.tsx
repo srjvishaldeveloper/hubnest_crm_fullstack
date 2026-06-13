@@ -24,12 +24,12 @@ const AVATAR_GRADIENTS = [
 // ─── Emoji Picker ──────────────────────────────────────────────────────────────
 function EmojiPicker({ onPick, above }: { onPick: (e: string) => void; above?: boolean }) {
   return (
-    <div className={`absolute ${above ? 'bottom-9' : 'top-9'} left-0 z-50 flex gap-0.5 bg-[#1e2130] border border-white/10 rounded-2xl px-2.5 py-2 shadow-2xl shadow-black/40 backdrop-blur-xl`}>
+    <div className={`absolute ${above ? 'bottom-9' : 'top-9'} left-0 z-50 flex gap-0.5 bg-white dark:bg-[#1e2130] border border-slate-200 dark:border-white/10 rounded-2xl px-2.5 py-2 shadow-2xl shadow-slate-200/50 dark:shadow-black/40 backdrop-blur-xl`}>
       {EMOJI_LIST.map((e) => (
         <button
           key={e}
           onClick={() => onPick(e)}
-          className="text-base w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white/10 hover:scale-110 transition-all duration-150"
+          className="text-base w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-200 dark:bg-white/10 hover:scale-110 transition-all duration-150"
         >
           {e}
         </button>
@@ -58,7 +58,7 @@ function Avatar({
       {photo ? (
         <img src={photo} alt={name} className={`${cls} rounded-full object-cover ring-2 ring-white/10`} />
       ) : (
-        <div className={`${cls} rounded-full bg-gradient-to-br ${AVATAR_GRADIENTS[gradIdx]} flex items-center justify-center text-white font-bold ring-2 ring-white/10 shadow-lg`}>
+        <div className={`${cls} rounded-full bg-gradient-to-br ${AVATAR_GRADIENTS[gradIdx]} flex items-center justify-center text-slate-900 dark:text-white font-bold ring-2 ring-white/10 shadow-lg`}>
           {name?.charAt(0)?.toUpperCase() || '?'}
         </div>
       )}
@@ -73,11 +73,11 @@ function Avatar({
 function DateDivider({ date }: { date: string }) {
   return (
     <div className="flex items-center gap-3 px-6 py-3">
-      <div className="flex-1 h-px bg-white/5" />
+      <div className="flex-1 h-px bg-slate-100 dark:bg-white/5" />
       <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest px-2">
         {date}
       </span>
-      <div className="flex-1 h-px bg-white/5" />
+      <div className="flex-1 h-px bg-slate-100 dark:bg-white/5" />
     </div>
   );
 }
@@ -127,7 +127,7 @@ function MessageBubble({ msg, isMe, showHeader, onEdit, onDelete, onReact, onPin
   const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className={`group relative flex gap-3 px-4 py-0.5 hover:bg-white/[0.02] rounded-lg mx-2 transition-colors ${isMe ? 'flex-row-reverse' : ''}`}>
+    <div className={`group relative flex gap-3 px-4 py-0.5 hover:bg-slate-100/50 dark:bg-white/[0.02] rounded-lg mx-2 transition-colors ${isMe ? 'flex-row-reverse' : ''}`}>
       {/* Avatar column */}
       <div className="flex-shrink-0 w-9">
         {showHeader ? <Avatar name={msg.sender_name} photo={msg.sender_photo} size={9} /> : null}
@@ -137,7 +137,7 @@ function MessageBubble({ msg, isMe, showHeader, onEdit, onDelete, onReact, onPin
       <div className={`flex flex-col min-w-0 flex-1 ${isMe ? 'items-end' : 'items-start'}`}>
         {showHeader && (
           <div className={`flex items-baseline gap-2 mb-1 ${isMe ? 'flex-row-reverse' : ''}`}>
-            <span className={`text-sm font-semibold ${isMe ? 'text-indigo-300' : 'text-slate-200'}`}>
+            <span className={`text-sm font-semibold ${isMe ? 'text-indigo-300' : 'text-slate-800 dark:text-slate-200'}`}>
               {isMe ? 'You' : msg.sender_name}
             </span>
             <span className="text-[10px] text-slate-600">{time}</span>
@@ -148,8 +148,8 @@ function MessageBubble({ msg, isMe, showHeader, onEdit, onDelete, onReact, onPin
         <div className={`relative group/bubble max-w-[min(520px,72%)] ${isMe ? '' : ''}`}>
           <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
             isMe
-              ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white rounded-tr-sm shadow-indigo-900/40'
-              : 'bg-[#1e2130] text-slate-100 border border-white/[0.06] rounded-tl-sm'
+              ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-slate-900 dark:text-white rounded-tr-sm shadow-indigo-900/40'
+              : 'bg-white dark:bg-[#1e2130] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-white/[0.06] rounded-tl-sm'
           }`}>
             <span>{msg.message}</span>
             {msg.is_edited && (
@@ -170,7 +170,7 @@ function MessageBubble({ msg, isMe, showHeader, onEdit, onDelete, onReact, onPin
                   className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border transition-all ${
                     uids.includes(currentUserId)
                       ? 'border-indigo-500/60 bg-indigo-500/15 text-indigo-300'
-                      : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:bg-white/10'
+                      : 'border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-400 hover:border-white/20 hover:bg-slate-200 dark:bg-white/10'
                   }`}
                 >
                   <span className="text-sm leading-none">{emoji}</span>
@@ -187,11 +187,11 @@ function MessageBubble({ msg, isMe, showHeader, onEdit, onDelete, onReact, onPin
         ref={ref}
         className={`absolute top-0 ${isMe ? 'left-12' : 'right-4'} z-20 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-150 translate-y-0`}
       >
-        <div className="flex items-center gap-0.5 bg-[#1a1d28] border border-white/10 rounded-xl px-1 py-0.5 shadow-xl shadow-black/30">
+        <div className="flex items-center gap-0.5 bg-white dark:bg-[#1a1d28] border border-slate-200 dark:border-white/10 rounded-xl px-1 py-0.5 shadow-xl shadow-slate-200/50 dark:shadow-black/30">
           <div className="relative">
             <button
               onClick={() => { setShowEmoji(!showEmoji); setShowMenu(false); }}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-white/8 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-slate-200 dark:bg-white/8 transition-colors"
             >
               <Smile className="w-3.5 h-3.5" />
             </button>
@@ -199,14 +199,14 @@ function MessageBubble({ msg, isMe, showHeader, onEdit, onDelete, onReact, onPin
           </div>
           <button
             onClick={() => onPin(msg.id)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-white/8 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-slate-200 dark:bg-white/8 transition-colors"
           >
             <Pin className="w-3.5 h-3.5" />
           </button>
           {isMe && (
             <button
               onClick={() => { onEdit(msg); }}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-sky-400 hover:bg-white/8 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-sky-400 hover:bg-slate-200 dark:bg-white/8 transition-colors"
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
@@ -214,15 +214,15 @@ function MessageBubble({ msg, isMe, showHeader, onEdit, onDelete, onReact, onPin
           <div className="relative">
             <button
               onClick={() => { setShowMenu(!showMenu); setShowEmoji(false); }}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/8 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:bg-white/8 transition-colors"
             >
               <MoreHorizontal className="w-3.5 h-3.5" />
             </button>
             {showMenu && (
-              <div className={`absolute top-8 ${isMe ? 'left-0' : 'right-0'} z-50 bg-[#1a1d28] border border-white/10 rounded-2xl shadow-2xl shadow-black/50 py-1.5 w-44 overflow-hidden`}>
+              <div className={`absolute top-8 ${isMe ? 'left-0' : 'right-0'} z-50 bg-white dark:bg-[#1a1d28] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl shadow-slate-200/50 dark:shadow-black/50 py-1.5 w-44 overflow-hidden`}>
                 <button
                   onClick={() => { onPin(msg.id); setShowMenu(false); }}
-                  className="w-full text-left px-3.5 py-2 text-sm flex items-center gap-2.5 hover:bg-white/5 text-slate-300 transition-colors"
+                  className="w-full text-left px-3.5 py-2 text-sm flex items-center gap-2.5 hover:bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 transition-colors"
                 >
                   <Pin className="w-4 h-4 text-amber-400" /> Pin message
                 </button>
@@ -230,11 +230,11 @@ function MessageBubble({ msg, isMe, showHeader, onEdit, onDelete, onReact, onPin
                   <>
                     <button
                       onClick={() => { onEdit(msg); setShowMenu(false); }}
-                      className="w-full text-left px-3.5 py-2 text-sm flex items-center gap-2.5 hover:bg-white/5 text-slate-300 transition-colors"
+                      className="w-full text-left px-3.5 py-2 text-sm flex items-center gap-2.5 hover:bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 transition-colors"
                     >
                       <Edit2 className="w-4 h-4 text-sky-400" /> Edit
                     </button>
-                    <div className="mx-3 my-1 h-px bg-white/5" />
+                    <div className="mx-3 my-1 h-px bg-slate-100 dark:bg-white/5" />
                     <button
                       onClick={() => { onDelete(msg.id); setShowMenu(false); }}
                       className="w-full text-left px-3.5 py-2 text-sm flex items-center gap-2.5 hover:bg-rose-500/10 text-rose-400 transition-colors"
@@ -300,12 +300,12 @@ function ConvItem({
       className={`w-full text-left px-2.5 py-2 rounded-xl flex items-center gap-3 transition-all duration-150 group/item ${
         active
           ? 'bg-gradient-to-r from-indigo-600/30 to-violet-600/20 border border-indigo-500/30 shadow-sm'
-          : 'hover:bg-white/[0.04] border border-transparent'
+          : 'hover:bg-slate-100 dark:bg-white/[0.04] border border-transparent'
       }`}
     >
       {isGroup ? (
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-          active ? 'bg-indigo-500/30' : 'bg-white/5 group-hover/item:bg-white/10'
+          active ? 'bg-indigo-500/30' : 'bg-slate-100 dark:bg-white/5 group-hover/item:bg-slate-200 dark:bg-white/10'
         }`}>
           <Hash className={`w-4 h-4 ${active ? 'text-indigo-300' : 'text-slate-500'}`} />
         </div>
@@ -313,7 +313,7 @@ function ConvItem({
         <Avatar name={displayName} size={9} online={online} />
       )}
       <div className="flex-1 min-w-0">
-        <div className={`text-sm font-medium truncate ${active ? 'text-white' : 'text-slate-300'}`}>
+        <div className={`text-sm font-medium truncate ${active ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>
           {displayName}
         </div>
         {conv.last_message && (
@@ -323,7 +323,7 @@ function ConvItem({
         )}
       </div>
       {unread > 0 && (
-        <span className="flex-shrink-0 bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-lg shadow-indigo-500/30">
+        <span className="flex-shrink-0 bg-indigo-500 text-slate-900 dark:text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-lg shadow-indigo-500/30">
           {unread > 99 ? '99+' : unread}
         </span>
       )}
@@ -456,20 +456,20 @@ export default function InternalChatUI() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-[#0f1117] text-slate-100 rounded-2xl overflow-hidden border border-white/[0.06] shadow-2xl">
+    <div className="flex h-[calc(100vh-80px)] bg-slate-50 dark:bg-[#0f1117] text-slate-800 dark:text-slate-100 rounded-2xl overflow-hidden border border-slate-200 dark:border-white/[0.06] shadow-2xl">
 
       {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <div className="w-[270px] xl:w-[290px] flex flex-col bg-[#13151f] border-r border-white/[0.06] flex-shrink-0">
+      <div className="w-[270px] xl:w-[290px] flex flex-col bg-white dark:bg-[#13151f] border-r border-slate-200 dark:border-white/[0.06] flex-shrink-0">
 
         {/* Brand header */}
-        <div className="px-4 pt-4 pb-3 border-b border-white/[0.05]">
+        <div className="px-4 pt-4 pb-3 border-b border-slate-200 dark:border-white/[0.05]">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                <Zap className="w-4 h-4 text-white" />
+                <Zap className="w-4 h-4 text-slate-900 dark:text-white" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-white tracking-tight">HubNest Chat</h2>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">HubNest Chat</h2>
                 <p className="text-[10px] text-slate-600 leading-none">Internal workspace</p>
               </div>
             </div>
@@ -487,10 +487,10 @@ export default function InternalChatUI() {
               value={searchQ}
               onChange={e => handleSearch(e.target.value)}
               placeholder="Search messages…"
-              className="w-full bg-[#0f1117] border border-white/[0.07] rounded-xl py-2 pl-8.5 pr-8 text-xs text-slate-300 placeholder:text-slate-700 focus:outline-none focus:border-indigo-500/50 focus:bg-[#0f1117] transition-colors"
+              className="w-full bg-slate-50 dark:bg-[#0f1117] border border-slate-200 dark:border-white/[0.07] rounded-xl py-2 pl-8.5 pr-8 text-xs text-slate-700 dark:text-slate-300 placeholder:text-slate-700 focus:outline-none focus:border-indigo-500/50 focus:bg-slate-50 dark:bg-[#0f1117] transition-colors"
             />
             {searchQ && (
-              <button onClick={() => { setSearchQ(''); clearSearch(); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-300 transition-colors">
+              <button onClick={() => { setSearchQ(''); clearSearch(); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-700 dark:text-slate-300 transition-colors">
                 <X className="w-3 h-3" />
               </button>
             )}
@@ -499,7 +499,7 @@ export default function InternalChatUI() {
 
         {/* Search Results */}
         {searchQ && (
-          <div className="border-b border-white/[0.05] max-h-44 overflow-y-auto p-2 space-y-0.5 bg-[#0f1117]/60">
+          <div className="border-b border-slate-200 dark:border-white/[0.05] max-h-44 overflow-y-auto p-2 space-y-0.5 bg-slate-50 dark:bg-[#0f1117]/60">
             {isSearching && <p className="text-[11px] text-slate-600 text-center py-3">Searching…</p>}
             {!isSearching && !searchResults.length && (
               <p className="text-[11px] text-slate-700 text-center py-3">No results found</p>
@@ -508,10 +508,10 @@ export default function InternalChatUI() {
               <button
                 key={r.id}
                 onClick={() => accessToken && setActiveConversation(r.conversation_id, accessToken)}
-                className="w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 transition-colors"
+                className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:bg-white/5 transition-colors"
               >
                 <p className="text-[10px] text-slate-500 mb-0.5">{r.sender_name} · {r.conversation_name}</p>
-                <p className="text-xs text-slate-300 truncate">{r.message}</p>
+                <p className="text-xs text-slate-700 dark:text-slate-300 truncate">{r.message}</p>
               </button>
             ))}
           </div>
@@ -529,7 +529,7 @@ export default function InternalChatUI() {
               onClick={() => setSidebarTab(tab)}
               className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-medium transition-all duration-150 ${
                 sidebarTab === tab
-                  ? 'bg-white/8 text-white'
+                  ? 'bg-slate-200 dark:bg-white/8 text-slate-900 dark:text-white'
                   : 'text-slate-600 hover:text-slate-400 hover:bg-white/[0.03]'
               }`}
             >
@@ -565,11 +565,11 @@ export default function InternalChatUI() {
                 <button
                   key={u.id}
                   onClick={() => handleDMClick(u.id)}
-                  className="w-full text-left px-2.5 py-2 rounded-xl hover:bg-white/[0.04] flex items-center gap-2.5 transition-colors border border-transparent"
+                  className="w-full text-left px-2.5 py-2 rounded-xl hover:bg-slate-100 dark:bg-white/[0.04] flex items-center gap-2.5 transition-colors border border-transparent"
                 >
                   <Avatar name={u.name} photo={u.photo_url} size={8} online={onlineUserIds.has(u.id)} />
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium truncate text-slate-300">{u.name}</div>
+                    <div className="text-xs font-medium truncate text-slate-700 dark:text-slate-300">{u.name}</div>
                     <div className="text-[10px] text-slate-600 truncate">{u.role_name}</div>
                   </div>
                   <ChevronRight className="w-3 h-3 text-slate-700 opacity-0 group-hover:opacity-100" />
@@ -642,7 +642,7 @@ export default function InternalChatUI() {
                         <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-full border border-white/5">{a.target_label}</span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed px-3 pb-3">{a.message}</p>
+                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed px-3 pb-3">{a.message}</p>
                   </div>
                 ))}
               </div>
@@ -651,10 +651,10 @@ export default function InternalChatUI() {
         </div>
 
         {/* User footer */}
-        <div className="px-3 py-2.5 border-t border-white/[0.05] bg-[#0f1117]/60 flex items-center gap-2.5">
+        <div className="px-3 py-2.5 border-t border-slate-200 dark:border-white/[0.05] bg-slate-50 dark:bg-[#0f1117]/60 flex items-center gap-2.5">
           <Avatar name={user?.name} size={8} online />
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold text-slate-200 truncate">{user?.name}</div>
+            <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{user?.name}</div>
             <div className="flex items-center gap-1 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.7)]" />
               <span className="text-[10px] text-slate-600">Active now</span>
@@ -665,10 +665,10 @@ export default function InternalChatUI() {
 
       {/* ── Chat Area ──────────────────────────────────────────────────────── */}
       {activeConversationId && activeConv ? (
-        <div className="flex-1 flex flex-col min-w-0 bg-[#0f1117]">
+        <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-[#0f1117]">
 
           {/* Header */}
-          <div className="h-14 border-b border-white/[0.05] flex items-center justify-between px-5 bg-[#13151f]/80 backdrop-blur-sm flex-shrink-0">
+          <div className="h-14 border-b border-slate-200 dark:border-white/[0.05] flex items-center justify-between px-5 bg-white dark:bg-[#13151f]/80 backdrop-blur-sm flex-shrink-0">
             <div className="flex items-center gap-3">
               {activeConv.type === 'direct' ? (
                 <Avatar
@@ -682,7 +682,7 @@ export default function InternalChatUI() {
                 </div>
               )}
               <div>
-                <h3 className="text-sm font-bold text-white">{convDisplayName(activeConv)}</h3>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">{convDisplayName(activeConv)}</h3>
                 {activeConv.type === 'direct' && (
                   <p className="text-[10px] text-slate-600">
                     {activeConv.peer_id && onlineUserIds.has(activeConv.peer_id) ? (
@@ -699,7 +699,7 @@ export default function InternalChatUI() {
             </div>
             <div className="flex items-center gap-1">
               {[Users, Pin, Search].map((Icon, i) => (
-                <button key={i} className="p-2 rounded-xl text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-colors">
+                <button key={i} className="p-2 rounded-xl text-slate-600 hover:text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-white/5 transition-colors">
                   <Icon className="w-4 h-4" />
                 </button>
               ))}
@@ -750,7 +750,7 @@ export default function InternalChatUI() {
                 <Edit2 className="w-3 h-3" />
                 Editing message
               </span>
-              <button onClick={handleCancelEdit} className="text-slate-600 hover:text-slate-300 transition-colors">
+              <button onClick={handleCancelEdit} className="text-slate-600 hover:text-slate-700 dark:text-slate-300 transition-colors">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -759,15 +759,15 @@ export default function InternalChatUI() {
           {/* Input */}
           <div className="px-4 pb-4 pt-1 flex-shrink-0">
             <form onSubmit={handleSend}>
-              <div className={`flex items-center gap-2 bg-[#1a1d28] border rounded-2xl px-4 py-2.5 transition-all duration-200 ${
-                editingMsg ? 'border-indigo-500/40' : 'border-white/[0.07] focus-within:border-indigo-500/30'
+              <div className={`flex items-center gap-2 bg-white dark:bg-[#1a1d28] border rounded-2xl px-4 py-2.5 transition-all duration-200 ${
+                editingMsg ? 'border-indigo-500/40' : 'border-slate-200 dark:border-white/[0.07] focus-within:border-indigo-500/30'
               }`}>
                 <input
                   ref={inputRef}
                   value={inputMsg}
                   onChange={handleInputChange}
                   placeholder={editingMsg ? 'Edit your message…' : `Message ${convDisplayName(activeConv)}…`}
-                  className="flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-700 focus:outline-none"
+                  className="flex-1 bg-transparent text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-700 focus:outline-none"
                 />
                 <button
                   type="submit"
@@ -775,7 +775,7 @@ export default function InternalChatUI() {
                   className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 ${
                     inputMsg.trim()
                       ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-105'
-                      : 'bg-white/5 text-slate-700 cursor-not-allowed'
+                      : 'bg-slate-100 dark:bg-white/5 text-slate-700 cursor-not-allowed'
                   }`}
                 >
                   {editingMsg ? <Check className="w-3.5 h-3.5" /> : <Send className="w-3.5 h-3.5" />}
@@ -785,14 +785,14 @@ export default function InternalChatUI() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center bg-[#0f1117]">
+        <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 dark:bg-[#0f1117]">
           <div className="relative mb-6">
             <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500/15 to-violet-500/15 border border-indigo-500/20 flex items-center justify-center">
               <MessageSquare className="w-9 h-9 text-indigo-400 opacity-50" />
             </div>
             <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-400 rounded-full border-2 border-[#0f1117] shadow-lg shadow-emerald-400/40" />
           </div>
-          <h3 className="text-lg font-bold text-slate-300">Welcome to HubNest Chat</h3>
+          <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">Welcome to HubNest Chat</h3>
           <p className="mt-2 text-sm text-slate-600 max-w-xs text-center">
             Select a conversation from the sidebar to start messaging your team.
           </p>
@@ -802,16 +802,16 @@ export default function InternalChatUI() {
       {/* ── Broadcast Modal ─────────────────────────────────────────────── */}
       {showBroadcast && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-[#13151f] border border-white/[0.08] rounded-3xl p-6 w-full max-w-md shadow-2xl shadow-black/60">
+          <div className="bg-white dark:bg-[#13151f] border border-slate-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-md shadow-2xl shadow-slate-200/50 dark:shadow-black/60">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center">
                 <Megaphone className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <h3 className="font-bold text-white">Send Announcement</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white">Send Announcement</h3>
                 <p className="text-xs text-slate-600">Broadcast to all organization members</p>
               </div>
-              <button onClick={() => setShowBroadcast(false)} className="ml-auto text-slate-600 hover:text-slate-300 transition-colors">
+              <button onClick={() => setShowBroadcast(false)} className="ml-auto text-slate-600 hover:text-slate-700 dark:text-slate-300 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -824,19 +824,19 @@ export default function InternalChatUI() {
               onChange={e => setBroadcastMsg(e.target.value)}
               placeholder="Write your announcement…"
               rows={4}
-              className="w-full bg-[#0f1117] border border-white/[0.07] rounded-2xl px-4 py-3 text-sm text-slate-200 placeholder:text-slate-700 focus:outline-none focus:border-amber-500/40 resize-none mb-4 transition-colors"
+              className="w-full bg-slate-50 dark:bg-[#0f1117] border border-slate-200 dark:border-white/[0.07] rounded-2xl px-4 py-3 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-700 focus:outline-none focus:border-amber-500/40 resize-none mb-4 transition-colors"
             />
             <div className="flex gap-2.5 justify-end">
               <button
                 onClick={() => setShowBroadcast(false)}
-                className="px-4 py-2 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+                className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-300 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleBroadcast}
                 disabled={!broadcastMsg.trim()}
-                className="px-5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-900 dark:text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Broadcast Now
               </button>
@@ -848,16 +848,16 @@ export default function InternalChatUI() {
       {/* ── New Group Modal ──────────────────────────────────────────────── */}
       {showNewGroup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-[#13151f] border border-white/[0.08] rounded-3xl p-6 w-full max-w-md shadow-2xl shadow-black/60 max-h-[80vh] flex flex-col">
+          <div className="bg-white dark:bg-[#13151f] border border-slate-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-md shadow-2xl shadow-slate-200/50 dark:shadow-black/60 max-h-[80vh] flex flex-col">
             <div className="flex items-center gap-3 mb-5 flex-shrink-0">
               <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-center">
                 <Hash className="w-5 h-5 text-indigo-400" />
               </div>
               <div>
-                <h3 className="font-bold text-white">Create Channel</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white">Create Channel</h3>
                 <p className="text-xs text-slate-600">Add a group for your team</p>
               </div>
-              <button onClick={() => setShowNewGroup(false)} className="ml-auto text-slate-600 hover:text-slate-300 transition-colors">
+              <button onClick={() => setShowNewGroup(false)} className="ml-auto text-slate-600 hover:text-slate-700 dark:text-slate-300 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -865,7 +865,7 @@ export default function InternalChatUI() {
               value={newGroupName}
               onChange={e => setNewGroupName(e.target.value)}
               placeholder="Channel name…"
-              className="w-full flex-shrink-0 bg-[#0f1117] border border-white/[0.07] rounded-2xl px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-700 focus:outline-none focus:border-indigo-500/40 mb-4 transition-colors"
+              className="w-full flex-shrink-0 bg-slate-50 dark:bg-[#0f1117] border border-slate-200 dark:border-white/[0.07] rounded-2xl px-4 py-2.5 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-700 focus:outline-none focus:border-indigo-500/40 mb-4 transition-colors"
             />
             <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest mb-2 flex-shrink-0">Add Members</p>
             <div className="overflow-y-auto flex-1 space-y-0.5 pr-0.5 scrollbar-thin scrollbar-thumb-white/5">
@@ -873,7 +873,7 @@ export default function InternalChatUI() {
                 <label
                   key={u.id}
                   className={`flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-colors ${
-                    selectedMembers.includes(u.id) ? 'bg-indigo-500/10 border border-indigo-500/20' : 'hover:bg-white/[0.04] border border-transparent'
+                    selectedMembers.includes(u.id) ? 'bg-indigo-500/10 border border-indigo-500/20' : 'hover:bg-slate-100 dark:bg-white/[0.04] border border-transparent'
                   }`}
                 >
                   <input
@@ -884,21 +884,21 @@ export default function InternalChatUI() {
                   />
                   <Avatar name={u.name} photo={u.photo_url} size={8} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-300 truncate">{u.name}</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 truncate">{u.name}</p>
                     <p className="text-[10px] text-slate-600 truncate">{u.role_name}</p>
                   </div>
                   {selectedMembers.includes(u.id) && <Check className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />}
                 </label>
               ))}
             </div>
-            <div className="flex gap-2.5 justify-between items-center mt-5 flex-shrink-0 pt-4 border-t border-white/[0.05]">
+            <div className="flex gap-2.5 justify-between items-center mt-5 flex-shrink-0 pt-4 border-t border-slate-200 dark:border-white/[0.05]">
               <p className="text-xs text-slate-600">{selectedMembers.length} member{selectedMembers.length !== 1 ? 's' : ''} selected</p>
               <div className="flex gap-2">
-                <button onClick={() => setShowNewGroup(false)} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-300 transition-colors">Cancel</button>
+                <button onClick={() => setShowNewGroup(false)} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-300 transition-colors">Cancel</button>
                 <button
                   onClick={handleCreateGroup}
                   disabled={!newGroupName.trim()}
-                  className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-indigo-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-slate-900 dark:text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-indigo-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Create Channel
                 </button>

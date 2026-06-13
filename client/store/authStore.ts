@@ -31,10 +31,17 @@ export const useAuthStore = create<AuthState>()(
 
       setTokens: (accessToken, refreshToken) => {
         set({ accessToken, refreshToken });
-        // Mirror in localStorage so Axios interceptor can read them
         if (typeof window !== 'undefined') {
           localStorage.setItem('accessToken', accessToken);
           localStorage.setItem('refreshToken', refreshToken);
+          // Keep middleware cookie in sync — parse JWT expiry for accurate max-age
+          try {
+            const exp = JSON.parse(atob(accessToken.split('.')[1])).exp as number;
+            const maxAge = Math.max(0, exp - Math.floor(Date.now() / 1000));
+            document.cookie = `accessToken=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
+          } catch {
+            document.cookie = `accessToken=${accessToken}; path=/; max-age=900; SameSite=Lax`;
+          }
         }
       },
 
@@ -45,6 +52,13 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window !== 'undefined') {
           localStorage.setItem('accessToken', accessToken);
           localStorage.setItem('refreshToken', refreshToken);
+          try {
+            const exp = JSON.parse(atob(accessToken.split('.')[1])).exp as number;
+            const maxAge = Math.max(0, exp - Math.floor(Date.now() / 1000));
+            document.cookie = `accessToken=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
+          } catch {
+            document.cookie = `accessToken=${accessToken}; path=/; max-age=900; SameSite=Lax`;
+          }
         }
       },
 

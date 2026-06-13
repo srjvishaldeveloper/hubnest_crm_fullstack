@@ -10,7 +10,7 @@ import {
   Activity, Layers, Plug, Lock, ScrollText, Settings,
   TrendingUp, Brain, UserCheck, Briefcase, BookOpen,
   CreditCard, Shield, DollarSign, FileText, Receipt,
-  Wallet, Building2, MessageSquare
+  Wallet, Building2, MessageSquare, Grid3X3
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -142,6 +142,7 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
             items: [
               { label: 'CRM Control', href: '/admin/crm-control', icon: SlidersHorizontal },
               { label: 'Roles & Permissions', href: '/admin/roles', icon: ShieldCheck },
+              { label: 'Permission Matrix', href: '/admin/permissions', icon: Grid3X3 },
               { label: 'Teams', href: '/admin/teams', icon: UserCheck },
               { label: 'User Activity', href: '/admin/user-activity', icon: Activity },
               { label: 'Bulk Operations', href: '/admin/bulk-operations', icon: Layers },

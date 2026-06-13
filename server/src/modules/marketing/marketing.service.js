@@ -157,6 +157,14 @@ async function createWorkflow(tenantId, userId, { name, description, trigger_con
   return result.rows[0];
 }
 
+async function getWorkflow(tenantId, id) {
+  const result = await query(
+    `SELECT * FROM marketing_workflows WHERE id = $1 AND tenant_id = $2`,
+    [id, tenantId]
+  );
+  return result.rows[0] || null;
+}
+
 async function updateWorkflow(tenantId, id, data) {
   const fields = ['name', 'description', 'trigger_config', 'nodes', 'edges', 'status'];
   const updates = [];
@@ -272,6 +280,28 @@ async function createForm(tenantId, { name, description, type, fields, settings 
   );
   const row = result.rows[0];
   // Surface type at the top level for frontend compatibility
+  if (row && row.settings?.type) row.type = row.settings.type;
+  return row;
+}
+
+async function updateForm(tenantId, id, { name, description, type, fields, settings }) {
+  const mergedSettings = { ...(settings || {}), type: type || settings?.type || 'Lead Capture' };
+  const result = await query(
+    `UPDATE marketing_forms
+     SET name = COALESCE($3, name),
+         description = COALESCE($4, description),
+         fields = COALESCE($5, fields),
+         settings = COALESCE($6, settings),
+         updated_at = NOW()
+     WHERE id = $1 AND tenant_id = $2
+     RETURNING *`,
+    [id, tenantId,
+     name || null,
+     description !== undefined ? description : null,
+     fields !== undefined ? JSON.stringify(fields) : null,
+     JSON.stringify(mergedSettings)]
+  );
+  const row = result.rows[0] || null;
   if (row && row.settings?.type) row.type = row.settings.type;
   return row;
 }
@@ -589,6 +619,109 @@ async function importContactsToList(tenantId, listId, contacts) {
   return { imported, skipped };
 }
 
+// ─── Integration Settings ─────────────────────────────────────────────────────
+
+async function getIntegrationSettings(tenantId) {
+  const result = await query(
+    `SELECT provider, credentials, enabled, connected_at, updated_at
+     FROM tenant_integrations WHERE tenant_id = $1 ORDER BY provider`,
+    [tenantId]
+  );
+  // Mask secrets before returning
+  return result.rows.map(row => ({
+    ...row,
+    credentials: maskCredentials(row.credentials),
+  }));
+}
+
+function maskCredentials(creds) {
+  if (!creds || typeof creds !== 'object') return creds;
+  const masked = { ...creds };
+  const secretKeys = ['app_secret', 'access_token', 'auth_token', 'api_secret', 'secret_key', 'client_secret', 'webhook_secret', 'service_account_key', 'consumer_secret', 'key_secret', 'bot_token'];
+  secretKeys.forEach(k => {
+    if (masked[k]) masked[k] = '••••••••••••';
+  });
+  return masked;
+}
+
+async function upsertIntegrationSettings(tenantId, provider, credentials, enabled) {
+  // Fetch existing to merge (preserve masked secrets)
+  const existing = await query(
+    `SELECT credentials FROM tenant_integrations WHERE tenant_id = $1 AND provider = $2`,
+    [tenantId, provider]
+  );
+  let mergedCreds = credentials;
+  if (existing.rows[0]) {
+    const prev = existing.rows[0].credentials || {};
+    // Merge: only overwrite fields that are not placeholder '••••••••••••'
+    mergedCreds = { ...prev };
+    Object.entries(credentials).forEach(([k, v]) => {
+      if (v && v !== '••••••••••••') mergedCreds[k] = v;
+    });
+  }
+
+  const result = await query(
+    `INSERT INTO tenant_integrations (tenant_id, provider, credentials, enabled, connected_at)
+     VALUES ($1, $2, $3, $4, NOW())
+     ON CONFLICT (tenant_id, provider) DO UPDATE SET
+       credentials = EXCLUDED.credentials,
+       enabled = EXCLUDED.enabled,
+       updated_at = NOW()
+     RETURNING provider, enabled, connected_at, updated_at`,
+    [tenantId, provider, JSON.stringify(mergedCreds), enabled]
+  );
+  return result.rows[0];
+}
+
+async function deleteIntegrationSettings(tenantId, provider) {
+  await query(
+    `DELETE FROM tenant_integrations WHERE tenant_id = $1 AND provider = $2`,
+    [tenantId, provider]
+  );
+}
+
+async function testIntegration(tenantId, provider) {
+  const result = await query(
+    `SELECT credentials FROM tenant_integrations WHERE tenant_id = $1 AND provider = $2 AND enabled = true`,
+    [tenantId, provider]
+  );
+  if (!result.rows[0]) return { success: false, message: 'Integration not configured or disabled' };
+  const creds = result.rows[0].credentials;
+
+  if (provider === 'whatsapp') {
+    if (!creds.access_token || !creds.phone_number_id) {
+      return { success: false, message: 'Missing access_token or phone_number_id' };
+    }
+    // Real ping to Meta Graph API
+    try {
+      const axios = require('axios');
+      const resp = await axios.get(
+        `https://graph.facebook.com/v20.0/${creds.phone_number_id}`,
+        { headers: { Authorization: `Bearer ${creds.access_token}` }, timeout: 8000 }
+      );
+      return { success: true, message: 'WhatsApp Business account verified', detail: resp.data?.display_phone_number || '' };
+    } catch (e) {
+      return { success: false, message: e.response?.data?.error?.message || 'API call failed' };
+    }
+  }
+
+  if (provider === 'meta-ads') {
+    if (!creds.access_token) return { success: false, message: 'Missing access_token' };
+    try {
+      const axios = require('axios');
+      const resp = await axios.get(
+        `https://graph.facebook.com/v20.0/me`,
+        { params: { access_token: creds.access_token }, timeout: 8000 }
+      );
+      return { success: true, message: `Connected as: ${resp.data?.name || resp.data?.id}` };
+    } catch (e) {
+      return { success: false, message: e.response?.data?.error?.message || 'API call failed' };
+    }
+  }
+
+  return { success: true, message: 'Credentials saved (live test not available for this provider)' };
+}
+
 module.exports = {
   // Campaigns
   listCampaigns, getCampaignById, createCampaign, updateCampaign, deleteCampaign,
@@ -602,10 +735,10 @@ module.exports = {
   listSegments, createSegment, deleteSegment,
   
   // Workflows
-  listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, triggerWorkflowRun, getWorkflowRuns,
+  listWorkflows, createWorkflow, getWorkflow, updateWorkflow, deleteWorkflow, triggerWorkflowRun, getWorkflowRuns,
   
   // Forms
-  listForms, getFormById, getFormByIdPublic, createForm, deleteForm, submitForm, submitFormPublic, getFormSubmissions,
+  listForms, getFormById, getFormByIdPublic, createForm, updateForm, deleteForm, submitForm, submitFormPublic, getFormSubmissions,
   
   // Landing Pages
   listLandingPages, createLandingPage, updateLandingPage, deleteLandingPage,
@@ -621,6 +754,9 @@ module.exports = {
   
   // Webhooks
   listWebhooks, createWebhook, deleteWebhook,
+
+  // Integration Settings
+  getIntegrationSettings, upsertIntegrationSettings, deleteIntegrationSettings, testIntegration,
 
   // Campaign Builder
   getCampaignContacts, queueCampaignLogs, getCampaignStats, importContactsToList,

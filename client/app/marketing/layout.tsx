@@ -6,10 +6,30 @@ import MarketingHeader from '../../components/marketing/MarketingHeader';
 import { MarketingErrorBoundary } from '../../components/marketing/MarketingErrorBoundary';
 import SessionTimer from '../../components/SessionTimer';
 import AIChatbot from '../../components/AIChatbot';
+import { useAuthStore } from '../../store/authStore';
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const accessToken = useAuthStore((s) => s.accessToken);
+
+  // Re-sync the accessToken cookie from Zustand state on every mount.
+  // The middleware reads the cookie; if it expired (15-min max-age) but the
+  // JWT itself is still valid, the middleware would redirect to /auth/login.
+  // This effect restores the cookie from the persisted token so navigation
+  // within the marketing module never triggers a false redirect.
+  useEffect(() => {
+    if (!accessToken) return;
+    try {
+      const exp = JSON.parse(atob(accessToken.split('.')[1])).exp as number;
+      const maxAge = Math.max(0, exp - Math.floor(Date.now() / 1000));
+      if (maxAge > 0) {
+        document.cookie = `accessToken=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
+      }
+    } catch {
+      // malformed token — let SessionTimer handle expiry
+    }
+  }, [accessToken]);
 
   useEffect(() => {
     const handleResize = () => {

@@ -150,10 +150,21 @@ async function createWorkflow(req, res) {
   sendSuccess(res, { workflow }, 'Workflow created', 201);
 }
 
+async function getWorkflow(req, res) {
+  const workflow = await svc.getWorkflow(req.user.tenant_id, req.params.id);
+  if (!workflow) return sendError(res, 'Workflow not found', 404);
+  sendSuccess(res, { workflow });
+}
+
 async function updateWorkflow(req, res) {
   const workflow = await svc.updateWorkflow(req.user.tenant_id, req.params.id, req.body);
   if (!workflow) return sendError(res, 'Workflow not found', 404);
   sendSuccess(res, { workflow }, 'Workflow updated');
+}
+
+async function executeWorkflow(req, res) {
+  const run = await svc.triggerWorkflowRun(req.user.tenant_id, req.params.id);
+  sendSuccess(res, { run }, 'Workflow execution started');
 }
 
 async function deleteWorkflow(req, res) {
@@ -176,6 +187,18 @@ async function listForms(req, res) {
 async function createForm(req, res) {
   const form = await svc.createForm(req.user.tenant_id, req.body);
   sendSuccess(res, { form }, 'Form created', 201);
+}
+
+async function updateForm(req, res) {
+  const form = await svc.updateForm(req.user.tenant_id, req.params.id, req.body);
+  if (!form) return sendError(res, 'Form not found', 404);
+  sendSuccess(res, { form }, 'Form updated');
+}
+
+async function deleteFormCtrl(req, res) {
+  const deleted = await svc.deleteForm(req.user.tenant_id, req.params.id);
+  if (!deleted) return sendError(res, 'Form not found', 404);
+  sendSuccess(res, {}, 'Form deleted');
 }
 
 async function getFormPublic(req, res) {
@@ -350,6 +373,47 @@ async function importCampaignContacts(req, res) {
   }
 }
 
+// --- Integration Settings (Meta / WhatsApp / etc.) ---
+async function getIntegrationSettings(req, res) {
+  try {
+    const settings = await svc.getIntegrationSettings(req.user.tenant_id);
+    sendSuccess(res, { settings });
+  } catch (err) {
+    sendError(res, err.message, 500);
+  }
+}
+
+async function upsertIntegrationSettings(req, res) {
+  const { provider, credentials, enabled } = req.body;
+  if (!provider) return sendError(res, 'provider is required', 400);
+  try {
+    const settings = await svc.upsertIntegrationSettings(req.user.tenant_id, provider, credentials || {}, enabled !== false);
+    sendSuccess(res, { settings }, 'Integration saved');
+  } catch (err) {
+    sendError(res, err.message, 500);
+  }
+}
+
+async function deleteIntegrationSettings(req, res) {
+  const { provider } = req.params;
+  try {
+    await svc.deleteIntegrationSettings(req.user.tenant_id, provider);
+    sendSuccess(res, {}, 'Integration disconnected');
+  } catch (err) {
+    sendError(res, err.message, 500);
+  }
+}
+
+async function testIntegration(req, res) {
+  const { provider } = req.params;
+  try {
+    const result = await svc.testIntegration(req.user.tenant_id, provider);
+    sendSuccess(res, result, result.success ? 'Connection successful' : 'Connection failed');
+  } catch (err) {
+    sendError(res, err.message, 500);
+  }
+}
+
 // --- AI Studio proxies ---
 async function aiProxyHandler(req, res) {
   const { serviceName, endpoint } = req.params;
@@ -385,6 +449,7 @@ async function aiProxyHandler(req, res) {
 module.exports = {
   createCampaign, listCampaigns, getCampaign, updateCampaign, deleteCampaign,
   listLeads, updateLead, bulkAssignLeads,
+  getIntegrationSettings, upsertIntegrationSettings, deleteIntegrationSettings, testIntegration,
   getDashboardAnalytics, getROIData,
   
   // Lists
@@ -394,10 +459,10 @@ module.exports = {
   listSegments, createSegment, deleteSegment,
   
   // Workflows
-  listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, getWorkflowRuns,
+  listWorkflows, createWorkflow, getWorkflow, updateWorkflow, deleteWorkflow, getWorkflowRuns, executeWorkflow,
   
   // Forms
-  listForms, createForm, getFormPublic, submitFormPublic, submitForm, getFormSubmissions,
+  listForms, createForm, updateForm, deleteFormCtrl, getFormPublic, submitFormPublic, submitForm, getFormSubmissions,
   
   // Landing Pages
   listLandingPages, createLandingPage, updateLandingPage, deleteLandingPage,

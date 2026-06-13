@@ -73,6 +73,59 @@ router.get('/crm-control', async (req, res) => {
   return sendSuccess(res, { crmStats: { activeTenants: 1 } }, 'CRM control stats retrieved');
 });
 
+// ─── PERMISSION MATRIX ──────────────────────────────────────────────────────────
+router.get('/permissions', async (req, res) => {
+  try {
+    const rolesRes = await query('SELECT name, permissions FROM roles');
+    const roles = rolesRes.rows.map(r => r.name);
+    const resources = ['invoices', 'payments', 'expenses', 'vendors', 'payroll', 'tax_records', 'campaigns', 'leads', 'tasks', 'activities', 'tickets', 'knowledge_base', 'users', 'roles', 'tenants', 'settings', 'reports'];
+    const matrix = {};
+    resources.forEach(resName => {
+      matrix[resName] = {};
+      rolesRes.rows.forEach(r => {
+        const p = r.permissions?.[resName] || {};
+        matrix[resName][r.name] = {
+          read: !!p.read,
+          create: !!p.create,
+          update: !!p.update,
+          delete: !!p.delete
+        };
+      });
+    });
+    return sendSuccess(res, { resources, roles, matrix });
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+});
+
+router.put('/permissions', async (req, res) => {
+  try {
+    const { matrix } = req.body;
+    if (!matrix) return sendError(res, 'Matrix data required');
+    const rolesRes = await query('SELECT id, name, permissions FROM roles');
+    for (const r of rolesRes.rows) {
+      // Prevent Admins from modifying Super Admin permissions if desired (optional)
+      if (r.name === 'Super Admin') continue;
+      
+      let perms = r.permissions || {};
+      Object.keys(matrix).forEach(resName => {
+        const roleData = matrix[resName][r.name];
+        if (roleData) {
+          if (!perms[resName]) perms[resName] = {};
+          perms[resName].read = roleData.read;
+          perms[resName].create = roleData.create;
+          perms[resName].update = roleData.update;
+          perms[resName].delete = roleData.delete;
+        }
+      });
+      await query('UPDATE roles SET permissions = $1 WHERE id = $2', [perms, r.id]);
+    }
+    return sendSuccess(res, null, 'Matrix updated successfully');
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+});
+
 // ─── BILLING (Admin scoped to own tenant) ────────────────────────────────────
 
 router.get('/billing/invoices', async (req, res) => {

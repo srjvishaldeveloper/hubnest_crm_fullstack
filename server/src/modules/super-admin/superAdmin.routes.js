@@ -585,17 +585,20 @@ router.delete('/roles/:id', async (req, res) => {
 // ─── PERMISSION MATRIX ──────────────────────────────────────────────────────────
 router.get('/permissions', async (req, res) => {
   try {
-    const rolesRes = await query('SELECT name FROM roles');
+    const rolesRes = await query('SELECT name, permissions FROM roles');
     const roles = rolesRes.rows.map(r => r.name);
-    const resources = ['invoices', 'payments', 'expenses', 'vendors', 'payroll', 'tax_records', 'campaigns', 'leads', 'tasks', 'activities', 'tickets', 'knowledge_base'];
+    // Combine standard modules + existing DB modules
+    const resources = ['invoices', 'payments', 'expenses', 'vendors', 'payroll', 'tax_records', 'campaigns', 'leads', 'tasks', 'activities', 'tickets', 'knowledge_base', 'users', 'roles', 'tenants', 'settings', 'reports'];
     const matrix = {};
     resources.forEach(resName => {
       matrix[resName] = {};
-      roles.forEach(role => {
-        matrix[resName][role] = {
-          read: true,
-          write: role.includes('Admin') || role.includes('Manager') || role === 'Super Admin',
-          delete: role === 'Super Admin' || role === 'Admin'
+      rolesRes.rows.forEach(r => {
+        const p = r.permissions?.[resName] || {};
+        matrix[resName][r.name] = {
+          read: !!p.read,
+          create: !!p.create,
+          update: !!p.update,
+          delete: !!p.delete
         };
       });
     });
@@ -605,7 +608,30 @@ router.get('/permissions', async (req, res) => {
   }
 });
 
-router.put('/permissions', (req, res) => sendSuccess(res, null, 'Matrix updated successfully'));
+router.put('/permissions', async (req, res) => {
+  try {
+    const { matrix } = req.body;
+    if (!matrix) return sendError(res, 'Matrix data required');
+    const rolesRes = await query('SELECT id, name, permissions FROM roles');
+    for (const r of rolesRes.rows) {
+      let perms = r.permissions || {};
+      Object.keys(matrix).forEach(resName => {
+        const roleData = matrix[resName][r.name];
+        if (roleData) {
+          if (!perms[resName]) perms[resName] = {};
+          perms[resName].read = roleData.read;
+          perms[resName].create = roleData.create;
+          perms[resName].update = roleData.update;
+          perms[resName].delete = roleData.delete;
+        }
+      });
+      await query('UPDATE roles SET permissions = $1 WHERE id = $2', [perms, r.id]);
+    }
+    return sendSuccess(res, null, 'Matrix updated successfully');
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+});
 
 // ─── BILLING REVENUE & SUMMARY ──────────────────────────────────────────────────
 router.get('/billing/revenue', async (req, res) => {
