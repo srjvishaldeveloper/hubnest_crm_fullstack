@@ -111,20 +111,21 @@ export default function CampaignsPage() {
   const [selected, setSelected] = useState<number[]>([]);
   const [processing, setProcessing] = useState<number | 'bulk' | null>(null);
 
-  useEffect(() => {
-    async function fetchCampaigns() {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await api.get('/marketing/campaigns');
-        const data = res.data?.data?.campaigns || res.data?.campaigns || res.data?.data || res.data || [];
-        setCampaigns(Array.isArray(data) ? data : []);
-      } catch (err: any) {
-        setError('Failed to load campaigns');
-      } finally {
-        setLoading(false);
-      }
+  const fetchCampaigns = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await api.get('/marketing/campaigns');
+      const data = res.data?.data?.campaigns || res.data?.campaigns || res.data?.data || res.data || [];
+      setCampaigns(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      setError('Failed to load campaigns');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchCampaigns();
   }, []);
 
@@ -492,7 +493,7 @@ export default function CampaignsPage() {
               </div>
               <div className="space-y-1.5 flex-1">
                 {leadSourceData.map(s => (
-                  <div key={s.name} className="flex items-center justify-between text-xs">
+                  <div key={s.name + s.value} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
                       <span className="text-slate-600">{s.name}</span>

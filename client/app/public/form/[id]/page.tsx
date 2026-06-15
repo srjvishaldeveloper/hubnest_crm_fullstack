@@ -23,7 +23,11 @@ interface PublicForm {
   settings?: {
     submit_label?: string;
     success_message?: string;
+    successMessage?: string;
     accent_color?: string;
+    submitText?: string;
+    redirectUrl?: string;
+    status?: string;
   };
 }
 
@@ -49,7 +53,7 @@ export default function PublicFormPage() {
           : typeof f.fields === 'string'
           ? JSON.parse(f.fields)
           : []).map((field: any, idx: number) => {
-            const label = field.label || field.name || 'Untitled Field';
+            const label = field.label || field.placeholder || field.name || 'Untitled Field';
             const name = field.name || (label.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + idx);
             return { ...field, name, label };
           });
@@ -287,8 +291,8 @@ export default function PublicFormPage() {
                   {status === 'error' && errorMsg && (
                     <p className="text-xs text-red-500 text-center bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 py-2 rounded-lg">{errorMsg}</p>
                   )}
-                  {status === 'success' && (
-                    <p className="text-xs text-green-600 dark:text-green-400 text-center bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/30 py-2 rounded-lg">{form.settings?.successMessage || 'Form submitted successfully!'}</p>
+                  {(status as string) === 'success' && (
+                    <p className="text-xs text-green-600 dark:text-green-400 text-center bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/30 py-2 rounded-lg">{form.settings?.successMessage || form.settings?.success_message || 'Form submitted successfully!'}</p>
                   )}
                 </div>
               )}

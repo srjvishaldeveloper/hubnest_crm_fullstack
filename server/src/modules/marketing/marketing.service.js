@@ -1,4 +1,5 @@
 const { query } = require('../../config/database');
+const { sendFormConfirmationEmail } = require('../../services/emailService');
 
 // --- Campaigns Extension ---
 async function listCampaigns(tenantId, { status, platform } = {}) {
@@ -251,7 +252,7 @@ async function getFormByIdPublic(id) {
 }
 
 async function submitFormPublic(formId, submissionData, ipAddress, userAgent) {
-  // Look up tenant_id from the form itself
+  // Look up tenant_id + fields from the form itself
   const form = await getFormByIdPublic(formId);
   if (!form) return null;
   const result = await query(
@@ -267,6 +268,29 @@ async function submitFormPublic(formId, submissionData, ipAddress, userAgent) {
        VALUES ($1, $2, $3, $4, 'Form Submission', 'New') ON CONFLICT DO NOTHING`,
       [form.tenant_id, name, email || null, phone || null]
     );
+  }
+  // Send confirmation email to the submitter (fire-and-forget)
+  if (email) {
+    const formFields = (() => {
+      try {
+        const raw = form.fields;
+        return Array.isArray(raw) ? raw : (typeof raw === 'string' ? JSON.parse(raw) : []);
+      } catch { return []; }
+    })();
+    // Build label→value pairs for the email summary
+    const emailFields = Object.entries(submissionData).map(([key, value]) => {
+      const fieldDef = formFields.find(f => f.name === key || f.id === key);
+      const label = fieldDef?.label || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      return { label, value: String(value ?? '') };
+    });
+    const accent = form.settings?.accent_color || '#F97316';
+    sendFormConfirmationEmail({
+      to: email,
+      formName: form.name,
+      submitterName: name || '',
+      fields: emailFields,
+      accentColor: accent,
+    }).catch(() => {}); // never block on email
   }
   return result.rows[0];
 }
@@ -340,11 +364,15 @@ async function listLandingPages(tenantId) {
   return result.rows;
 }
 
-async function createLandingPage(tenantId, { title, slug, content, seo_settings, custom_domain, status }) {
+async function createLandingPage(tenantId, { title, name, slug, content, settings, seo_settings, seo_title, seo_description, custom_domain, status, campaign_id }) {
+  const resolvedTitle = title || name || 'Untitled Page';
+  const resolvedSlug = slug || resolvedTitle.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const resolvedContent = content || settings || {};
+  const resolvedSeo = seo_settings || (seo_title || seo_description ? { title: seo_title, description: seo_description } : {});
   const result = await query(
     `INSERT INTO marketing_landing_pages (tenant_id, title, slug, content, seo_settings, custom_domain, status)
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-    [tenantId, title, slug, JSON.stringify(content || {}), JSON.stringify(seo_settings || {}), custom_domain || null, status || 'Draft']
+    [tenantId, resolvedTitle, resolvedSlug, JSON.stringify(resolvedContent), JSON.stringify(resolvedSeo), custom_domain || null, status || 'Draft']
   );
   return result.rows[0];
 }
@@ -366,6 +394,14 @@ async function updateLandingPage(tenantId, id, data) {
      WHERE id = $${params.length - 1} AND tenant_id = $${params.length}
      RETURNING *`,
     params
+  );
+  return result.rows[0] || null;
+}
+
+async function getLandingPageById(id) {
+  const result = await query(
+    `SELECT * FROM marketing_landing_pages WHERE id = $1`,
+    [id]
   );
   return result.rows[0] || null;
 }
@@ -741,7 +777,7 @@ module.exports = {
   listForms, getFormById, getFormByIdPublic, createForm, updateForm, deleteForm, submitForm, submitFormPublic, getFormSubmissions,
   
   // Landing Pages
-  listLandingPages, createLandingPage, updateLandingPage, deleteLandingPage,
+  listLandingPages, getLandingPageById, createLandingPage, updateLandingPage, deleteLandingPage,
   
   // Templates
   listTemplates, createTemplate, deleteTemplate,

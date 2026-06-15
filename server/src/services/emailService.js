@@ -249,4 +249,83 @@ async function sendCredentialsEmail(to, adminId, tempPassword, companyName, admi
   }
 }
 
-module.exports = { sendOTPEmail, sendPasswordResetEmail, sendCredentialsEmail };
+// ─── Form Submission Confirmation ────────────────────────────────────────────
+
+function buildFormConfirmationTemplate(formName, submitterName, fields, accent = '#F97316') {
+  const fieldRows = fields.map(({ label, value }) => `
+    <tr>
+      <td style="padding:8px 12px;font-size:13px;color:#64748b;font-weight:600;vertical-align:top;width:40%;border-bottom:1px solid #f1f5f9;">${label}</td>
+      <td style="padding:8px 12px;font-size:13px;color:#0f172a;font-weight:500;vertical-align:top;border-bottom:1px solid #f1f5f9;">${value || '—'}</td>
+    </tr>`).join('');
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Form Submission Confirmed</title>
+</head>
+<body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.10);">
+          <tr>
+            <td style="background:linear-gradient(135deg,${accent} 0%,${accent}cc 100%);padding:32px 48px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:1px;">HubNest CRM</h1>
+              <p style="margin:6px 0 0;color:rgba(255,255,255,.8);font-size:13px;">FORM SUBMISSION CONFIRMED</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:36px 48px;">
+              <div style="text-align:center;margin-bottom:24px;">
+                <div style="display:inline-block;background:#f0fdf4;border-radius:50%;width:56px;height:56px;line-height:56px;font-size:28px;">✅</div>
+              </div>
+              <p style="margin:0 0 6px;color:#111827;font-size:16px;font-weight:700;">Hello${submitterName ? ', ' + submitterName : ''}!</p>
+              <p style="margin:0 0 24px;color:#6b7280;font-size:14px;line-height:1.7;">
+                Thank you for submitting the <strong>${formName}</strong> form. We have received your information and will get back to you shortly.
+              </p>
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin:0 0 24px;">
+                <div style="background:#f1f5f9;padding:10px 14px;border-bottom:1px solid #e2e8f0;">
+                  <p style="margin:0;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Your Submission Summary</p>
+                </div>
+                <table width="100%" cellpadding="0" cellspacing="0">${fieldRows}</table>
+              </div>
+              <div style="background:#fff7ed;border-left:4px solid ${accent};border-radius:4px;padding:14px 18px;margin:0 0 24px;">
+                <p style="margin:0;color:#9a3412;font-size:13px;line-height:1.6;">
+                  Our team will review your submission and reach out to you within <strong>24–48 business hours</strong>.
+                  If you have any urgent queries, please reply to this email.
+                </p>
+              </div>
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;"/>
+              <p style="margin:0;color:#d1d5db;font-size:12px;text-align:center;">
+                &copy; ${new Date().getFullYear()} HubNest CRM &bull; Powered by SRJ Global Tech
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`.trim();
+}
+
+async function sendFormConfirmationEmail({ to, formName, submitterName, fields, accentColor }) {
+  if (!to) return;
+  try {
+    const info = await getTransporter().sendMail({
+      from: `"HubNest CRM" <${env.smtp.user}>`,
+      to,
+      subject: `✅ Your submission to "${formName}" was received`,
+      html: buildFormConfirmationTemplate(formName, submitterName, fields, accentColor),
+    });
+    logger.info(`Form confirmation email sent to ${to}`, { messageId: info.messageId });
+  } catch (err) {
+    logger.warn(`Could not send form confirmation email to ${to}: ${err.message}`);
+    // Don't throw — confirmation email failure must never block the submission
+  }
+}
+
+module.exports = { sendOTPEmail, sendPasswordResetEmail, sendCredentialsEmail, sendFormConfirmationEmail };

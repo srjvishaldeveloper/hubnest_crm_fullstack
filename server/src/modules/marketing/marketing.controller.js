@@ -235,6 +235,12 @@ async function listLandingPages(req, res) {
   sendSuccess(res, { pages });
 }
 
+async function getLandingPagePublic(req, res) {
+  const page = await svc.getLandingPageById(req.params.id);
+  if (!page) return sendError(res, 'Landing page not found', 404);
+  sendSuccess(res, { page });
+}
+
 async function createLandingPage(req, res) {
   const page = await svc.createLandingPage(req.user.tenant_id, req.body);
   sendSuccess(res, { page }, 'Landing page created', 201);
@@ -465,7 +471,7 @@ module.exports = {
   listForms, createForm, updateForm, deleteFormCtrl, getFormPublic, submitFormPublic, submitForm, getFormSubmissions,
   
   // Landing Pages
-  listLandingPages, createLandingPage, updateLandingPage, deleteLandingPage,
+  listLandingPages, getLandingPagePublic, createLandingPage, updateLandingPage, deleteLandingPage,
   
   // Templates
   listTemplates, createTemplate, deleteTemplate,

@@ -77,7 +77,12 @@ export default function MarketingSidebar({ open, collapsed, onClose }: Props) {
   });
 
   const toggleSection = (section: string) => {
-    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+    setExpandedSections((prev) => {
+      const isCurrentlyOpen = prev[section];
+      // Close all, then open the clicked one (unless it was already open)
+      const allClosed = Object.fromEntries(Object.keys(prev).map(k => [k, false]));
+      return { ...allClosed, [section]: !isCurrentlyOpen };
+    });
   };
 
   async function handleLogout() {

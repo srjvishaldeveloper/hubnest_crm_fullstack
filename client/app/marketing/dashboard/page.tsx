@@ -409,8 +409,8 @@ export default function MarketingDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {campaignTableData.map((row) => (
-                    <tr key={row.name} className="hover:bg-slate-50 dark:bg-[#161616]/50 transition">
+                  {campaignTableData.map((row, ri) => (
+                    <tr key={`${row.name}-${ri}`} className="hover:bg-slate-50 dark:bg-[#161616]/50 transition">
                       <td className="py-2.5 pr-3">
                         <div className="flex items-center gap-1.5">
                           <p className="font-semibold text-[#0F172A] dark:text-[#F9FAFB] truncate max-w-[120px]">{row.name}</p>
@@ -455,7 +455,7 @@ export default function MarketingDashboard() {
           </div>
           <div className="space-y-2 mt-1">
             {leadSourceData.map((s) => (
-              <div key={s.name} className="flex items-center justify-between text-xs">
+              <div key={s.name + s.value} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
                   <span className="text-slate-600">{s.name}</span>
@@ -551,8 +551,8 @@ export default function MarketingDashboard() {
             <p className="text-xs text-slate-400 text-center py-6">No campaign data available</p>
           ) : (
             <div className="space-y-3">
-              {topPerformers.map((c) => (
-                <div key={c.name} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#161616] hover:bg-green-50/50 transition">
+              {topPerformers.map((c, ci) => (
+                <div key={`${c.name}-${ci}`} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#161616] hover:bg-green-50/50 transition">
                   <span className="w-6 h-6 rounded-full bg-green-100 text-green-700 font-extrabold text-xs flex items-center justify-center shrink-0">
                     {c.rank}
                   </span>
@@ -581,8 +581,8 @@ export default function MarketingDashboard() {
             <p className="text-xs text-slate-400 text-center py-6">All campaigns performing well! 🎉</p>
           ) : (
             <div className="space-y-3">
-              {lowPerformers.map((c) => (
-                <div key={c.name} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#161616] hover:bg-red-50/50 transition">
+              {lowPerformers.map((c, ci) => (
+                <div key={`${c.name}-low-${ci}`} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#161616] hover:bg-red-50/50 transition">
                   <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
                   <PlatformBadge platform={c.platform} />
                   <div className="flex-1 min-w-0">

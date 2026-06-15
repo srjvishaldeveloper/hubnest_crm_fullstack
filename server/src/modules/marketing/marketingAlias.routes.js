@@ -4,6 +4,9 @@ const ctrl = require('./marketing.controller');
 const { authenticate } = require('../../middleware/auth');
 const { authorize } = require('../../middleware/rbac');
 
+// Public routes (no auth required)
+router.get('/pages/:id/public', ctrl.getLandingPagePublic);
+
 // Middleware chain - authenticate all routes
 router.use(authenticate);
 

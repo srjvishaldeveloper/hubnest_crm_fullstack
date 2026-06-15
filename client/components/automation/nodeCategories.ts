@@ -124,6 +124,8 @@ export const nodeCategories: NodeCategory[] = [
       { type: 'integration', label: 'Airtable',      icon: 'Table',        description: 'Read/write Airtable records' },
       { type: 'integration', label: 'Zapier',        icon: 'Zap',          description: 'Trigger a Zapier zap' },
       { type: 'integration', label: 'HTTP Request',  icon: 'Globe',        description: 'Make any HTTP API call' },
+      { type: 'integration', label: 'Meta / Facebook', icon: 'facebook',   brand: true, description: 'Meta Graph API — Ads, Pages, Leads' },
+      { type: 'integration', label: 'Instagram',    icon: 'instagram',    brand: true, description: 'Instagram Graph API — DMs, posts' },
     ],
   },
   {
