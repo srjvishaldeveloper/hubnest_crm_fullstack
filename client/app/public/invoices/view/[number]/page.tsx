@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
-import { AlertCircle, Download, Printer } from 'lucide-react';
+import { AlertCircle, Download, Printer, CreditCard, Lock, Sparkles, CheckCircle2, X } from 'lucide-react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
@@ -264,6 +264,25 @@ function InvoicePreview({ inv, meta, printRef }: {
 
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 
+// Helper to load external scripts dynamically
+function loadScript(src: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') {
+      resolve(false);
+      return;
+    }
+    if (document.querySelector(`script[src="${src}"]`)) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export default function PublicInvoiceViewPage() {
   const params = useParams<{ number: string }>();
   const [inv, setInv]     = useState<PublicInvoice | null>(null);
@@ -271,6 +290,17 @@ export default function PublicInvoiceViewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const printRef = useRef<HTMLDivElement>(null);
+
+  // Payment UI State
+  const [paymentConfig, setPaymentConfig] = useState<{ gateways: { gateway: string; publishableKey?: string; keyId?: string }[] } | null>(null);
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [selectedGateway, setSelectedGateway] = useState<string>('');
+  const [stripeInstance, setStripeInstance] = useState<any>(null);
+  const [stripeElements, setStripeElements] = useState<any>(null);
+  const [stripeCard, setStripeCard] = useState<any>(null);
+  const [paying, setPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   useEffect(() => {
     if (!params.number) return;
@@ -284,7 +314,171 @@ export default function PublicInvoiceViewPage() {
       })
       .catch(() => setError('Invoice not found or unavailable.'))
       .finally(() => setLoading(false));
+
+    axios.get(`${API_BASE}/finance/invoices/public/${params.number}/payment-config`)
+      .then(r => {
+        setPaymentConfig(r.data.data);
+      })
+      .catch(() => { /* Payment gateway configurations optional */ });
   }, [params.number]);
+
+  // Handle Stripe scripts initialization when Stripe is selected in modal
+  useEffect(() => {
+    if (selectedGateway === 'stripe' && paymentConfig && showPayModal) {
+      const stripeConfig = paymentConfig.gateways.find(g => g.gateway === 'stripe');
+      if (stripeConfig?.publishableKey) {
+        loadScript('https://js.stripe.com/v3/').then(async (loaded) => {
+          if (!loaded) {
+            setPaymentError('Failed to load Stripe SDK');
+            return;
+          }
+          const stripe = (window as any).Stripe(stripeConfig.publishableKey);
+          setStripeInstance(stripe);
+          
+          try {
+            // Get Stripe elements instance
+            const elements = stripe.elements();
+            setStripeElements(elements);
+            
+            setTimeout(() => {
+              const card = elements.create('card', {
+                style: {
+                  base: {
+                    fontSize: '14px',
+                    color: '#32325d',
+                    fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                    '::placeholder': { color: '#aab7c4' },
+                  },
+                  invalid: { color: '#fa755a', iconColor: '#fa755a' },
+                }
+              });
+              card.mount('#stripe-card-element');
+              setStripeCard(card);
+            }, 100);
+          } catch (err: any) {
+            setPaymentError('Failed to initialize Stripe elements UI.');
+          }
+        });
+      }
+    }
+  }, [selectedGateway, paymentConfig, showPayModal]);
+
+  const handleOpenPayModal = () => {
+    setPaymentSuccess(false);
+    setPaymentError('');
+    setPaying(false);
+    
+    if (paymentConfig?.gateways && paymentConfig.gateways.length > 0) {
+      // Automatically pre-select first gateway if only 1 connected
+      if (paymentConfig.gateways.length === 1) {
+        setSelectedGateway(paymentConfig.gateways[0].gateway);
+      } else {
+        setSelectedGateway('');
+      }
+      setShowPayModal(true);
+    } else {
+      alert('No payment gateway is configured by this company yet.');
+    }
+  };
+
+  const handleStripePay = async () => {
+    if (!stripeInstance || !stripeCard || !paymentConfig || !inv) return;
+    setPaying(true);
+    setPaymentError('');
+    try {
+      // 1. Create client-side Stripe Payment Intent
+      const intentRes = await axios.post(`${API_BASE}/finance/invoices/public/${params.number}/create-payment-intent`);
+      const clientSecret = intentRes.data.data.clientSecret;
+
+      // 2. Prompt client Stripe Elements payment checkout
+      const result = await stripeInstance.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: stripeCard,
+          billing_details: { name: inv.customer_name }
+        }
+      });
+
+      if (result.error) {
+        setPaymentError(result.error.message || 'Payment failed');
+        setPaying(false);
+      } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+        // 3. Verify checkout on server
+        await axios.post(`${API_BASE}/finance/invoices/public/${params.number}/payment-verify`, {
+          gateway: 'stripe',
+          gateway_order_id: result.paymentIntent.id
+        });
+        setPaymentSuccess(true);
+        setInv(prev => prev ? { ...prev, status: 'Paid', paid_date: new Date().toISOString() } : null);
+        setTimeout(() => setShowPayModal(false), 2000);
+      }
+    } catch (err: any) {
+      setPaymentError(err.response?.data?.message || 'Payment processing failed');
+      setPaying(false);
+    }
+  };
+
+  const handleRazorpayPay = async () => {
+    setPaying(true);
+    setPaymentError('');
+    try {
+      const loaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+      if (!loaded) {
+        setPaymentError('Failed to load Razorpay checkout script');
+        setPaying(false);
+        return;
+      }
+
+      // 1. Create client-side Razorpay order
+      const orderRes = await axios.post(`${API_BASE}/finance/invoices/public/${params.number}/create-order`);
+      const { orderId, amount, currency, razorpayKeyId } = orderRes.data.data;
+
+      // 2. Initialize Razorpay Checkout
+      const options = {
+        key: razorpayKeyId,
+        amount: amount,
+        currency: currency,
+        name: inv?.tenant_name || 'HubNest Invoice Payment',
+        description: `Invoice ${inv?.invoice_number}`,
+        order_id: orderId,
+        handler: async function (response: any) {
+          setPaying(true);
+          try {
+            // 3. Verify signature on server
+            await axios.post(`${API_BASE}/finance/invoices/public/${params.number}/payment-verify`, {
+              gateway: 'razorpay',
+              gateway_payment_id: response.razorpay_payment_id,
+              gateway_order_id: response.razorpay_order_id,
+              gateway_signature: response.razorpay_signature
+            });
+            setPaymentSuccess(true);
+            setInv(prev => prev ? { ...prev, status: 'Paid', paid_date: new Date().toISOString() } : null);
+            setTimeout(() => setShowPayModal(false), 2000);
+          } catch (err: any) {
+            setPaymentError('Payment signature verification failed.');
+          } finally {
+            setPaying(false);
+          }
+        },
+        prefill: {
+          name: inv?.customer_name
+        },
+        theme: {
+          color: '#2563eb'
+        },
+        modal: {
+          ondismiss: function() {
+            setPaying(false);
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      setPaymentError(err.response?.data?.message || 'Failed to start Razorpay payment');
+      setPaying(false);
+    }
+  };
 
   function handlePrint() {
     const content = printRef.current?.innerHTML;
@@ -327,8 +521,10 @@ export default function PublicInvoiceViewPage() {
     </div>
   );
 
+  const showPayNowButton = inv.status !== 'Paid' && paymentConfig?.gateways && paymentConfig.gateways.length > 0;
+
   return (
-    <div className="min-h-screen bg-slate-100 py-8 px-4">
+    <div className="min-h-screen bg-slate-100 py-8 px-4 relative">
       <div className="max-w-[900px] mx-auto">
         {/* Toolbar */}
         <div className="flex items-center justify-between mb-4">
@@ -345,9 +541,17 @@ export default function PublicInvoiceViewPage() {
             <button onClick={handlePrint} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 shadow-sm transition">
               <Printer className="w-3.5 h-3.5"/>Print
             </button>
-            <button onClick={handleDownload} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 rounded-xl text-xs font-bold text-white hover:bg-blue-700 shadow-sm transition">
+            <button onClick={handleDownload} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 shadow-sm transition">
               <Download className="w-3.5 h-3.5"/>Download PDF
             </button>
+            {showPayNowButton && (
+              <button 
+                onClick={handleOpenPayModal} 
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-xl text-xs font-black text-white shadow-md shadow-emerald-500/20 transition hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                <CreditCard className="w-3.5 h-3.5"/>Pay Now
+              </button>
+            )}
           </div>
         </div>
 
@@ -358,6 +562,115 @@ export default function PublicInvoiceViewPage() {
 
         <p className="text-center text-[10px] text-slate-300 mt-6 font-medium">Powered by HubNest CRM</p>
       </div>
+
+      {/* Pay Now Modal overlay */}
+      {showPayModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 max-w-md w-full shadow-2xl space-y-6 relative">
+            <button 
+              onClick={() => setShowPayModal(false)}
+              className="absolute top-4 right-4 p-1 rounded-full text-slate-400 hover:bg-slate-100 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50 px-2.5 py-1 rounded-md">Invoice Payment</span>
+              <h3 className="text-xl font-bold text-slate-900 mt-2">Pay Invoice {inv.invoice_number}</h3>
+              <p className="text-xs text-slate-500 mt-1">Select a gateway below to complete your payment.</p>
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/50 flex justify-between items-center">
+              <div>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Amount Due</p>
+                <p className="text-2xl font-black text-slate-950 mt-1">{fmtINR(inv.total)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Due Date</p>
+                <p className="text-xs font-bold text-slate-800 mt-1">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</p>
+              </div>
+            </div>
+
+            {paymentError && (
+              <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{paymentError}</span>
+              </div>
+            )}
+
+            {paymentSuccess && (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs font-semibold flex flex-col items-center justify-center text-center gap-2">
+                <CheckCircle2 className="w-10 h-10 text-emerald-500 animate-bounce" />
+                <span className="font-bold text-sm">Payment Successful!</span>
+                <p className="text-[11px] text-emerald-600 mt-0.5">Thank you for your payment. Invoice status updated to Paid.</p>
+              </div>
+            )}
+
+            {!paymentSuccess && (
+              <div className="space-y-4">
+                {/* Gateway Selector */}
+                {paymentConfig && paymentConfig.gateways.length > 1 && (
+                  <div className="grid grid-cols-2 gap-4">
+                    {paymentConfig.gateways.map(g => (
+                      <button
+                        key={g.gateway}
+                        onClick={() => {
+                          setSelectedGateway(g.gateway);
+                          setPaymentError('');
+                        }}
+                        className={`p-4 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-2 font-bold text-xs capitalize ${
+                          selectedGateway === g.gateway
+                            ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                            : 'border-slate-200 hover:bg-slate-50 text-slate-600'
+                        }`}
+                      >
+                        <CreditCard className="w-5 h-5 text-slate-400" />
+                        <span>{g.gateway === 'stripe' ? 'Stripe Checkout' : 'Razorpay UPI'}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Gateway payment containers */}
+                {selectedGateway === 'stripe' && (
+                  <div className="space-y-4 pt-2">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Credit / Debit Card</label>
+                    <div id="stripe-card-element" className="p-3.5 border border-slate-200 rounded-xl bg-slate-50 min-h-[44px]"></div>
+                    <button
+                      onClick={handleStripePay}
+                      disabled={paying}
+                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 disabled:opacity-60"
+                    >
+                      {paying ? <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin inline-block"></span> : null}
+                      <span>Pay {fmtINR(inv.total)}</span>
+                    </button>
+                  </div>
+                )}
+
+                {selectedGateway === 'razorpay' && (
+                  <div className="space-y-4 pt-2">
+                    <p className="text-xs text-slate-500 leading-relaxed">Razorpay handles payments securely via UPI, Netbanking, wallets, and credit cards.</p>
+                    <button
+                      onClick={handleRazorpayPay}
+                      disabled={paying}
+                      className="w-full py-3 bg-[#F5A623] hover:bg-[#E0961B] text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 disabled:opacity-60"
+                    >
+                      {paying ? <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin inline-block"></span> : null}
+                      <span>Proceed with Razorpay</span>
+                    </button>
+                  </div>
+                )}
+
+                {paying && (
+                  <div className="flex flex-col items-center justify-center text-slate-500 text-[10px] font-semibold gap-1.5 pt-2 animate-pulse">
+                    <span>Processing transaction safely. Please do not refresh.</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

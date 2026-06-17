@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Plus, Zap, Play, Pause, Save, Loader2, X, Search,
@@ -1509,7 +1509,7 @@ export default function AutomationPage() {
       // Load saved edges if they exist, otherwise build a sequential chain for fallback
       const hasSavedEdges = Array.isArray(wf.edges) && wf.edges.length > 0;
       if (hasSavedEdges) {
-        const validEdges = wf.edges.filter(e => 
+        const validEdges = (wf.edges || []).filter(e => 
           safeNodes.some(n => n.id === e.source) && 
           safeNodes.some(n => n.id === e.target)
         ).map(e => ({
@@ -1937,7 +1937,7 @@ export default function AutomationPage() {
             </button>
           )}
 
-          <button onClick={handleSave} disabled={isSaving || !selectedWf}
+          <button onClick={() => handleSave()} disabled={isSaving || !selectedWf}
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex-shrink-0 disabled:opacity-40 text-white"
             style={{ background: '#F97316' }}>
             {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
@@ -2189,7 +2189,7 @@ export default function AutomationPage() {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: tk.textMuted }}>
-            Node: {contextMenu.node.data?.label || 'Node'}
+            Node: {(contextMenu.node.data as any)?.label || 'Node'}
           </div>
           
           <div className="my-1 border-t" style={{ borderColor: tk.divider }} />
@@ -2215,14 +2215,14 @@ export default function AutomationPage() {
                       style: { stroke: EDGE_COLOR, strokeWidth: 2 },
                       markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR },
                     };
-                    setEdges(eds => addEdge(newEdge, eds));
+                    setEdges(eds => addEdge(newEdge as any, eds));
                     setContextMenu(null);
                     setTimeout(() => handleSave(), 100);
                   }}
                   className="w-full text-left px-2 py-1.5 text-xs font-semibold rounded-lg transition-all hover:bg-orange-500/10"
                   style={{ color: tk.textPrimary }}
                 >
-                  👉 {targetNode.data?.label || 'Node'}
+                  👉 {(targetNode.data as any)?.label || 'Node'}
                 </button>
               ))}
             {nodes.filter(n => n.id !== contextMenu.node.id).length === 0 && (
@@ -2392,7 +2392,7 @@ export default function AutomationPage() {
                 ) : filteredLeads.length === 0 ? (
                   <div className="p-4 text-center text-xs" style={{ color: tk.textMuted }}>No leads found</div>
                 ) : (
-                  filteredLeads.map(lead => (
+                  filteredLeads.map((lead: any) => (
                     <div
                       key={lead.id}
                       onClick={() => setSelectedLeadForTest(lead)}

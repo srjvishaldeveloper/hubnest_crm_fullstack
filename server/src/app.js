@@ -27,6 +27,9 @@ const adminRoutes = require('./modules/admin/admin.routes');
 const managerAliasRoutes = require('./modules/sales-manager/managerAlias.routes');
 const marketingAliasRoutes = require('./modules/marketing/marketingAlias.routes');
 const marketingPublicRoutes = require('./modules/marketing/marketingPublic.routes');
+const paymentGatewayRoutes = require('./modules/tenant/paymentGateway.routes');
+const subscriptionBillingRoutes = require('./modules/hubnest/subscriptionBilling.routes');
+const webhookRoutes = require('./modules/webhooks/webhooks.routes');
 
 const app = express();
 
@@ -45,7 +48,12 @@ app.use(
 );
 
 // Body parsing
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ 
+  limit: '5mb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString();
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 // HTTP request logging
@@ -81,6 +89,9 @@ app.use('/api/v1/mfa', mfaRoutes);
 app.use('/api/v1/sms', smsRoutes);
 app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/org-chat', orgChatRoutes);
+app.use('/api/v1/tenant/payment-gateway', paymentGatewayRoutes);
+app.use('/api/v1/hubnest/billing', subscriptionBillingRoutes);
+app.use('/api/v1/webhooks', webhookRoutes);
 // 404 — route not found
 app.use((req, res) => {
   sendError(res, `Cannot ${req.method} ${req.path}`, 404);

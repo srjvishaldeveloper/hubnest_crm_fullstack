@@ -76,7 +76,7 @@ router.get('/crm-control', async (req, res) => {
 // ─── PERMISSION MATRIX ──────────────────────────────────────────────────────────
 router.get('/permissions', async (req, res) => {
   try {
-    const rolesRes = await query('SELECT name, permissions FROM roles');
+    const rolesRes = await query("SELECT name, permissions FROM roles WHERE LOWER(name) NOT IN ('super admin', 'super_admin')");
     const roles = rolesRes.rows.map(r => r.name);
     const resources = ['invoices', 'payments', 'expenses', 'vendors', 'payroll', 'tax_records', 'campaigns', 'leads', 'tasks', 'activities', 'tickets', 'knowledge_base', 'users', 'roles', 'tenants', 'settings', 'reports'];
     const matrix = {};
@@ -102,7 +102,7 @@ router.put('/permissions', async (req, res) => {
   try {
     const { matrix } = req.body;
     if (!matrix) return sendError(res, 'Matrix data required');
-    const rolesRes = await query('SELECT id, name, permissions FROM roles');
+    const rolesRes = await query("SELECT id, name, permissions FROM roles WHERE LOWER(name) NOT IN ('super admin', 'super_admin')");
     for (const r of rolesRes.rows) {
       // Prevent Admins from modifying Super Admin permissions if desired (optional)
       if (r.name === 'Super Admin') continue;

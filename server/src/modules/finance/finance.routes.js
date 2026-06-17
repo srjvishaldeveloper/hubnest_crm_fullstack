@@ -7,6 +7,10 @@ const { authorizeFinance } = require('../../middleware/rbac');
 // ── Public (no auth) ──────────────────────────────────────────────────────────
 // Must be declared BEFORE the authenticate middleware
 router.get('/invoices/public/:number', ctrl.getPublicInvoice);
+router.get('/invoices/public/:number/payment-config', ctrl.getPublicInvoicePaymentConfig);
+router.post('/invoices/public/:number/create-order', ctrl.createPublicInvoiceOrder);
+router.post('/invoices/public/:number/create-payment-intent', ctrl.createPublicInvoicePaymentIntent);
+router.post('/invoices/public/:number/payment-verify', ctrl.verifyPublicInvoicePayment);
 
 // All other routes require authentication + Finance role
 router.use(authenticate);
@@ -14,6 +18,7 @@ router.use(authorizeFinance);
 
 // Dashboard
 router.get('/dashboard', ctrl.getDashboard);
+router.get('/payment-stats', ctrl.getPaymentStats);
 
 // Analytics
 router.get('/analytics', ctrl.getAnalytics);

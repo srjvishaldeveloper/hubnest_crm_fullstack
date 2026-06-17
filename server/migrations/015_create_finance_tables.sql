@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS payments (
   tenant_id   UUID           NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   invoice_id  UUID           REFERENCES invoices(id) ON DELETE SET NULL,
   amount      DECIMAL(12,2)  NOT NULL DEFAULT 0,
-  method      VARCHAR(50)    NOT NULL DEFAULT 'Bank Transfer' CHECK (method IN ('Bank Transfer', 'Credit Card', 'UPI', 'Cash', 'Cheque', 'Other')),
+  method      VARCHAR(50)    NOT NULL DEFAULT 'Bank Transfer' CHECK (method IN ('Bank Transfer', 'Credit Card', 'UPI', 'Cash', 'Cheque', 'Other', 'Stripe', 'Razorpay')),
   reference   VARCHAR(255),
   status      VARCHAR(20)    NOT NULL DEFAULT 'Completed' CHECK (status IN ('Pending', 'Completed', 'Failed', 'Refunded')),
   paid_at     TIMESTAMPTZ    NOT NULL DEFAULT NOW(),

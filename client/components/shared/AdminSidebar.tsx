@@ -180,6 +180,7 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
               { label: 'Access & Security', href: '/admin/access-security', icon: Lock },
               { label: 'Audit Logs', href: '/admin/audit-logs', icon: ScrollText },
               { label: 'System Settings', href: '/admin/system-settings', icon: Settings },
+              { label: 'Payment Gateways', href: '/admin/settings/payment-gateway', icon: Wallet },
             ],
           },
           {

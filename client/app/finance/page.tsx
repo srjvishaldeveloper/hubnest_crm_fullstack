@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { financeGetDashboard } from '../../services/financeService';
+import { financeGetDashboard, financeGetPaymentStats } from '../../services/financeService';
 import { useAuthStore } from '../../store/authStore';
 import {
   DollarSign,
@@ -59,6 +59,7 @@ function formatCurrency(amount: number) {
 
 export default function FinanceDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [paymentStats, setPaymentStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const user = useAuthStore((s) => s.user);
@@ -67,8 +68,12 @@ export default function FinanceDashboard() {
     try {
       setLoading(true);
       setError('');
-      const res = await financeGetDashboard();
+      const [res, stats] = await Promise.all([
+        financeGetDashboard(),
+        financeGetPaymentStats()
+      ]);
       setData(res);
+      setPaymentStats(stats);
     } catch (err) {
       console.error('Failed to load finance dashboard', err);
       setError('Failed to load finance dashboard. Please try again.');
@@ -174,6 +179,34 @@ export default function FinanceDashboard() {
         ))}
       </motion.div>
 
+      {/* Payment Gateway Performance Section */}
+      {paymentStats && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 }}
+          className="space-y-4">
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-blue-600" />
+            <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">Gateway Statistics</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white/70 dark:bg-[#1A1A1A]/70 backdrop-blur-xl rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">Online Collected</span>
+              <p className="text-2xl font-black text-slate-900 mt-2">{formatCurrency(paymentStats.totalCollected)}</p>
+              <p className="text-[10px] text-slate-500 mt-1 font-semibold">Processed via Stripe / Razorpay</p>
+            </div>
+            <div className="bg-white/70 dark:bg-[#1A1A1A]/70 backdrop-blur-xl rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">Online Outstanding</span>
+              <p className="text-2xl font-black text-slate-900 mt-2">{formatCurrency(paymentStats.pending)}</p>
+              <p className="text-[10px] text-slate-500 mt-1 font-semibold">Unpaid client invoice totals</p>
+            </div>
+            <div className="bg-white/70 dark:bg-[#1A1A1A]/70 backdrop-blur-xl rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider block">Failed Checkouts</span>
+              <p className="text-2xl font-black text-slate-900 mt-2">{paymentStats.failed}</p>
+              <p className="text-[10px] text-slate-500 mt-1 font-semibold">Aborted or declined payments</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Charts Row */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
         className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -262,18 +295,22 @@ export default function FinanceDashboard() {
               </div>
             </>
           )},
-          { title: 'Recent Payments', icon: CreditCard, data: data?.recentPayments, link: '/finance/payments', color: 'text-emerald-500', render: (pay: any) => (
+          { title: 'Online Payments', icon: CreditCard, data: paymentStats?.recentPayments, link: '/finance/payments', color: 'text-emerald-500', render: (pay: any) => (
             <>
               <div className="space-y-1">
-                <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">+ ₹{parseFloat(String(pay.amount)).toLocaleString()}</p>
-                <span className="text-[11px] text-[var(--muted-foreground)] font-semibold">{pay.invoice_number || 'Direct'}</span>
+                <p className="text-sm font-black text-slate-800">₹{parseFloat(String(pay.amount)).toLocaleString()}</p>
+                <span className="text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wider inline-block mt-0.5 mr-1.5">{pay.gateway}</span>
+                <span className="text-[11px] text-[var(--muted-foreground)] font-semibold block">{pay.customer_name} ({pay.invoice_number})</span>
               </div>
               <div className="text-right">
-                <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 uppercase tracking-wider">
-                  {pay.method}
+                <span className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider
+                  ${pay.status === 'success' ? 'bg-emerald-100 text-emerald-700' :
+                    pay.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}
+                >
+                  {pay.status}
                 </span>
-                <p className="text-[11px] text-[var(--muted-foreground)] font-semibold mt-1">
-                  {new Date(pay.paid_at).toLocaleDateString()}
+                <p className="text-[10px] text-[var(--muted-foreground)] font-semibold mt-1">
+                  {pay.paid_at ? new Date(pay.paid_at).toLocaleDateString() : new Date(pay.created_at).toLocaleDateString()}
                 </p>
               </div>
             </>

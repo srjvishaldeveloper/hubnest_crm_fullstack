@@ -8,6 +8,11 @@ export const financeGetDashboard = async () => {
   return res.data.data;
 };
 
+export const financeGetPaymentStats = async () => {
+  const res = await api.get(`${BASE}/payment-stats`);
+  return res.data.data;
+};
+
 // ─── ANALYTICS ────────────────────────────────────────────────────────────────
 export const financeGetAnalytics = async () => {
   const res = await api.get(`${BASE}/analytics`);
@@ -192,3 +197,4 @@ export const financeGetTaxRecords = async (params?: {
   const res = await api.get(`${BASE}/tax-records`, { params });
   return res.data.data;
 };
+

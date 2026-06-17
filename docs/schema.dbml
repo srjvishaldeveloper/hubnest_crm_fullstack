@@ -322,7 +322,7 @@ Table "payments" {
   "created_at" timestamp [not null, default: `now()`]
 
   Checks {
-    `((method)::text = ANY ((ARRAY['Bank Transfer'::character varying, 'Credit Card'::character varying, 'UPI'::character varying, 'Cash'::character varying, 'Cheque'::character varying, 'Other'::character varying])::text[]))` [name: 'payments_method_check']
+    `((method)::text = ANY ((ARRAY['Bank Transfer'::character varying, 'Credit Card'::character varying, 'UPI'::character varying, 'Cash'::character varying, 'Cheque'::character varying, 'Other'::character varying, 'Stripe'::character varying, 'Razorpay'::character varying])::text[]))` [name: 'payments_method_check']
     `((status)::text = ANY ((ARRAY['Pending'::character varying, 'Completed'::character varying, 'Failed'::character varying, 'Refunded'::character varying])::text[]))` [name: 'payments_status_check']
   }
 

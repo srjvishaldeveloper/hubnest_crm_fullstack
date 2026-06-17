@@ -1,6 +1,10 @@
 const { sendSuccess, sendError } = require('../../utils/helpers');
 const svc = require('./finance.service');
 const { generateInvoicePdf } = require('../../utils/generateInvoicePdf');
+const { query } = require('../../config/database');
+const { decrypt } = require('../../utils/encryption');
+const axios = require('axios');
+const crypto = require('crypto');
 
 async function getDashboard(req, res) {
   const data = await svc.getFinanceDashboard(req.user.tenant_id);
@@ -240,6 +244,302 @@ async function getAnalytics(req, res) {
   return sendSuccess(res, data, 'Finance analytics retrieved successfully');
 }
 
+// ─── PUBLIC CHECKOUTS & STATS ──────────────────────────────────────────────────
+
+async function getPublicInvoicePaymentConfig(req, res) {
+  try {
+    const { number } = req.params;
+    const inv = await svc.getInvoiceByNumber(number);
+    if (!inv) return sendError(res, 'Invoice not found', 404);
+
+    const gatewaysRes = await query(
+      `SELECT gateway, is_active, is_verified, stripe_publishable_key_enc, razorpay_key_id_enc 
+       FROM tenant_payment_gateways 
+       WHERE tenant_id = $1 AND is_active = TRUE`,
+      [inv.tenant_id]
+    );
+
+    const config = {
+      amount: inv.total,
+      currency: 'INR',
+      gateways: []
+    };
+
+    for (const row of gatewaysRes.rows) {
+      if (row.gateway === 'stripe') {
+        const publishableKey = row.stripe_publishable_key_enc ? decrypt(row.stripe_publishable_key_enc) : null;
+        config.gateways.push({
+          gateway: 'stripe',
+          publishableKey
+        });
+      } else if (row.gateway === 'razorpay') {
+        const keyId = row.razorpay_key_id_enc ? decrypt(row.razorpay_key_id_enc) : null;
+        config.gateways.push({
+          gateway: 'razorpay',
+          keyId
+        });
+      }
+    }
+
+    return sendSuccess(res, config, 'Payment configurations retrieved');
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+}
+
+async function createPublicInvoiceOrder(req, res) {
+  try {
+    const { number } = req.params;
+    const inv = await svc.getInvoiceByNumber(number);
+    if (!inv) return sendError(res, 'Invoice not found', 404);
+    if (inv.status === 'Paid') {
+      return sendError(res, 'Invoice is already paid', 400);
+    }
+
+    const credentialsRes = await query(
+      `SELECT * FROM tenant_payment_gateways 
+       WHERE tenant_id = $1 AND gateway = 'razorpay' AND is_active = TRUE`,
+      [inv.tenant_id]
+    );
+
+    if (credentialsRes.rows.length === 0) {
+      return sendError(res, 'Razorpay gateway not configured for this tenant', 400);
+    }
+
+    const gatewayRow = credentialsRes.rows[0];
+    const keyId = decrypt(gatewayRow.razorpay_key_id_enc);
+    const keySecret = decrypt(gatewayRow.razorpay_key_secret_enc);
+
+    if (!keyId || !keySecret) {
+      return sendError(res, 'Invalid Razorpay configurations', 500);
+    }
+
+    const amountPaise = Math.round(parseFloat(inv.total) * 100);
+    const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+    
+    const orderRes = await axios.post('https://api.razorpay.com/v1/orders', {
+      amount: amountPaise,
+      currency: 'INR',
+      receipt: `inv_${inv.id.substring(0, 8)}`
+    }, {
+      headers: { Authorization: `Basic ${auth}` }
+    });
+
+    await query(
+      `INSERT INTO invoice_payments (invoice_id, tenant_id, amount, currency, gateway, gateway_order_id, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending')`,
+      [inv.id, inv.tenant_id, inv.total, 'INR', 'razorpay', orderRes.data.id]
+    );
+
+    return sendSuccess(res, {
+      orderId: orderRes.data.id,
+      amount: orderRes.data.amount,
+      currency: orderRes.data.currency,
+      razorpayKeyId: keyId
+    }, 'Razorpay order created successfully');
+  } catch (err) {
+    return sendError(res, err.response?.data?.error?.message || err.message, 500);
+  }
+}
+
+async function createPublicInvoicePaymentIntent(req, res) {
+  try {
+    const { number } = req.params;
+    const inv = await svc.getInvoiceByNumber(number);
+    if (!inv) return sendError(res, 'Invoice not found', 404);
+    if (inv.status === 'Paid') {
+      return sendError(res, 'Invoice is already paid', 400);
+    }
+
+    const credentialsRes = await query(
+      `SELECT * FROM tenant_payment_gateways 
+       WHERE tenant_id = $1 AND gateway = 'stripe' AND is_active = TRUE`,
+      [inv.tenant_id]
+    );
+
+    if (credentialsRes.rows.length === 0) {
+      return sendError(res, 'Stripe gateway not configured for this tenant', 400);
+    }
+
+    const gatewayRow = credentialsRes.rows[0];
+    const secretKey = decrypt(gatewayRow.stripe_secret_key_enc);
+    const publishableKey = decrypt(gatewayRow.stripe_publishable_key_enc);
+
+    if (!secretKey) {
+      return sendError(res, 'Invalid Stripe configurations', 500);
+    }
+
+    const amountCents = Math.round(parseFloat(inv.total) * 100);
+    const urlParams = new URLSearchParams();
+    urlParams.append('amount', String(amountCents));
+    urlParams.append('currency', 'inr');
+    urlParams.append('metadata[invoice_id]', inv.id);
+    urlParams.append('metadata[tenant_id]', inv.tenant_id);
+
+    const intentRes = await axios.post('https://api.stripe.com/v1/payment_intents', urlParams, {
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    await query(
+      `INSERT INTO invoice_payments (invoice_id, tenant_id, amount, currency, gateway, gateway_order_id, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending')`,
+      [inv.id, inv.tenant_id, inv.total, 'INR', 'stripe', intentRes.data.id]
+    );
+
+    return sendSuccess(res, {
+      clientSecret: intentRes.data.client_secret,
+      publishableKey
+    }, 'Stripe payment intent created successfully');
+  } catch (err) {
+    return sendError(res, err.response?.data?.error?.message || err.message, 500);
+  }
+}
+
+async function verifyPublicInvoicePayment(req, res) {
+  try {
+    const { number } = req.params;
+    const { gateway, gateway_payment_id, gateway_order_id, gateway_signature } = req.body;
+    
+    const inv = await svc.getInvoiceByNumber(number);
+    if (!inv) return sendError(res, 'Invoice not found', 404);
+
+    if (gateway === 'razorpay') {
+      if (!gateway_payment_id || !gateway_order_id || !gateway_signature) {
+        return sendError(res, 'Razorpay signature details required', 400);
+      }
+
+      const credentialsRes = await query(
+        `SELECT * FROM tenant_payment_gateways 
+         WHERE tenant_id = $1 AND gateway = 'razorpay' AND is_active = TRUE`,
+        [inv.tenant_id]
+      );
+
+      if (credentialsRes.rows.length === 0) {
+        return sendError(res, 'Razorpay not configured', 400);
+      }
+
+      const keySecret = decrypt(credentialsRes.rows[0].razorpay_key_secret_enc);
+      const shasum = crypto.createHmac('sha256', keySecret);
+      shasum.update(`${gateway_order_id}|${gateway_payment_id}`);
+      const digest = shasum.digest('hex');
+
+      if (digest !== gateway_signature) {
+        return sendError(res, 'Payment signature verification failed', 400);
+      }
+
+      await query(
+        `UPDATE invoice_payments 
+         SET status = 'success', gateway_payment_id = $1, gateway_signature = $2, paid_at = NOW()
+         WHERE gateway_order_id = $3`,
+        [gateway_payment_id, gateway_signature, gateway_order_id]
+      );
+
+      await query(
+        `INSERT INTO payments (tenant_id, invoice_id, amount, method, reference, status, paid_at)
+         VALUES ($1, $2, $3, $4, $5, 'Completed', NOW())`,
+        [inv.tenant_id, inv.id, inv.total, 'Razorpay', gateway_payment_id]
+      );
+
+      await query(
+        `UPDATE invoices SET status = 'Paid', paid_date = CURRENT_DATE, updated_at = NOW() WHERE id = $1`,
+        [inv.id]
+      );
+
+      return sendSuccess(res, { success: true }, 'Payment verified and completed successfully');
+    } else if (gateway === 'stripe') {
+      if (!gateway_order_id) {
+        return sendError(res, 'Stripe payment intent ID required', 400);
+      }
+
+      const credentialsRes = await query(
+        `SELECT * FROM tenant_payment_gateways 
+         WHERE tenant_id = $1 AND gateway = 'stripe' AND is_active = TRUE`,
+        [inv.tenant_id]
+      );
+
+      if (credentialsRes.rows.length === 0) {
+        return sendError(res, 'Stripe not configured', 400);
+      }
+
+      const secretKey = decrypt(credentialsRes.rows[0].stripe_secret_key_enc);
+      const intentRes = await axios.get(`https://api.stripe.com/v1/payment_intents/${gateway_order_id}`, {
+        headers: { Authorization: `Bearer ${secretKey}` }
+      });
+
+      if (intentRes.data.status !== 'succeeded') {
+        return sendError(res, `Payment intent status: ${intentRes.data.status}`, 400);
+      }
+
+      const chargeId = intentRes.data.latest_charge || gateway_payment_id || gateway_order_id;
+
+      await query(
+        `UPDATE invoice_payments 
+         SET status = 'success', gateway_payment_id = $1, paid_at = NOW()
+         WHERE gateway_order_id = $2`,
+        [chargeId, gateway_order_id]
+      );
+
+      await query(
+        `INSERT INTO payments (tenant_id, invoice_id, amount, method, reference, status, paid_at)
+         VALUES ($1, $2, $3, $4, $5, 'Completed', NOW())`,
+        [inv.tenant_id, inv.id, inv.total, 'Stripe', chargeId]
+      );
+
+      await query(
+        `UPDATE invoices SET status = 'Paid', paid_date = CURRENT_DATE, updated_at = NOW() WHERE id = $1`,
+        [inv.id]
+      );
+
+      return sendSuccess(res, { success: true }, 'Payment verified and completed successfully');
+    }
+
+    return sendError(res, 'Invalid gateway', 400);
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+}
+
+async function getPaymentStats(req, res) {
+  if (req.user.role_name === 'Super Admin' || req.user.role_name === 'super_admin') {
+    return sendError(res, 'Super Admin cannot access tenant payment data', 403);
+  }
+  const tenantId = req.user.tenant_id;
+  try {
+    const collectedResult = await query(
+      `SELECT COALESCE(SUM(amount), 0) AS total FROM payments WHERE tenant_id = $1 AND status = 'Completed'`,
+      [tenantId]
+    );
+    const pendingResult = await query(
+      `SELECT COALESCE(SUM(total), 0) AS total FROM invoices WHERE tenant_id = $1 AND status IN ('Sent', 'Overdue')`,
+      [tenantId]
+    );
+    const failedResult = await query(
+      `SELECT COUNT(*)::int AS count FROM invoice_payments WHERE tenant_id = $1 AND status = 'failed'`,
+      [tenantId]
+    );
+    const recentPaymentsResult = await query(
+      `SELECT ip.*, i.invoice_number, i.customer_name 
+       FROM invoice_payments ip 
+       JOIN invoices i ON i.id = ip.invoice_id 
+       WHERE ip.tenant_id = $1 
+       ORDER BY ip.created_at DESC LIMIT 10`,
+      [tenantId]
+    );
+
+    return sendSuccess(res, {
+      totalCollected: parseFloat(collectedResult.rows[0]?.total || 0),
+      pending: parseFloat(pendingResult.rows[0]?.total || 0),
+      failed: failedResult.rows[0]?.count || 0,
+      recentPayments: recentPaymentsResult.rows
+    }, 'Payment stats retrieved successfully');
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+}
+
 module.exports = {
   getDashboard,
   listInvoices,
@@ -261,5 +561,10 @@ module.exports = {
   updateVendor,
   listPayroll,
   listTaxRecords,
-  getAnalytics
+  getAnalytics,
+  getPublicInvoicePaymentConfig,
+  createPublicInvoiceOrder,
+  createPublicInvoicePaymentIntent,
+  verifyPublicInvoicePayment,
+  getPaymentStats
 };

@@ -145,7 +145,7 @@ export default function SalesSidebar({ open, collapsed, onClose }: Props) {
             <div className={`overflow-hidden ${collapsed ? 'lg:hidden' : ''}`}>
               <p className="text-[#0F172A] dark:text-white text-xs font-bold truncate leading-tight">{user?.name || 'Sales User'}</p>
               <span className="inline-block text-[9px] font-extrabold text-[#2563EB] bg-blue-50 px-1.5 py-0.5 rounded-md uppercase tracking-wider mt-0.5 leading-none">
-                {user?.role_name || user?.role || 'Sales Exec'}
+                {user?.role || 'Sales Exec'}
               </span>
             </div>
           </div>

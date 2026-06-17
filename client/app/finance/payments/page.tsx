@@ -34,15 +34,15 @@ interface Invoice {
   status: string;
 }
 
-const METHODS = ['Bank Transfer','UPI','Credit Card','Debit Card','Cash','Cheque','NEFT','RTGS','IMPS','Other'];
+const METHODS = ['Bank Transfer','UPI','Credit Card','Debit Card','Cash','Cheque','NEFT','RTGS','IMPS','Stripe','Razorpay','Other'];
 
 function fmtINR(n: number) {
   return '₹' + (n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function methodIcon(m: string) {
-  if (m === 'Credit Card' || m === 'Debit Card') return <CreditCard className="w-3.5 h-3.5" />;
-  if (m === 'UPI') return <Smartphone className="w-3.5 h-3.5" />;
+  if (m === 'Credit Card' || m === 'Debit Card' || m === 'Stripe') return <CreditCard className="w-3.5 h-3.5" />;
+  if (m === 'UPI' || m === 'Razorpay') return <Smartphone className="w-3.5 h-3.5" />;
   if (m === 'Cash') return <Banknote className="w-3.5 h-3.5" />;
   return <Building2 className="w-3.5 h-3.5" />;
 }

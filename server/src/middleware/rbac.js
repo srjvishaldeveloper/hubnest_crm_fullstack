@@ -1,5 +1,14 @@
 const { sendError } = require('../utils/helpers');
 
+const SUPER_ADMIN_EXCLUDED_PERMISSIONS = [
+  "payment_gateway.view",
+  "payment_gateway.connect",
+  "payment_gateway.credentials.read",
+  "payment_gateway.credentials.write",
+  "tenant.billing.view",        // tenant's own billing
+  "tenant.payment_history.view" // tenant's customer payments
+];
+
 /**
  * Authorize a specific action on a module.
  * Super Admin bypasses all RBAC checks.
@@ -11,8 +20,14 @@ function authorize(module, action) {
       return sendError(res, 'Unauthorized', 401);
     }
 
-    // Super Admin has full access
-    if (req.user.role_name === 'Super Admin') {
+    const roleName = req.user.role_name || req.user.role;
+    const permKey = `${module}.${action}`;
+
+    // Super Admin has full access, except for tenant payment settings
+    if (roleName === 'Super Admin' || roleName === 'super_admin') {
+      if (SUPER_ADMIN_EXCLUDED_PERMISSIONS.includes(permKey)) {
+        return sendError(res, 'Super Admin cannot access tenant payment data', 403);
+      }
       return next();
     }
 
@@ -104,4 +119,31 @@ function authorizeSuperAdmin(req, res, next) {
   next();
 }
 
-module.exports = { authorize, authorizeSalesManager, authorizeSupport, authorizeFinance, authorizeSuperAdmin };
+/**
+ * Middleware to verify tenant ownership on payment configurations.
+ * Block Super Admin (role_name: 'Super Admin') from all tenant payment settings.
+ */
+function verifyTenantOwnership(req, res, next) {
+  if (!req.user) return sendError(res, 'Unauthorized', 401);
+  
+  const roleName = req.user.role_name || req.user.role;
+  if (roleName === 'Super Admin' || roleName === 'super_admin') {
+    return sendError(res, 'Super Admin cannot access tenant payment data', 403);
+  }
+  
+  // Verify ownership: tenant admin only
+  if (roleName !== 'Admin' && roleName !== 'Tenant Admin') {
+    return sendError(res, 'Access denied. Tenant Admin role required.', 403);
+  }
+  
+  next();
+}
+
+module.exports = {
+  authorize,
+  authorizeSalesManager,
+  authorizeSupport,
+  authorizeFinance,
+  authorizeSuperAdmin,
+  verifyTenantOwnership
+};

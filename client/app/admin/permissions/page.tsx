@@ -18,11 +18,24 @@ export default function PermissionsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Resources that must never appear in the permissions UI
+  const HIDDEN_RESOURCES = ['payment_gateway', 'tenant_billing', 'tenant_payment_history'];
+
   const fetchData = () => {
     setLoading(true); setError('');
     api.get('/admin/permissions')
       .then(r => {
         const d = r.data?.data;
+        if (d) {
+          // Strip Super Admin from role columns — SA is hardcoded in backend
+          if (d.roles) {
+            d.roles = d.roles.filter((role: string) => !['Super Admin', 'super admin', 'super_admin'].includes(role));
+          }
+          // Strip payment gateway resources — they are security-sensitive and SA-excluded
+          if (d.resources) {
+            d.resources = d.resources.filter((res: string) => !HIDDEN_RESOURCES.includes(res));
+          }
+        }
         setData(d);
         setLocal(JSON.parse(JSON.stringify(d)));
       })

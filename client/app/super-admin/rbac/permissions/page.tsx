@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '../../../../services/api';
-import { Grid3X3, RefreshCw, XCircle, Save, Loader2, CheckCircle } from 'lucide-react';
+import { Grid3X3, RefreshCw, XCircle, Save, Loader2, CheckCircle, Lock } from 'lucide-react';
 
 interface PermissionMatrix {
   resources: string[];
@@ -34,6 +34,10 @@ export default function PermissionsPage() {
 
   function toggle(resource: string, role: string, perm: 'read' | 'create' | 'update' | 'delete') {
     if (!local) return;
+    const isSuperAdminPayment = (role.toLowerCase() === 'super admin' || role.toLowerCase() === 'super_admin') && 
+      (resource.toLowerCase().includes('payment') || resource.toLowerCase().includes('billing'));
+    if (isSuperAdminPayment) return;
+
     setLocal(prev => {
       if (!prev) return prev;
       const copy = JSON.parse(JSON.stringify(prev)) as PermissionMatrix;
@@ -110,15 +114,23 @@ export default function PermissionsPage() {
                   <td className="px-5 py-3 font-semibold text-slate-800 sticky left-0 bg-card capitalize border-r border-slate-100 dark:border-[#1f1f1f]">{resource}</td>
                   {local.roles.map(role => (
                     (['read', 'create', 'update', 'delete'] as const).map(perm => {
-                      const checked = local.matrix[resource]?.[role]?.[perm] || false;
+                      const isSuperAdminPayment = (role.toLowerCase() === 'super admin' || role.toLowerCase() === 'super_admin') && 
+                        (resource.toLowerCase().includes('payment') || resource.toLowerCase().includes('billing'));
+                      const checked = isSuperAdminPayment ? false : (local.matrix[resource]?.[role]?.[perm] || false);
                       return (
                         <td key={`${role}-${perm}`} className="text-center py-3 border-l border-slate-100 dark:border-[#1f1f1f]">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggle(resource, role, perm)}
-                            className="w-3.5 h-3.5 rounded border-slate-300 text-[#F59E0B] cursor-pointer accent-[#F59E0B]"
-                          />
+                          {isSuperAdminPayment ? (
+                            <span title="Super Admin excluded from payment features">
+                              <Lock className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 mx-auto" />
+                            </span>
+                          ) : (
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggle(resource, role, perm)}
+                              className="w-3.5 h-3.5 rounded border-slate-300 text-[#F59E0B] cursor-pointer accent-[#F59E0B]"
+                            />
+                          )}
                         </td>
                       );
                     })

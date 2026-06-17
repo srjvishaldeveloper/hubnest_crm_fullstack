@@ -393,7 +393,7 @@ CREATE TABLE public.payments (
     status character varying(20) DEFAULT 'Completed'::character varying NOT NULL,
     paid_at timestamp with time zone DEFAULT now() NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT payments_method_check CHECK (((method)::text = ANY ((ARRAY['Bank Transfer'::character varying, 'Credit Card'::character varying, 'UPI'::character varying, 'Cash'::character varying, 'Cheque'::character varying, 'Other'::character varying])::text[]))),
+    CONSTRAINT payments_method_check CHECK (((method)::text = ANY ((ARRAY['Bank Transfer'::character varying, 'Credit Card'::character varying, 'UPI'::character varying, 'Cash'::character varying, 'Cheque'::character varying, 'Other'::character varying, 'Stripe'::character varying, 'Razorpay'::character varying])::text[]))),
     CONSTRAINT payments_status_check CHECK (((status)::text = ANY ((ARRAY['Pending'::character varying, 'Completed'::character varying, 'Failed'::character varying, 'Refunded'::character varying])::text[])))
 );
 

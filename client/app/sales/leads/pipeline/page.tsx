@@ -247,7 +247,7 @@ export default function PipelinePage() {
                     <motion.div
                       key={lead.id}
                       draggable
-                      onDragStart={e => handleDragStart(e, lead.id)}
+                      onDragStart={e => handleDragStart(e as any, lead.id)}
                       layout
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
