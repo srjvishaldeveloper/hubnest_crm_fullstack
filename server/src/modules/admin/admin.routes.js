@@ -155,7 +155,8 @@ router.get('/billing/invoices/:id/download', async (req, res) => {
       SELECT i.id as "_id", i.invoice_number as "invoiceNumber",
              t.name as "tenantName", i.customer_name as "tenant",
              i.total as amount, 'INR' as currency, LOWER(i.status) as status,
-             i.due_date as "dueDate", i.created_at as "issuedDate"
+             i.due_date as "dueDate", i.created_at as "issuedDate",
+             i.notes as "notes", i.amount as "subTotal", i.tax as "tax", i.total as "grandTotal"
       FROM invoices i
       LEFT JOIN tenants t ON t.id = i.tenant_id
       WHERE i.id = $1 AND i.tenant_id = $2

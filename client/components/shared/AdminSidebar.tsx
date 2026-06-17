@@ -10,7 +10,8 @@ import {
   Activity, Layers, Plug, Lock, ScrollText, Settings,
   TrendingUp, Brain, UserCheck, Briefcase, BookOpen,
   CreditCard, Shield, DollarSign, FileText, Receipt,
-  Wallet, Building2, MessageSquare, Grid3X3
+  Wallet, Building2, MessageSquare, Grid3X3,
+  GitBranch, CheckSquare, Send, Zap
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -67,8 +68,30 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
           {
             title: 'MAIN MENU',
             items: [
-              { label: 'Home', href: '/sales-executive/dashboard', icon: LayoutDashboard },
-              { label: 'Chat', href: '/sales-executive/chat', icon: MessageSquare }
+              { label: 'Dashboard', href: '/sales/dashboard', icon: LayoutDashboard },
+              { label: 'Chat', href: '/sales-executive/chat', icon: MessageSquare },
+            ],
+          },
+          {
+            title: 'SALES',
+            items: [
+              { label: 'Leads', href: '/sales/leads', icon: TrendingUp },
+              { label: 'Pipeline', href: '/sales/leads/pipeline', icon: GitBranch },
+              { label: 'Tasks', href: '/sales/tasks', icon: CheckSquare },
+              { label: 'Activity Log', href: '/sales/activity', icon: Activity },
+            ],
+          },
+          {
+            title: 'MARKETING',
+            items: [
+              { label: 'Email Campaigns', href: '/marketing/campaigns/email', icon: Send },
+              { label: 'Automation', href: '/marketing/automation', icon: Zap },
+            ],
+          },
+          {
+            title: 'ACCOUNT',
+            items: [
+              { label: 'Profile', href: '/sales/profile', icon: UserCircle },
             ],
           },
         ]
@@ -125,7 +148,7 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
           },
           {
             title: 'ACCOUNT',
-            items: [{ label: 'Profile', href: '/finance/profile', icon: UserCircle }],
+            items: [{ label: 'Profile', href: '/admin/profile', icon: UserCircle }],
           },
         ]
       : [
@@ -224,7 +247,8 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
                 {section.title}
               </p>
               {section.items.map((item) => {
-                const active = pathname === item.href || pathname.startsWith(item.href + '/');
+                const isHomeRoute = ['/finance', '/admin/dashboard', '/sales-manager/dashboard', '/sales-executive/dashboard', '/support/dashboard'].includes(item.href);
+                const active = pathname === item.href || (!isHomeRoute && pathname.startsWith(item.href + '/'));
                 const Icon = item.icon;
                 return (
                   <Link
@@ -255,7 +279,10 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
                 <p className="text-[11px] font-bold text-orange-50 uppercase tracking-wider">AI Assistant</p>
               </div>
               <p className="text-xs text-orange-100 leading-relaxed">Ask anything about CRM metrics & security rules.</p>
-              <button className="w-full mt-3 py-2 bg-white text-orange-600 hover:bg-orange-50 text-sm font-bold rounded-lg transition-colors shadow-sm shadow-orange-500/20">
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('open-ai-chatbot'))}
+                className="w-full mt-3 py-2 bg-white text-orange-600 hover:bg-orange-50 text-sm font-bold rounded-lg transition-colors shadow-sm shadow-orange-500/20 cursor-pointer"
+              >
                 Ask AI
               </button>
             </div>

@@ -9,7 +9,7 @@ import {
   ToggleLeft, ToggleRight, Trash2,
   PanelLeftClose, PanelLeftOpen,
   AlertTriangle, Clock, XCircle, Terminal,
-  ChevronUp, Activity, ArrowLeft,
+  ChevronUp, Activity, ArrowLeft, Users,
 } from 'lucide-react';
 import {
   ReactFlow, Background, Controls, MiniMap, addEdge,
@@ -159,7 +159,7 @@ function CanvasNode(props: NodeProps) {
   const kindLabel = CATEGORY_LABEL[nodeData?.category] || 'NODE';
 
   const configSummary = nodeData?.config
-    ? Object.entries(nodeData.config).filter(([, v]) => v).slice(0, 2)
+    ? Object.entries(nodeData.config).filter(([k, v]) => v && !k.endsWith('Id')).slice(0, 2)
         .map(([, v]) => String(v).slice(0, 24)).join(' · ')
     : null;
   const hasConfig = !!(nodeData?.config && Object.values(nodeData.config).some(Boolean));
@@ -314,20 +314,302 @@ function Field({ label, tk, children }: { label: string; tk: Tokens; children: R
   );
 }
 
+// ─── Credential Modal ─────────────────────────────────────────────────────────
+
+type CredFields = { key: string; label: string; type?: string; placeholder: string; hint?: string }[];
+
+const CRED_CONFIG: Record<string, { provider: string; title: string; oauthUrl?: string; fields: CredFields }> = {
+  'Email / SMTP': {
+    provider: 'smtp',
+    title: 'SMTP / Email Credentials',
+    fields: [
+      { key: 'host', label: 'SMTP Host', placeholder: 'smtp.gmail.com', hint: 'Use smtp.gmail.com for Gmail' },
+      { key: 'port', label: 'Port', placeholder: '587' },
+      { key: 'user', label: 'Username / Email', placeholder: 'you@gmail.com' },
+      { key: 'pass', label: 'App Password', type: 'password', placeholder: '••••••••••••••••', hint: 'Gmail: use an App Password, not your main password' },
+    ],
+  },
+  'WhatsApp Business': {
+    provider: 'whatsapp',
+    title: 'WhatsApp Business API',
+    oauthUrl: 'https://developers.facebook.com/docs/whatsapp/cloud-api/get-started',
+    fields: [
+      { key: 'phone_number_id', label: 'Phone Number ID', placeholder: '1234567890', hint: 'From Meta Business Suite → WhatsApp' },
+      { key: 'access_token', label: 'Permanent Access Token', type: 'password', placeholder: 'EAAxxxx…', hint: 'Create a System User token in Business Manager' },
+      { key: 'waba_id', label: 'WhatsApp Business Account ID', placeholder: '9876543210' },
+    ],
+  },
+  'Meta Graph API': {
+    provider: 'meta-ads',
+    title: 'Meta / Facebook Ads',
+    oauthUrl: 'https://developers.facebook.com/apps/',
+    fields: [
+      { key: 'app_id', label: 'App ID', placeholder: '1234567890' },
+      { key: 'app_secret', label: 'App Secret', type: 'password', placeholder: '••••••••••••••••' },
+      { key: 'access_token', label: 'User / Page Access Token', type: 'password', placeholder: 'EAAxxxx…', hint: 'Use a Long-Lived Token from Graph API Explorer' },
+      { key: 'ad_account_id', label: 'Ad Account ID', placeholder: 'act_1234567890' },
+    ],
+  },
+  'Instagram Graph API': {
+    provider: 'instagram',
+    title: 'Instagram Graph API',
+    oauthUrl: 'https://developers.facebook.com/docs/instagram-api/getting-started',
+    fields: [
+      { key: 'app_id', label: 'App ID', placeholder: '1234567890' },
+      { key: 'access_token', label: 'Page / Instagram Access Token', type: 'password', placeholder: 'EAAxxxx…' },
+      { key: 'ig_user_id', label: 'Instagram Business Account ID', placeholder: '1234567890', hint: 'Numeric ID, not the @handle' },
+    ],
+  },
+  'Twilio / SMS': {
+    provider: 'twilio',
+    title: 'Twilio SMS',
+    oauthUrl: 'https://console.twilio.com/',
+    fields: [
+      { key: 'account_sid', label: 'Account SID', placeholder: 'ACxxxxxxxxxxxx' },
+      { key: 'auth_token', label: 'Auth Token', type: 'password', placeholder: '••••••••••••••••' },
+      { key: 'from_number', label: 'From Phone Number', placeholder: '+1234567890' },
+    ],
+  },
+  'Slack': {
+    provider: 'slack',
+    title: 'Slack',
+    oauthUrl: 'https://api.slack.com/apps',
+    fields: [
+      { key: 'bot_token', label: 'Bot Token', type: 'password', placeholder: 'xoxb-…', hint: 'OAuth Bot Token from Slack App settings' },
+      { key: 'channel', label: 'Default Channel', placeholder: '#general' },
+    ],
+  },
+  'Google': {
+    provider: 'google-sheets',
+    title: 'Google Sheets',
+    oauthUrl: 'https://console.cloud.google.com/apis/credentials',
+    fields: [
+      { key: 'client_id', label: 'OAuth Client ID', placeholder: 'xxxx.apps.googleusercontent.com' },
+      { key: 'client_secret', label: 'Client Secret', type: 'password', placeholder: '••••••••••••••••' },
+      { key: 'refresh_token', label: 'Refresh Token', type: 'password', placeholder: '1//xxxx…', hint: 'Use OAuth Playground to generate' },
+    ],
+  },
+  'Airtable': {
+    provider: 'airtable',
+    title: 'Airtable',
+    oauthUrl: 'https://airtable.com/account',
+    fields: [
+      { key: 'api_key', label: 'Personal Access Token', type: 'password', placeholder: 'pat…' },
+    ],
+  },
+  'Notion': {
+    provider: 'notion',
+    title: 'Notion',
+    oauthUrl: 'https://www.notion.so/my-integrations',
+    fields: [
+      { key: 'api_key', label: 'Internal Integration Token', type: 'password', placeholder: 'secret_…' },
+    ],
+  },
+  'Push Notification': {
+    provider: 'push',
+    title: 'Push Notifications (Firebase)',
+    oauthUrl: 'https://console.firebase.google.com/',
+    fields: [
+      { key: 'server_key', label: 'FCM Server Key', type: 'password', placeholder: 'AAAA…' },
+      { key: 'project_id', label: 'Firebase Project ID', placeholder: 'my-project-id' },
+    ],
+  },
+  'AI Provider': {
+    provider: 'ai',
+    title: 'AI Provider',
+    fields: [
+      { key: 'openai_key', label: 'OpenAI API Key', type: 'password', placeholder: 'sk-…' },
+      { key: 'anthropic_key', label: 'Anthropic API Key', type: 'password', placeholder: 'sk-ant-…' },
+      { key: 'gemini_key', label: 'Google Gemini API Key', type: 'password', placeholder: 'AIza…' },
+    ],
+  },
+};
+// Map specific service names to config keys
+function resolveCredService(service: string) {
+  if (service in CRED_CONFIG) return service;
+  if (service === 'Claude' || service === 'OpenAI' || service === 'Gemini') return 'AI Provider';
+  return service;
+}
+
+// Module-level refs so CredentialBlock (inside ConfigFields, inside SettingsPanel)
+// can trigger the credential modal without prop drilling
+const credModalRef: { current: ((service: string) => void) | null } = { current: null };
+const connectedProvidersRef: { current: Set<string> } = { current: new Set() };
+
 function CredentialBlock({ service, tk }: { service: string; tk: Tokens }) {
+  const resolved = resolveCredService(service);
+  const conf = CRED_CONFIG[resolved];
+  const provider = conf?.provider || '';
+  const connected = connectedProvidersRef.current.has(provider);
   return (
-    <div className="p-3 rounded-xl mb-4" style={{ background: tk.credBg, border: `1px solid ${tk.credBorder}` }}>
+    <div className="p-3 rounded-xl mb-4" style={{ background: tk.credBg, border: `1px solid ${connected ? 'rgba(16,185,129,.3)' : tk.credBorder}` }}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: tk.textSecondary }}>Credential</span>
-        <button className="text-[10px] font-bold text-orange-400 hover:text-orange-300 transition-colors px-2 py-0.5 rounded-lg bg-orange-500/10 border border-orange-500/20">
-          Set up credential
-        </button>
-      </div>
-      <div className="flex items-center gap-2 text-xs" style={{ color: tk.textMuted }}>
-        <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: tk.iconBg }}>
-          <Settings2 size={9} color={tk.textMuted} />
+        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: connected ? '#10B981' : tk.textSecondary }}>
+          {connected ? '✓ Connected' : 'Credential'}
+        </span>
+        <div className="flex items-center gap-1.5">
+          {conf?.oauthUrl && (
+            <a href={conf.oauthUrl} target="_blank" rel="noopener noreferrer"
+              className="text-[10px] font-bold text-blue-400 hover:text-blue-300 transition-colors px-2 py-0.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              Developer Console ↗
+            </a>
+          )}
+          <button
+            onClick={() => credModalRef.current?.(resolved || service)}
+            className="text-[10px] font-bold text-orange-400 hover:text-orange-300 transition-colors px-2 py-0.5 rounded-lg bg-orange-500/10 border border-orange-500/20">
+            {connected ? 'Update' : 'Set up credential'}
+          </button>
         </div>
-        No credentials yet — connect your {service} account
+      </div>
+      <div className="flex items-center gap-2 text-xs" style={{ color: connected ? '#10B981' : tk.textMuted }}>
+        <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: tk.iconBg }}>
+          <Settings2 size={9} color={connected ? '#10B981' : tk.textMuted} />
+        </div>
+        {connected ? `${service} account connected` : `No credentials yet — connect your ${service} account`}
+      </div>
+    </div>
+  );
+}
+
+// ─── Credential Setup Modal ───────────────────────────────────────────────────
+
+function CredentialSetupModal({ service, tk, onClose, onSaved }: {
+  service: string; tk: Tokens;
+  onClose: () => void;
+  onSaved: (provider: string) => void;
+}) {
+  const conf = CRED_CONFIG[service];
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  if (!conf) {
+    return (
+      <div className="fixed inset-0 z-[300] flex items-center justify-center" style={{ background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(8px)' }}>
+        <div className="w-full max-w-sm rounded-2xl p-6 shadow-2xl" style={{ background: tk.modalBg, border: `1px solid ${tk.modalBorder}` }}>
+          <p style={{ color: tk.textPrimary }} className="font-semibold">No credential config for "{service}"</p>
+          <button onClick={onClose} className="mt-4 w-full py-2 rounded-xl text-sm font-semibold" style={{ background: tk.hoverBg, color: tk.textSecondary }}>Close</button>
+        </div>
+      </div>
+    );
+  }
+
+  function validateFields(): string | null {
+    for (const f of conf.fields) {
+      const v = (values[f.key] || '').trim();
+      if (!v) return `${f.label} is required`;
+    }
+    return null;
+  }
+
+  async function handleSave() {
+    const validErr = validateFields();
+    if (validErr) { setTestResult({ success: false, message: validErr }); return; }
+    setSaving(true);
+    setTestResult(null);
+    try {
+      await api.post('/marketing/integrations', { provider: conf.provider, credentials: values, enabled: true });
+      onSaved(conf.provider);
+      onClose();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to save credentials';
+      setTestResult({ success: false, message: msg });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleTest() {
+    const validErr = validateFields();
+    if (validErr) { setTestResult({ success: false, message: validErr }); return; }
+    setTesting(true);
+    setTestResult(null);
+    try {
+      await api.post('/marketing/integrations', { provider: conf.provider, credentials: values, enabled: true });
+      const res = await api.post(`/marketing/integrations/${conf.provider}/test`);
+      const r = res.data?.data || res.data;
+      setTestResult({ success: true, message: r.message || 'Connected successfully!' });
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Connection failed — check your credentials';
+      setTestResult({ success: false, message: msg });
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(8px)' }}>
+      <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden" style={{ background: tk.modalBg, border: `1px solid ${tk.modalBorder}` }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${tk.divider}` }}>
+          <div>
+            <h3 className="text-sm font-bold" style={{ color: tk.textPrimary }}>{conf.title}</h3>
+            <p className="text-[10px] mt-0.5" style={{ color: tk.textMuted }}>Credentials are stored securely and never exposed in the UI</p>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg" style={{ color: tk.textMuted }}
+            onMouseEnter={e => (e.currentTarget.style.background = tk.hoverBg)}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <X size={14} />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+          {conf.oauthUrl && (
+            <div className="p-3 rounded-xl text-xs leading-relaxed" style={{ background: 'rgba(59,130,246,.08)', border: '1px solid rgba(59,130,246,.2)', color: '#93C5FD' }}>
+              Need credentials? Open the{' '}
+              <a href={conf.oauthUrl} target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:text-blue-300">
+                {service} Developer Console ↗
+              </a>
+              {' '}to create an app and generate API keys.
+            </div>
+          )}
+
+          {conf.fields.map(f => (
+            <div key={f.key}>
+              <label className="block text-[10px] font-bold uppercase tracking-wide mb-1.5" style={{ color: tk.textSecondary }}>{f.label}</label>
+              <input
+                type={f.type || 'text'}
+                placeholder={f.placeholder}
+                value={values[f.key] || ''}
+                onChange={e => setValues(p => ({ ...p, [f.key]: e.target.value }))}
+                style={{ background: tk.inputBg, borderColor: tk.inputBorder, color: tk.inputText }}
+                className="w-full rounded-lg px-3 py-2 text-sm border focus:outline-none focus:ring-1 focus:ring-orange-500/30 transition-all"
+              />
+              {f.hint && <p className="text-[10px] mt-1" style={{ color: tk.textMuted }}>{f.hint}</p>}
+            </div>
+          ))}
+
+          {testResult && (
+            <div className="p-3 rounded-xl text-xs font-medium" style={{
+              background: testResult.success ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)',
+              border: `1px solid ${testResult.success ? 'rgba(16,185,129,.3)' : 'rgba(239,68,68,.3)'}`,
+              color: testResult.success ? '#10B981' : '#F87171',
+            }}>
+              {testResult.success ? '✓ ' : '✕ '}{testResult.message}
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2 px-5 py-4" style={{ borderTop: `1px solid ${tk.divider}` }}>
+          <button onClick={onClose} className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
+            style={{ color: tk.textSecondary, border: `1px solid ${tk.divider}` }}
+            onMouseEnter={e => (e.currentTarget.style.background = tk.hoverBg)}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            Cancel
+          </button>
+          <button onClick={handleTest} disabled={testing || saving}
+            className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+            style={{ background: 'rgba(59,130,246,.15)', color: '#93C5FD', border: '1px solid rgba(59,130,246,.25)' }}>
+            {testing ? <Loader2 size={12} className="animate-spin" /> : <Activity size={12} />}
+            Test Connection
+          </button>
+          <button onClick={handleSave} disabled={saving || testing}
+            className="flex-1 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+            style={{ background: '#F97316' }}>
+            {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+            Save
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -340,6 +622,14 @@ function ConfigFields({ label, config, onChange, tk }: {
   const get = (k: string) => (config[k] as string) || '';
   const F = ({ l, children }: { l: string; children: React.ReactNode }) => <Field label={l} tk={tk}>{children}</Field>;
 
+  const [lists, setLists] = useState<any[]>([]);
+  useEffect(() => {
+    api.get('/marketing/lists').then(res => {
+      const d = res.data.data;
+      setLists(Array.isArray(d) ? d : d?.lists ?? []);
+    }).catch(() => {});
+  }, []);
+
   if (label === 'Send Email') return <>
     <CredentialBlock service="Email / SMTP" tk={tk} />
     <F l="From Name"><InputS tk={tk} placeholder="HubNest CRM" value={get('fromName')} onChange={e => onChange('fromName', e.target.value)} /></F>
@@ -347,6 +637,7 @@ function ConfigFields({ label, config, onChange, tk }: {
     <F l="Template"><SelectS tk={tk} value={get('template')} onChange={e => onChange('template', e.target.value)}>
       {['Select a template…','Welcome Email','Follow-up','Re-engagement','Promotional'].map(o => <option key={o}>{o}</option>)}
     </SelectS></F>
+    <F l="Email Body (Manual)"><TextareaS tk={tk} rows={6} placeholder="Type custom HTML/text email content here... (supports {{name}}, {{email}}, etc.)" value={get('body')} onChange={e => onChange('body', e.target.value)} /></F>
   </>;
 
   if (label === 'Send SMS') return <>
@@ -628,7 +919,25 @@ function ConfigFields({ label, config, onChange, tk }: {
     {label === 'Link Clicked' && <F l="Link URL"><InputS tk={tk} placeholder="https://example.com/promo" value={get('linkUrl')} onChange={e => onChange('linkUrl', e.target.value)} /></F>}
   </>;
 
-  if (['Lead Created','Deal Won','Deal Lost'].includes(label)) return (
+  if (label === 'Lead Created') return <>
+    <div className="p-3 rounded-xl text-xs space-y-1.5 leading-relaxed mb-3" style={{ background: tk.nodeInfoBg, border: `1px solid ${tk.nodeInfoBorder}`, color: tk.textSecondary }}>
+      <p className="font-semibold" style={{ color: tk.textPrimary }}>💡 Lead Trigger Configuration</p>
+      <p>Configure which contact list (sent from the sales module or imported via leads section) this automation should run on.</p>
+    </div>
+    <F l="Select Contact List"><SelectS tk={tk} value={get('listId')} onChange={e => {
+      const selectedId = e.target.value;
+      const listObj = lists.find(l => l.id === selectedId);
+      onChange('listId', selectedId);
+      onChange('listName', listObj ? listObj.name : 'All Leads');
+    }}>
+      <option value="">All Leads (No Filter)</option>
+      {lists.map(list => (
+        <option key={list.id} value={list.id}>{list.name}</option>
+      ))}
+    </SelectS></F>
+  </>;
+
+  if (['Deal Won','Deal Lost'].includes(label)) return (
     <div className="p-3 rounded-xl text-xs space-y-1.5 leading-relaxed" style={{ background: tk.nodeInfoBg, border: `1px solid ${tk.nodeInfoBorder}`, color: tk.textSecondary }}>
       <p className="font-semibold" style={{ color: tk.textPrimary }}>💡 Automatic System Event</p>
       <p>This trigger fires automatically whenever a <strong>{label.toLowerCase()}</strong> event occurs in the CRM. No additional settings are required.</p>
@@ -781,7 +1090,7 @@ function DraggableSidebarNode({ node, color, category, tk }: { node: NodeDef; co
 
 // ─── Left Panel ───────────────────────────────────────────────────────────────
 
-function LeftPanel({ sidebarTab, setSidebarTab, query, setQuery, workflows, selectedId, onSelectWorkflow, onNewWorkflow, loadingWorkflows, onToggleActive, tk }: {
+function LeftPanel({ sidebarTab, setSidebarTab, query, setQuery, workflows, selectedId, onSelectWorkflow, onNewWorkflow, loadingWorkflows, onToggleActive, onLoadTemplate, tk }: {
   sidebarTab: 'nodes' | 'templates' | 'workflows';
   setSidebarTab: (t: 'nodes' | 'templates' | 'workflows') => void;
   query: string; setQuery: (q: string) => void;
@@ -790,6 +1099,7 @@ function LeftPanel({ sidebarTab, setSidebarTab, query, setQuery, workflows, sele
   onNewWorkflow: () => void;
   loadingWorkflows: boolean;
   onToggleActive: (wf: WorkflowItem, e: React.MouseEvent) => void;
+  onLoadTemplate: (tpl: typeof workflowTemplates[number]) => void;
   tk: Tokens;
 }) {
   const [openCats, setOpenCats] = useState<Record<string, boolean>>({});
@@ -863,42 +1173,10 @@ function LeftPanel({ sidebarTab, setSidebarTab, query, setQuery, workflows, sele
 
         {sidebarTab === 'templates' && (
           <div className="px-2 space-y-1.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wider px-1 py-1" style={{ color: tk.textMuted }}>Click a template to load it</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider px-1 py-1" style={{ color: tk.textMuted }}>Click a template to load it onto the canvas</p>
             {workflowTemplates.map(tpl => (
               <button key={tpl.id} className="w-full text-left p-3 rounded-xl transition-all group"
-                onClick={() => {
-                  if (!selectedWf) return;
-                  const mappedNodes = tpl.nodes.map((node, i) => {
-                    const id = `${node.type}-${i}-${Date.now()}`;
-                    return {
-                      id,
-                      type: node.type,
-                      position: node.position,
-                      data: {
-                        label: node.label,
-                        icon: node.icon,
-                        brand: node.brand || false,
-                        category: tpl.category,
-                        config: node.config || {},
-                      }
-                    };
-                  });
-                  const mappedEdges = tpl.edges.map((edge, i) => {
-                    const sourceIndex = parseInt(edge.source, 10);
-                    const targetIndex = parseInt(edge.target, 10);
-                    return {
-                      id: `e-tpl-${i}-${Date.now()}`,
-                      source: mappedNodes[sourceIndex]?.id || edge.source,
-                      target: mappedNodes[targetIndex]?.id || edge.target,
-                      animated: true,
-                      style: { stroke: EDGE_COLOR, strokeWidth: 2 },
-                      markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR },
-                    };
-                  });
-                  setNodes(mappedNodes);
-                  setEdges(mappedEdges);
-                  handleSave(mappedNodes, mappedEdges);
-                }}
+                onClick={() => onLoadTemplate(tpl)}
                 style={{ border: `1px solid ${tk.divider}` }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = tk.hoverBg; (e.currentTarget as HTMLElement).style.borderColor = tk.ctrlBorder; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.borderColor = tk.divider; }}>
@@ -1056,7 +1334,20 @@ export default function AutomationPage() {
   // Keep tokensRef in sync for the ReactFlow node renderer
   tokensRef.current = tk;
 
+  // Credential modal state — wired to credModalRef so CredentialBlock can trigger it without prop drilling
+  const [credService, setCredService] = useState<string | null>(null);
 
+  useEffect(() => {
+    credModalRef.current = (svc: string) => setCredService(svc);
+    return () => { credModalRef.current = null; };
+  }, []);
+
+  useEffect(() => {
+    api.get('/marketing/integrations').then(res => {
+      const settings: { provider: string; enabled: boolean }[] = res.data?.data?.settings || res.data?.settings || [];
+      connectedProvidersRef.current = new Set(settings.filter(s => s.enabled).map(s => s.provider));
+    }).catch(() => {});
+  }, []);
 
   const [sidebarTab, setSidebarTab] = useState<'nodes' | 'templates' | 'workflows'>('nodes');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1079,6 +1370,63 @@ export default function AutomationPage() {
   const [nameDraft, setNameDraft] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
   const [execDone, setExecDone] = useState(false);
+
+  // Test Run states
+  const [leads, setLeads] = useState<any[]>([]);
+  const [loadingLeads, setLoadingLeads] = useState(false);
+  const [leadSearchQuery, setLeadSearchQuery] = useState('');
+  const [selectedLeadForTest, setSelectedLeadForTest] = useState<any>(null);
+  const [isTestRunModalOpen, setIsTestRunModalOpen] = useState(false);
+
+  // Load leads from CRM when test run modal opens
+  useEffect(() => {
+    if (isTestRunModalOpen) {
+      setLoadingLeads(true);
+      setLeadSearchQuery('');
+      setSelectedLeadForTest(null);
+      api.get('/marketing/leads')
+        .then(res => {
+          const d = res.data?.data?.leads || res.data?.leads || [];
+          setLeads(d);
+        })
+        .catch(() => {})
+        .finally(() => setLoadingLeads(false));
+    }
+  }, [isTestRunModalOpen]);
+
+  const filteredLeads = useMemo(() => {
+    return leads.filter(l => 
+      (l.name || '').toLowerCase().includes(leadSearchQuery.toLowerCase()) || 
+      (l.email || '').toLowerCase().includes(leadSearchQuery.toLowerCase())
+    );
+  }, [leads, leadSearchQuery]);
+
+  // Bulk Run States
+  const [isBulkRunOpen, setIsBulkRunOpen] = useState(false);
+  const [contactLists, setContactLists] = useState<any[]>([]);
+  const [selectedListId, setSelectedListId] = useState('');
+  const [bulkExecuting, setBulkExecuting] = useState(false);
+  const [bulkTotal, setBulkTotal] = useState(0);
+  const [bulkCurrent, setBulkCurrent] = useState(0);
+  const [bulkSuccessCount, setBulkSuccessCount] = useState(0);
+  const [bulkErrorCount, setBulkErrorCount] = useState(0);
+  const [bulkLogs, setBulkLogs] = useState<string[]>([]);
+
+  const fetchContactListsForBulk = async () => {
+    try {
+      const res = await api.get('/marketing/lists');
+      const d = res.data.data;
+      setContactLists(Array.isArray(d) ? d : d?.lists ?? []);
+    } catch {
+      setContactLists([]);
+    }
+  };
+
+  useEffect(() => {
+    if (isBulkRunOpen) {
+      fetchContactListsForBulk();
+    }
+  }, [isBulkRunOpen]);
 
   // n8n-style execution panel state
   const [execNodes, setExecNodes] = useState<NodeExecState[]>([]);
@@ -1214,14 +1562,66 @@ export default function AutomationPage() {
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
   useEffect(() => { edgesRef.current = edges; }, [edges]);
 
-  async function handleSave(overrideNodes?: Node[], overrideEdges?: Edge[]) {
+  function handleLoadTemplate(tpl: typeof workflowTemplates[number]) {
+    if (!selectedWf) return;
+    const mappedNodes = tpl.nodes.map((node, i) => {
+      const lookupTerm = node.label.toLowerCase();
+      let foundNodeDef: NodeDef | undefined;
+      let foundCategory = '';
+      for (const cat of nodeCategories) {
+        const matched = cat.nodes.find(nd =>
+          nd.label.toLowerCase() === lookupTerm ||
+          nd.description?.toLowerCase() === lookupTerm
+        );
+        if (matched) { foundNodeDef = matched; foundCategory = cat.category; break; }
+      }
+      if (!foundCategory) {
+        if (node.type === 'trigger') foundCategory = 'Triggers';
+        else if (node.type === 'condition') foundCategory = 'Conditions';
+        else if (node.type === 'ai') foundCategory = 'AI';
+        else if (node.type === 'integration') foundCategory = 'Integrations';
+        else foundCategory = 'CRM';
+      }
+      const id = `${node.type}-${i}-${Date.now()}`;
+      return {
+        id,
+        type: node.type,
+        position: node.position ?? { x: 320, y: 80 + i * 160 },
+        data: {
+          label: node.label,
+          icon: foundNodeDef?.icon || node.icon || 'Zap',
+          brand: foundNodeDef?.brand || node.brand || false,
+          category: foundCategory,
+          config: (node as any).config || {},
+        },
+      };
+    });
+    const mappedEdges = tpl.edges.map((edge, i) => {
+      const srcIdx = parseInt(String(edge.source), 10);
+      const tgtIdx = parseInt(String(edge.target), 10);
+      return {
+        id: `e-tpl-${i}-${Date.now()}`,
+        source: isNaN(srcIdx) ? edge.source : (mappedNodes[srcIdx]?.id ?? edge.source),
+        target: isNaN(tgtIdx) ? edge.target : (mappedNodes[tgtIdx]?.id ?? edge.target),
+        animated: true,
+        style: { stroke: EDGE_COLOR, strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR },
+      };
+    });
+    setNodes(mappedNodes);
+    setEdges(mappedEdges);
+    setWfName(tpl.name);
+    handleSave(mappedNodes, mappedEdges, tpl.name);
+  }
+
+  async function handleSave(overrideNodes?: Node[], overrideEdges?: Edge[], overrideName?: string) {
     if (!selectedWf) return;
     setIsSaving(true);
     const saveNodes = overrideNodes ?? nodesRef.current;
     const saveEdges = overrideEdges ?? edgesRef.current;
     try {
       const res = await api.patch(`/marketing/workflows/${selectedWf.id}`, {
-        name: wfName,
+        name: overrideName ?? wfName,
         nodes: saveNodes,
         edges: saveEdges,
         status: wfStatus,
@@ -1253,8 +1653,7 @@ export default function AutomationPage() {
     setSelectedNode(null);
   }
 
-  // n8n-style execution: simulate node-by-node processing with visual feedback
-  async function handleExecute() {
+  async function executeTestRun(contact: any) {
     if (!selectedWf || nodes.length === 0) return;
     setIsExecuting(true);
     setExecDone(false);
@@ -1263,7 +1662,7 @@ export default function AutomationPage() {
     setExecStartTime(startT);
     setExecTotalTime(null);
 
-    // Build topological order: start from triggers, follow edges
+    // Build topological order: triggers first, then follow edges
     const ordered: string[] = [];
     const visited = new Set<string>();
     const edgeMap = new Map<string, string[]>();
@@ -1280,51 +1679,104 @@ export default function AutomationPage() {
       ordered.push(cur);
       (edgeMap.get(cur) || []).forEach(t => queue.push(t));
     }
-    // Add any remaining nodes not reached by edges
     nodes.forEach(n => { if (!visited.has(n.id)) ordered.push(n.id); });
 
     // Initialize all nodes as 'waiting'
     const initial: NodeExecState[] = ordered.map(nid => {
       const nd = nodes.find(n => n.id === nid);
-      return {
-        nodeId: nid,
-        label: (nd?.data as AutomationNodeData)?.label || 'Node',
-        status: 'waiting' as const,
-      };
+      return { nodeId: nid, label: (nd?.data as AutomationNodeData)?.label || 'Node', status: 'waiting' as const };
     });
     setExecNodes(initial);
 
-    // Execute node by node with delay
+    // Call real backend — it returns per-node results if available
+    let backendResults: Record<string, { status: string; message?: string; duration?: number }> = {};
+    try {
+      const execRes = await api.post(`/marketing/workflows/${selectedWf.id}/execute`, {
+        nodes: nodesRef.current,
+        edges: edgesRef.current,
+        contact: contact,
+      });
+      const resData = execRes.data?.data || execRes.data;
+      if (resData?.results && typeof resData.results === 'object') {
+        backendResults = resData.results;
+      }
+    } catch (err: any) {
+      console.warn('Workflow execute API error (will simulate):', err?.response?.data || err?.message);
+    }
+
+    // Animate node-by-node using backend results where available
     for (let i = 0; i < ordered.length; i++) {
       const nid = ordered[i];
       const nd = nodes.find(n => n.id === nid);
       const label = (nd?.data as AutomationNodeData)?.label || 'Node';
+      const backendNode = backendResults[nid] || backendResults[label];
 
-      // Mark current as running
       setExecNodes(prev => prev.map(en =>
         en.nodeId === nid ? { ...en, status: 'running', startTime: Date.now() } : en
       ));
 
-      // Simulate processing time (300-800ms per node)
-      const delay = 300 + Math.random() * 500;
-      await new Promise(r => setTimeout(r, delay));
+      const delay = backendNode?.duration ?? (300 + Math.random() * 500);
+      await new Promise(r => setTimeout(r, label === 'Delay' ? delay : Math.min(delay, 800)));
 
-      // Mark as success (simulate — in real n8n this would be actual execution)
+      const finalStatus = (backendNode?.status === 'error' ? 'error' : 'success') as NodeExecState['status'];
+      const finalMsg = backendNode?.message || `${label} completed successfully`;
       setExecNodes(prev => prev.map(en =>
-        en.nodeId === nid
-          ? { ...en, status: 'success', duration: Math.round(delay), message: `${label} completed successfully` }
-          : en
+        en.nodeId === nid ? { ...en, status: finalStatus, duration: Math.round(delay), message: finalMsg } : en
       ));
     }
-
-    // Try actual API call (silently)
-    try {
-      await api.post(`/marketing/workflows/${selectedWf.id}/execute`).catch(() => null);
-    } catch { /* silent */ }
 
     setExecTotalTime(Date.now() - startT);
     setExecDone(true);
     setIsExecuting(false);
+  }
+
+  async function handleBulkExecute() {
+    if (!selectedListId || !selectedWf) return;
+    setBulkExecuting(true);
+    setBulkLogs(['Fetching contacts...']);
+    setBulkCurrent(0);
+    setBulkSuccessCount(0);
+    setBulkErrorCount(0);
+
+    try {
+      const res = await api.get(`/marketing/lists/${selectedListId}/contacts`);
+      const contacts = res.data?.data?.contacts || res.data?.contacts || [];
+      setBulkTotal(contacts.length);
+
+      if (contacts.length === 0) {
+        setBulkLogs(prev => [...prev, 'No contacts found in this list. Execution stopped.']);
+        setBulkExecuting(false);
+        return;
+      }
+
+      setBulkLogs(prev => [...prev, `Found ${contacts.length} contact(s). Starting execution...`]);
+
+      for (let i = 0; i < contacts.length; i++) {
+        const contact = contacts[i];
+        setBulkCurrent(i + 1);
+        setBulkLogs(prev => [...prev, `[${i + 1}/${contacts.length}] Executing on ${contact.name || contact.email}...`]);
+        try {
+          await api.post(`/marketing/workflows/${selectedWf.id}/execute`, {
+            nodes: nodesRef.current,
+            edges: edgesRef.current,
+            contact: contact
+          });
+          setBulkSuccessCount(prev => prev + 1);
+          setBulkLogs(prev => [...prev, `✓ Success: ${contact.name || contact.email}`]);
+        } catch (err: any) {
+          setBulkErrorCount(prev => prev + 1);
+          const errMsg = err?.response?.data?.message || err?.message || 'Execution error';
+          setBulkLogs(prev => [...prev, `✕ Error: ${contact.name || contact.email} - ${errMsg}`]);
+        }
+      }
+
+      setBulkLogs(prev => [...prev, '--- Bulk Execution Completed ---']);
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.message || err?.message || 'Failed to fetch contacts';
+      setBulkLogs(prev => [...prev, `Critical error: ${errMsg}`]);
+    } finally {
+      setBulkExecuting(false);
+    }
   }
 
   async function toggleActive(wf: WorkflowItem, e: React.MouseEvent) {
@@ -1464,9 +1916,16 @@ export default function AutomationPage() {
           <div className="flex-1" />
 
           {selectedWf && (
-            <button onClick={handleExecute} disabled={isExecuting} {...topBtn(execDone ? { background: '#10B981', color: 'white', borderColor: '#10B981' } : {})}>
+            <button onClick={() => setIsTestRunModalOpen(true)} disabled={isExecuting} {...topBtn(execDone ? { background: '#10B981', color: 'white', borderColor: '#10B981' } : {})}>
               {isExecuting ? <Loader2 size={13} className="animate-spin" /> : execDone ? <CheckCircle2 size={13} /> : <Play size={13} />}
               <span className="hidden sm:block">{execDone ? 'Triggered!' : 'Test Run'}</span>
+            </button>
+          )}
+
+          {selectedWf && (
+            <button onClick={() => setIsBulkRunOpen(true)} disabled={isExecuting} {...topBtn({ background: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.25)', color: '#A78BFA' })}>
+              <Users size={13} />
+              <span className="hidden sm:block">Bulk Run</span>
             </button>
           )}
 
@@ -1504,6 +1963,7 @@ export default function AutomationPage() {
               workflows={workflows} selectedId={selectedWf?.id ?? null}
               onSelectWorkflow={loadWorkflow} onNewWorkflow={() => setShowNewModal(true)}
               loadingWorkflows={loadingWorkflows} onToggleActive={toggleActive}
+              onLoadTemplate={handleLoadTemplate}
               tk={tk}
             />
           )}
@@ -1798,6 +2258,183 @@ export default function AutomationPage() {
           >
             🗑️ Delete Node
           </button>
+        </div>
+      )}
+
+      {/* Credential Setup Modal */}
+      {credService && (
+        <CredentialSetupModal
+          service={credService}
+          tk={tk}
+          onClose={() => setCredService(null)}
+          onSaved={(provider) => {
+            connectedProvidersRef.current = new Set([...connectedProvidersRef.current, provider]);
+            setCredService(null);
+          }}
+        />
+      )}
+
+      {/* Bulk Run Modal */}
+      {isBulkRunOpen && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(8px)' }}>
+          <div className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ background: tk.modalBg, border: `1px solid ${tk.modalBorder}`, maxHeight: '85vh' }}>
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: `1px solid ${tk.divider}` }}>
+              <div>
+                <h3 className="text-sm font-bold" style={{ color: tk.textPrimary }}>Bulk Run Workflow: {wfName}</h3>
+                <p className="text-[10px] mt-0.5" style={{ color: tk.textMuted }}>Execute the current visual canvas flow on a contact list</p>
+              </div>
+              <button onClick={() => !bulkExecuting && setIsBulkRunOpen(false)} disabled={bulkExecuting} className="w-7 h-7 flex items-center justify-center rounded-lg" style={{ color: tk.textMuted }}
+                onMouseEnter={e => (e.currentTarget.style.background = tk.hoverBg)}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="px-5 py-4 overflow-y-auto flex-1 space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wide mb-1.5" style={{ color: tk.textSecondary }}>Select Contact List</label>
+                <select disabled={bulkExecuting} value={selectedListId} onChange={e => setSelectedListId(e.target.value)}
+                  style={{ background: tk.inputBg, borderColor: tk.inputBorder, color: tk.inputText }}
+                  className="w-full rounded-lg px-3 py-2 text-sm border focus:outline-none focus:ring-1 focus:ring-orange-500/30 transition-all">
+                  <option value="">— Select a contact list —</option>
+                  {contactLists.map(l => (
+                    <option key={l.id} value={l.id}>{l.name} ({l.contact_count || 0} contacts)</option>
+                  ))}
+                </select>
+              </div>
+
+              {bulkTotal > 0 && (
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-semibold" style={{ color: tk.textPrimary }}>
+                    <span>Progress: {bulkCurrent} / {bulkTotal}</span>
+                    <span>{Math.round((bulkCurrent / bulkTotal) * 100)}%</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+                    <div className="h-full bg-orange-500 transition-all duration-300" style={{ width: `${(bulkCurrent / bulkTotal) * 100}%` }} />
+                  </div>
+                  <div className="flex gap-4 text-xs font-semibold">
+                    <span className="text-emerald-500">✓ Success: {bulkSuccessCount}</span>
+                    <span className="text-red-500">✕ Errors: {bulkErrorCount}</span>
+                  </div>
+                </div>
+              )}
+
+              {bulkLogs.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="block text-[10px] font-bold uppercase tracking-wide" style={{ color: tk.textSecondary }}>Execution Log</span>
+                  <div className="p-3 rounded-lg border font-mono text-[10px] leading-normal h-44 overflow-y-auto space-y-1"
+                    style={{ background: tk.inputBg, borderColor: tk.inputBorder, color: tk.inputText }}>
+                    {bulkLogs.map((log, idx) => (
+                      <p key={idx} className={log.startsWith('✕') ? 'text-red-400' : log.startsWith('✓') ? 'text-emerald-400' : ''}>{log}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex gap-2 px-5 py-4 flex-shrink-0" style={{ borderTop: `1px solid ${tk.divider}` }}>
+              <button disabled={bulkExecuting} onClick={() => setIsBulkRunOpen(false)} className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
+                style={{ color: tk.textSecondary, border: `1px solid ${tk.divider}` }}
+                onMouseEnter={e => (e.currentTarget.style.background = tk.hoverBg)}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                Cancel
+              </button>
+              <button disabled={bulkExecuting || !selectedListId} onClick={handleBulkExecute}
+                className="flex-1 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                style={{ background: '#F97316' }}>
+                {bulkExecuting ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+                Run Workflow
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Test Run Select Lead Modal */}
+      {isTestRunModalOpen && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(8px)' }}>
+          <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ background: tk.modalBg, border: `1px solid ${tk.modalBorder}` }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0" style={{ borderBottomColor: tk.divider }}>
+              <div>
+                <h3 className="text-sm font-bold" style={{ color: tk.textPrimary }}>Select Lead for Test Run</h3>
+                <p className="text-[10px] mt-0.5" style={{ color: tk.textMuted }}>Choose a lead to test this workflow</p>
+              </div>
+              <button onClick={() => setIsTestRunModalOpen(false)} className="w-7 h-7 flex items-center justify-center rounded-lg" style={{ color: tk.textMuted }}
+                onMouseEnter={e => (e.currentTarget.style.background = tk.hoverBg)}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <X size={14} />
+              </button>
+            </div>
+            
+            <div className="px-5 py-4 overflow-y-auto flex-grow space-y-4" style={{ maxHeight: '60vh' }}>
+              <p className="text-xs leading-relaxed" style={{ color: tk.textSecondary }}>
+                Choose a contact lead from the CRM database (sent by sales team or configured in campaigns/lists) to execute this visual workflow simulation:
+              </p>
+              
+              <div className="relative">
+                <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: tk.textMuted }} />
+                <input
+                  type="text"
+                  placeholder="Search leads by name or email..."
+                  value={leadSearchQuery}
+                  onChange={e => setLeadSearchQuery(e.target.value)}
+                  style={{ background: tk.inputBg, borderColor: tk.inputBorder, color: tk.inputText }}
+                  className="w-full pl-8 pr-3 py-2 rounded-lg text-xs border focus:outline-none focus:border-orange-500/50 transition-all"
+                />
+              </div>
+
+              <div className="border rounded-lg overflow-y-auto divide-y" style={{ borderColor: tk.divider, background: tk.inputBg, maxHeight: '240px' }}>
+                {loadingLeads ? (
+                  <div className="p-4 text-center text-xs" style={{ color: tk.textMuted }}>Loading leads...</div>
+                ) : filteredLeads.length === 0 ? (
+                  <div className="p-4 text-center text-xs" style={{ color: tk.textMuted }}>No leads found</div>
+                ) : (
+                  filteredLeads.map(lead => (
+                    <div
+                      key={lead.id}
+                      onClick={() => setSelectedLeadForTest(lead)}
+                      style={{
+                        background: selectedLeadForTest?.id === lead.id ? tk.activeItemBg : 'transparent',
+                        borderLeft: selectedLeadForTest?.id === lead.id ? '3px solid #F97316' : '3px solid transparent',
+                        cursor: 'pointer'
+                      }}
+                      className="px-3 py-2.5 text-xs transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 flex flex-col gap-0.5"
+                    >
+                      <div className="font-bold flex justify-between">
+                        <span style={{ color: tk.textPrimary }}>{lead.name || 'Unnamed Lead'}</span>
+                        <span className="font-semibold px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider" style={{ background: 'rgba(249,115,22,0.1)', color: '#F97316' }}>{lead.status}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px]" style={{ color: tk.textMuted }}>
+                        <span>{lead.email || 'No email'}</span>
+                        <span>{lead.source || 'Direct'}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-2 px-5 py-4 border-t flex-shrink-0" style={{ borderTopColor: tk.divider }}>
+              <button onClick={() => setIsTestRunModalOpen(false)} className="flex-1 py-2 rounded-xl text-xs font-semibold" style={{ color: tk.textSecondary, border: `1px solid ${tk.divider}` }}>
+                Cancel
+              </button>
+              <button
+                disabled={!selectedLeadForTest || isExecuting}
+                onClick={() => {
+                  setIsTestRunModalOpen(false);
+                  executeTestRun(selectedLeadForTest);
+                }}
+                className="flex-1 py-2 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                style={{ background: '#F97316' }}
+              >
+                <Play size={12} />
+                Run Test Simulation
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>

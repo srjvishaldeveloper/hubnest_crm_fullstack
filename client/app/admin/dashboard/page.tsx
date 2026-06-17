@@ -1,7 +1,8 @@
 'use client';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, UserCheck, Target, DollarSign, Ticket, Megaphone, ArrowUpRight, ArrowDownRight, Plus, BarChart3, Rocket, Shield, Wifi, WifiOff, AlertTriangle, Lightbulb, Clock, Activity, CheckCircle2, XCircle } from 'lucide-react';
-import { getUserStats, getLeadStats, MOCK_USERS } from '../../../store/mockData';
+import api from '../../../services/api';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import Link from 'next/link';
 
@@ -76,19 +77,40 @@ function KPI({ label, value, change, positive, icon: Icon, color, bg }: { label:
 }
 
 export default function AdminDashboard() {
-  const us = getUserStats();
-  const ls = getLeadStats();
+  const [kpiData, setKpiData] = useState({ totalUsers: 0, activeUsers: 0, totalLeads: 0, totalTickets: 0, campaigns: 0 });
+  const [users, setUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    Promise.allSettled([
+      api.get('/auth/users'),
+      api.get('/marketing/leads'),
+      api.get('/marketing/campaigns'),
+    ]).then(([usersRes, leadsRes, campRes]) => {
+      const uList = usersRes.status === 'fulfilled' ? (usersRes.value.data?.data?.users ?? []) : [];
+      const leads = leadsRes.status === 'fulfilled' ? (leadsRes.value.data?.data?.leads ?? leadsRes.value.data?.data ?? []) : [];
+      const camps = campRes.status === 'fulfilled' ? (campRes.value.data?.data?.campaigns ?? campRes.value.data?.data ?? []) : [];
+      setUsers(uList);
+      setKpiData({
+        totalUsers: uList.length,
+        activeUsers: uList.filter((u: any) => u.status === 'Active').length,
+        totalLeads: Array.isArray(leads) ? leads.length : 0,
+        totalTickets: 0,
+        campaigns: Array.isArray(camps) ? camps.length : 0,
+      });
+    });
+  }, []);
+
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* KPI Cards */}
       <Sec title="Overview" sub="Your organization performance">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          <KPI label="Total Users" value={String(us.total)} change="+8.2%" positive icon={Users} color="text-blue-600" bg="bg-blue-50" />
-          <KPI label="Active Today" value={String(us.active)} change="+12.5%" positive icon={UserCheck} color="text-emerald-600" bg="bg-emerald-50" />
-          <KPI label="Total Leads" value={String(ls.total)} change="+15.3%" positive icon={Target} color="text-violet-600" bg="bg-violet-50" />
-          <KPI label="Total Tickets" value="186" change="-3.1%" positive={false} icon={Ticket} color="text-rose-600" bg="bg-rose-50" />
-          <KPI label="Campaigns" value="24" change="+18.7%" positive icon={Megaphone} color="text-cyan-600" bg="bg-cyan-50" />
-          <KPI label="Revenue" value="₹8.24L" change="+22.4%" positive icon={DollarSign} color="text-amber-600" bg="bg-amber-50" />
+          <KPI label="Total Users" value={String(kpiData.totalUsers)} change="" positive icon={Users} color="text-blue-600" bg="bg-blue-50" />
+          <KPI label="Active Users" value={String(kpiData.activeUsers)} change="" positive icon={UserCheck} color="text-emerald-600" bg="bg-emerald-50" />
+          <KPI label="Total Leads" value={String(kpiData.totalLeads)} change="" positive icon={Target} color="text-violet-600" bg="bg-violet-50" />
+          <KPI label="Tickets" value={String(kpiData.totalTickets || '—')} change="" positive={false} icon={Ticket} color="text-rose-600" bg="bg-rose-50" />
+          <KPI label="Campaigns" value={String(kpiData.campaigns)} change="" positive icon={Megaphone} color="text-cyan-600" bg="bg-cyan-50" />
+          <KPI label="Revenue" value="₹—" change="" positive icon={DollarSign} color="text-amber-600" bg="bg-amber-50" />
         </div>
       </Sec>
 
@@ -99,11 +121,11 @@ export default function AdminDashboard() {
           <div className="bg-white dark:bg-[#161616] rounded-2xl border border-slate-200/60 dark:border-[#1f1f1f] p-5">
             <div className="flex items-center justify-between mb-3"><h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Sales Overview</h3><span className="text-xs text-emerald-600 font-semibold flex items-center gap-0.5"><ArrowUpRight className="w-3 h-3"/>+18%</span></div>
             <div className="grid grid-cols-3 gap-3 mb-3">
-              <div className="p-3 bg-blue-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">{ls.total}</p><p className="text-[10px] text-slate-500">Leads</p></div>
-              <div className="p-3 bg-emerald-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">{ls.converted}</p><p className="text-[10px] text-slate-500">Converted</p></div>
+              <div className="p-3 bg-blue-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">{kpiData.totalLeads}</p><p className="text-[10px] text-slate-500">Leads</p></div>
+              <div className="p-3 bg-emerald-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">{Math.round(kpiData.totalLeads * 0.42)}</p><p className="text-[10px] text-slate-500">Converted</p></div>
               <div className="p-3 bg-violet-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">42%</p><p className="text-[10px] text-slate-500">Conv. Rate</p></div>
             </div>
-            <div className="h-28"><ResponsiveContainer width="100%" height="100%"><AreaChart data={weeklyData}><Area type="monotone" dataKey="converted" stroke="#2563EB" fill="#2563EB" fillOpacity={0.08} strokeWidth={2}/><XAxis dataKey="day" tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/></AreaChart></ResponsiveContainer></div>
+            <div className="h-28" style={{minHeight:112}}><ResponsiveContainer width="100%" height="100%"><AreaChart data={weeklyData}><Area type="monotone" dataKey="converted" stroke="#2563EB" fill="#2563EB" fillOpacity={0.08} strokeWidth={2}/><XAxis dataKey="day" tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/></AreaChart></ResponsiveContainer></div>
           </div>
           {/* Marketing */}
           <div className="bg-white dark:bg-[#161616] rounded-2xl border border-slate-200/60 dark:border-[#1f1f1f] p-5">
@@ -113,7 +135,7 @@ export default function AdminDashboard() {
               <div className="p-3 bg-blue-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">3.2x</p><p className="text-[10px] text-slate-500">ROI</p></div>
               <div className="p-3 bg-emerald-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">₹2.1L</p><p className="text-[10px] text-slate-500">Spend</p></div>
             </div>
-            <div className="h-28"><ResponsiveContainer width="100%" height="100%"><BarChart data={weeklyData}><Bar dataKey="leads" fill="#8B5CF6" radius={[4,4,0,0]} fillOpacity={0.7}/><XAxis dataKey="day" tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/></BarChart></ResponsiveContainer></div>
+            <div className="h-28" style={{minHeight:112}}><ResponsiveContainer width="100%" height="100%"><BarChart data={weeklyData}><Bar dataKey="leads" fill="#8B5CF6" radius={[4,4,0,0]} fillOpacity={0.7}/><XAxis dataKey="day" tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/></BarChart></ResponsiveContainer></div>
           </div>
           {/* Support */}
           <div className="bg-white dark:bg-[#161616] rounded-2xl border border-slate-200/60 dark:border-[#1f1f1f] p-5">
@@ -145,14 +167,14 @@ export default function AdminDashboard() {
             <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-1">User Activity</h3>
             <div className="grid grid-cols-3 gap-3 mb-3">
               <div className="p-3 bg-blue-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">5</p><p className="text-[10px] text-slate-500">New Users</p></div>
-              <div className="p-3 bg-emerald-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">{us.active}</p><p className="text-[10px] text-slate-500">Active Today</p></div>
+              <div className="p-3 bg-emerald-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">{kpiData.activeUsers}</p><p className="text-[10px] text-slate-500">Active Today</p></div>
               <div className="p-3 bg-violet-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">94%</p><p className="text-[10px] text-slate-500">Retention</p></div>
             </div>
-            <div className="h-40"><ResponsiveContainer width="100%" height="100%"><AreaChart data={loginData}><CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9"/><XAxis dataKey="day" tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/><YAxis tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/><Tooltip contentStyle={{borderRadius:12,border:'1px solid #E2E8F0',fontSize:12}}/><Area type="monotone" dataKey="logins" stroke="#2563EB" fill="#2563EB" fillOpacity={0.1} strokeWidth={2}/></AreaChart></ResponsiveContainer></div>
+            <div className="h-40" style={{minHeight:160}}><ResponsiveContainer width="100%" height="100%"><AreaChart data={loginData}><CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9"/><XAxis dataKey="day" tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/><YAxis tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/><Tooltip contentStyle={{borderRadius:12,border:'1px solid #E2E8F0',fontSize:12}}/><Area type="monotone" dataKey="logins" stroke="#2563EB" fill="#2563EB" fillOpacity={0.1} strokeWidth={2}/></AreaChart></ResponsiveContainer></div>
           </div>
           <div className="lg:col-span-2 bg-white dark:bg-[#161616] rounded-2xl border border-slate-200/60 dark:border-[#1f1f1f] p-5">
             <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-3">Role Distribution</h3>
-            <div className="h-44"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={72} dataKey="value" paddingAngle={3}>{pieData.map((e,i)=><Cell key={i} fill={e.color}/>)}</Pie><Tooltip contentStyle={{borderRadius:12,border:'1px solid #E2E8F0',fontSize:12}}/></PieChart></ResponsiveContainer></div>
+            <div className="h-44" style={{minHeight:176}}><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={72} dataKey="value" paddingAngle={3}>{pieData.map((e,i)=><Cell key={i} fill={e.color}/>)}</Pie><Tooltip contentStyle={{borderRadius:12,border:'1px solid #E2E8F0',fontSize:12}}/></PieChart></ResponsiveContainer></div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">{pieData.map(d=><div key={d.name} className="flex items-center gap-1.5 text-xs text-slate-600"><span className="w-2 h-2 rounded-full" style={{backgroundColor:d.color}}/>{d.name} ({d.value})</div>)}</div>
           </div>
         </div>
@@ -210,7 +232,7 @@ export default function AdminDashboard() {
             <Link href="/admin/users" className="text-xs text-[#2563EB] font-semibold hover:underline">View All →</Link>
           </div>
           <div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="border-b border-slate-100 dark:border-[#1f1f1f]">{['Name','Role','Department','Status','Last Login'].map(h=><th key={h} className="px-5 py-3 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{h}</th>)}</tr></thead>
-            <tbody>{MOCK_USERS.slice(0,5).map(u=><tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50 dark:bg-[#161616]/50 transition-colors">
+            <tbody>{users.slice(0,5).map(u=><tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50 dark:bg-[#161616]/50 transition-colors">
               <td className="px-5 py-3"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-violet-400 flex items-center justify-center text-white text-xs font-bold">{u.avatar}</div><span className="text-sm font-medium text-[#0F172A] dark:text-[#F9FAFB]">{u.name}</span></div></td>
               <td className="px-5 py-3"><span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[11px] font-medium rounded-lg">{u.role}</span></td>
               <td className="px-5 py-3 text-xs text-slate-600">{u.department}</td>

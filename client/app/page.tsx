@@ -23,7 +23,7 @@ const ROLE_DASHBOARDS: Record<string, string> = {
   'Sales Executive': '/sales-executive/dashboard',
   'Support Manager': '/support/dashboard',
   'Support Agent': '/support/dashboard',
-  'Finance Executive': '/finance/dashboard',
+  'Finance Executive': '/finance',
 };
 
 export default function LandingPage() {

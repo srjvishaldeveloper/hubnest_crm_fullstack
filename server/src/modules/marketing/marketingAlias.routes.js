@@ -32,6 +32,7 @@ router.get('/lists', authorize('campaigns', 'read'), ctrl.listContactLists);
 router.post('/lists', authorize('campaigns', 'create'), ctrl.createContactList);
 router.delete('/lists/:id', authorize('campaigns', 'delete'), ctrl.deleteContactList);
 router.post('/lists/import', authorize('campaigns', 'create'), ctrl.importContacts);
+router.get('/lists/:id/contacts', authorize('campaigns', 'read'), ctrl.getContactListContacts);
 
 // Audience Segments
 router.get('/segments', authorize('campaigns', 'read'), ctrl.listSegments);

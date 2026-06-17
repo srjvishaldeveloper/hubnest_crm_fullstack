@@ -46,14 +46,33 @@ async function downloadInvoice(req, res) {
   if (!result) return sendError(res, 'Invoice not found', 404);
 
   const inv = result.invoice || result;
+
+  // Parse metadata stored as JSON in notes if present
+  let meta = {};
+  try { if (inv.notes) meta = JSON.parse(inv.notes); } catch { /* plain text notes */ }
+
   const pdfBuffer = generateInvoicePdf({
-    invoiceNumber: inv.invoice_number,
-    tenantName: inv.customer_name,
-    amount: inv.total || inv.amount,
-    currency: 'INR',
-    status: inv.status,
-    issuedDate: inv.created_at,
-    dueDate: inv.due_date,
+    invoiceNumber:   inv.invoice_number,
+    customerName:    inv.customer_name,
+    sellerName:      meta.sellerName     || '',
+    sellerGstin:     meta.sellerGstin    || '',
+    sellerAddress:   meta.sellerAddress  || '',
+    customerGstin:   meta.customerGstin  || '',
+    customerAddress: meta.customerAddress|| '',
+    subTotal:        parseFloat(inv.amount) || 0,
+    totalCgst:       meta.totalCgst      || 0,
+    totalSgst:       meta.totalSgst      || 0,
+    totalIgst:       meta.totalIgst      || 0,
+    tax:             parseFloat(inv.tax) || 0,
+    grandTotal:      parseFloat(inv.total) || 0,
+    status:          inv.status,
+    issuedDate:      inv.created_at,
+    dueDate:         inv.due_date,
+    bankName:        meta.bankName   || '',
+    accountNo:       meta.accountNo  || '',
+    ifsc:            meta.ifsc       || '',
+    notes:           inv.notes,
+    template:        meta.template   || 'modern',
   });
 
   const filename = `invoice_${inv.invoice_number || req.params.id}.pdf`;
@@ -63,6 +82,30 @@ async function downloadInvoice(req, res) {
     'Content-Length': pdfBuffer.length,
   });
   return res.end(pdfBuffer);
+}
+
+// Public — no auth required
+async function getPublicInvoice(req, res) {
+  try {
+    const inv = await svc.getInvoiceByNumber(req.params.number);
+    if (!inv) return sendError(res, 'Invoice not found', 404);
+    // Only expose safe fields to public
+    return sendSuccess(res, {
+      invoice_number: inv.invoice_number,
+      customer_name: inv.customer_name,
+      amount: inv.amount,
+      tax: inv.tax,
+      total: inv.total,
+      status: inv.status,
+      due_date: inv.due_date,
+      created_at: inv.created_at,
+      paid_date: inv.paid_date,
+      tenant_name: inv.tenant_name,
+      notes: inv.notes || null,
+    }, 'Invoice retrieved');
+  } catch (err) {
+    return sendError(res, 'Failed to fetch invoice', 500);
+  }
 }
 
 // ─── PAYMENTS ─────────────────────────────────────────────────────────────────
@@ -86,6 +129,12 @@ async function createPayment(req, res) {
   }
   const payment = await svc.createPayment(req.user.tenant_id, req.body);
   return sendSuccess(res, { payment }, 'Payment recorded successfully', 201);
+}
+
+async function deletePayment(req, res) {
+  const payment = await svc.deletePayment(req.user.tenant_id, req.params.id);
+  if (!payment) return sendError(res, 'Payment not found', 404);
+  return sendSuccess(res, { payment }, 'Payment deleted');
 }
 
 // ─── EXPENSES ─────────────────────────────────────────────────────────────────
@@ -115,6 +164,12 @@ async function updateExpense(req, res) {
   const expense = await svc.updateExpense(req.user.tenant_id, req.params.id, req.body);
   if (!expense) return sendError(res, 'Expense not found or no updates provided', 404);
   return sendSuccess(res, { expense }, 'Expense updated successfully');
+}
+
+async function deleteExpense(req, res) {
+  const expense = await svc.deleteExpense(req.user.tenant_id, req.params.id);
+  if (!expense) return sendError(res, 'Expense not found', 404);
+  return sendSuccess(res, { expense }, 'Expense deleted');
 }
 
 // ─── VENDORS ──────────────────────────────────────────────────────────────────
@@ -192,11 +247,14 @@ module.exports = {
   createInvoice,
   updateInvoice,
   downloadInvoice,
+  getPublicInvoice,
   listPayments,
   createPayment,
+  deletePayment,
   listExpenses,
   createExpense,
   updateExpense,
+  deleteExpense,
   listVendors,
   getVendor,
   createVendor,

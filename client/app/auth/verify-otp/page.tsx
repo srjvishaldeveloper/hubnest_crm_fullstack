@@ -175,7 +175,7 @@ function VerifyOtpForm() {
         'Sales Executive':    '/sales/dashboard',
         'Support Manager':    '/support/dashboard',
         'Support Agent':      '/support/dashboard',
-        'Finance Executive':  '/finance/dashboard',
+        'Finance Executive':  '/finance',
       };
       router.replace(ROLE_DASHBOARDS[role] ?? '/dashboard');
     } catch (err: unknown) {

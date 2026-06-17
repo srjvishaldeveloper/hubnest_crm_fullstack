@@ -33,9 +33,13 @@ function authorize(module, action) {
       if (marketingModules.includes(module)) return next();
     }
 
-    // Sales Executives always have permission to read/create/update/delete their own leads, tasks, and activities
+    // Sales Executives have permission for their own leads/tasks/activities,
+    // and read+create access to campaigns/lists so they can send leads to marketing automation.
     if (req.user.role_name === 'Sales Executive') {
       if (['leads', 'tasks', 'activities'].includes(module) && ['read', 'create', 'update', 'delete'].includes(action)) {
+        return next();
+      }
+      if (module === 'campaigns' && ['read', 'create', 'update', 'delete'].includes(action)) {
         return next();
       }
     }

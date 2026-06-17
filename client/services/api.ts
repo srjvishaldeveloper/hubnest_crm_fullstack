@@ -38,23 +38,6 @@ api.interceptors.response.use(
     const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
     if (error.response?.status !== 401 || original._retry) {
-      const status = error.response?.status;
-      const data = error.response?.data as any;
-      const message = data?.message || data?.error || '';
-
-      if (typeof window !== 'undefined') {
-        if (!error.response) {
-          alert('Check your connection');
-        } else if (status === 400) {
-          alert(message || 'Validation failed');
-        } else if (status === 403) {
-          alert('Access denied');
-        } else if (status === 409) {
-          alert(message || 'Already exists');
-        } else if (status && status >= 500) {
-          alert('Something went wrong. Try again.');
-        }
-      }
       return Promise.reject(error);
     }
 

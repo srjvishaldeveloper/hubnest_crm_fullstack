@@ -6,7 +6,7 @@ import {
   Search, Filter, Download, Users, TrendingUp, CheckCircle2,
   MoreVertical, Mail, Phone, Star, Sparkles, AlertTriangle,
   ChevronDown, ArrowUpRight, UserPlus, Upload, FileText,
-  BarChart3, ChevronRight, Layers, Loader2,
+  BarChart3, ChevronRight, Layers, Loader2, X, Check, Send,
 } from 'lucide-react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell,
@@ -102,6 +102,8 @@ function LoadingSpinner() {
 
 // ─── Main Page ────────────────────────────────────────────────
 
+interface SalesUser { id: string; name: string; email: string; active_leads: number; }
+
 export default function LeadsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
@@ -109,23 +111,49 @@ export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [salesUsers, setSalesUsers] = useState<SalesUser[]>([]);
+  const [assignModal, setAssignModal] = useState<Lead | null>(null);
+  const [assignTarget, setAssignTarget] = useState('');
+  const [assigning, setAssigning] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
 
-  useEffect(() => {
-    async function fetchLeads() {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await api.get('/marketing/leads');
-        const data = res.data?.data || res.data?.leads || res.data || [];
-        setLeads(Array.isArray(data) ? data : []);
-      } catch (err: any) {
-        setError('Failed to load leads');
-      } finally {
-        setLoading(false);
-      }
+  async function fetchLeads() {
+    setLoading(true);
+    setError('');
+    try {
+      const [leadsRes, usersRes] = await Promise.all([
+        api.get('/marketing/leads'),
+        api.get('/marketing/leads/sales-users').catch(() => ({ data: { data: { users: [] } } })),
+      ]);
+      const data = leadsRes.data?.data?.leads || leadsRes.data?.leads || [];
+      setLeads(Array.isArray(data) ? data : []);
+      setSalesUsers(usersRes.data?.data?.users || []);
+    } catch {
+      setError('Failed to load leads');
+    } finally {
+      setLoading(false);
     }
-    fetchLeads();
-  }, []);
+  }
+
+  useEffect(() => { fetchLeads(); }, []);
+
+  async function handleAssign() {
+    if (!assignModal || !assignTarget) return;
+    setAssigning(true);
+    try {
+      await api.post('/marketing/leads/assign', { leadIds: [assignModal.id], assignedTo: assignTarget });
+      const user = salesUsers.find(u => u.id === assignTarget);
+      setSuccessMsg(`${assignModal.name} assigned to ${user?.name}`);
+      setTimeout(() => setSuccessMsg(''), 3000);
+      setAssignModal(null);
+      setAssignTarget('');
+      fetchLeads();
+    } catch {
+      setError('Assignment failed');
+    } finally {
+      setAssigning(false);
+    }
+  }
 
   const filtered = leads.filter(l => {
     const matchSearch = l.name?.toLowerCase().includes(search.toLowerCase())
@@ -243,6 +271,11 @@ export default function LeadsPage() {
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">{error}</div>
       )}
+      {successMsg && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-700 font-medium flex items-center gap-2">
+          <Check className="w-3.5 h-3.5" /> {successMsg}
+        </div>
+      )}
 
       {/* ── Stats ── */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
@@ -342,9 +375,15 @@ export default function LeadsPage() {
                                   exit={{ opacity: 0, scale: 0.95 }}
                                   className="absolute right-0 top-6 w-36 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-20"
                                 >
-                                  {['View Details', 'Edit Lead', 'Assign To', 'Mark Converted', 'Delete'].map(a => (
-                                    <button key={a} onClick={() => setMenuOpen(null)} className="w-full text-left px-3 py-1.5 text-[11px] text-slate-700 hover:bg-slate-50 dark:bg-[#161616]">
-                                      {a}
+                                  {[
+                                    { label: 'View Details', action: () => {} },
+                                    { label: 'Edit Lead', action: () => {} },
+                                    { label: 'Assign To Sales', action: () => { setAssignModal(l as any); setAssignTarget(''); } },
+                                    { label: 'Mark Converted', action: async () => { await api.patch(`/marketing/leads/${l.id}`, { status: 'Converted' }).catch(()=>{}); fetchLeads(); } },
+                                  ].map(({ label, action }) => (
+                                    <button key={label} onClick={() => { setMenuOpen(null); action(); }}
+                                      className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-slate-50 dark:bg-[#161616] ${label === 'Assign To Sales' ? 'text-indigo-600 font-semibold' : 'text-slate-700'}`}>
+                                      {label}
                                     </button>
                                   ))}
                                 </motion.div>
@@ -568,6 +607,60 @@ export default function LeadsPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Assign Modal ── */}
+      <AnimatePresence>
+        {assignModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
+              className="bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 w-full max-w-sm"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-black text-slate-800">Assign to Sales</h3>
+                <button onClick={() => setAssignModal(null)} className="p-1.5 hover:bg-slate-100 rounded-lg transition">
+                  <X className="w-4 h-4 text-slate-400" />
+                </button>
+              </div>
+              <div className="mb-4 p-3 bg-slate-50 rounded-xl">
+                <p className="text-xs font-bold text-slate-700">{assignModal.name}</p>
+                <p className="text-[10px] text-slate-400">{assignModal.email}</p>
+              </div>
+              <div className="mb-4">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Assign to Sales Rep</label>
+                {salesUsers.length === 0 ? (
+                  <p className="text-xs text-slate-400 p-3 bg-slate-50 rounded-xl">No sales users found. Add users with Sales Executive role first.</p>
+                ) : (
+                  <select
+                    value={assignTarget}
+                    onChange={e => setAssignTarget(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 outline-none focus:border-indigo-400"
+                  >
+                    <option value="">Select sales rep...</option>
+                    {salesUsers.map((u: SalesUser) => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.active_leads} active leads)</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setAssignModal(null)} className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition">Cancel</button>
+                <button
+                  onClick={handleAssign}
+                  disabled={!assignTarget || assigning || salesUsers.length === 0}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 rounded-xl text-xs font-bold text-white disabled:opacity-50 hover:bg-indigo-700 transition"
+                >
+                  {assigning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  {assigning ? 'Assigning...' : 'Assign Lead'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

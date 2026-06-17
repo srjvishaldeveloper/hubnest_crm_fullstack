@@ -1,6 +1,7 @@
 const svc = require('./marketing.service');
 const { sendSuccess, sendError } = require('../../utils/helpers');
 const axios = require('axios');
+const nodemailer = require('nodemailer');
 
 // Microservice endpoints config
 const SERVICES = {
@@ -62,8 +63,13 @@ async function bulkAssignLeads(req, res) {
   if (!Array.isArray(leadIds) || !leadIds.length || !assignedTo) {
     return sendError(res, 'leadIds array and assignedTo are required', 400);
   }
-  const result = await svc.bulkAssignLeads(req.user.tenant_id, leadIds, assignedTo);
+  const result = await svc.bulkAssignLeads(req.user.tenant_id, leadIds, assignedTo, req.user.id);
   sendSuccess(res, result, 'Leads assigned');
+}
+
+async function listSalesUsers(req, res) {
+  const users = await svc.listSalesUsers(req.user.tenant_id);
+  sendSuccess(res, { users });
 }
 
 async function getDashboardAnalytics(req, res) {
@@ -163,8 +169,32 @@ async function updateWorkflow(req, res) {
 }
 
 async function executeWorkflow(req, res) {
-  const run = await svc.triggerWorkflowRun(req.user.tenant_id, req.params.id);
-  sendSuccess(res, { run }, 'Workflow execution started');
+  const { nodes: reqNodes, edges: _edges, contact } = req.body || {};
+  const tenantId = req.user.tenant_id;
+
+  // Create a run record so execution is tracked
+  const run = await svc.triggerWorkflowRun(tenantId, req.params.id);
+
+  // Use nodes sent from frontend (current canvas state), fall back to saved workflow
+  const workflowNodes = Array.isArray(reqNodes) && reqNodes.length > 0
+    ? reqNodes
+    : (await svc.getWorkflow(tenantId, req.params.id))?.nodes || [];
+
+  // Execute each node with real service calls
+  const results = {};
+  for (const node of workflowNodes) {
+    const nodeId = node.id;
+    const startMs = Date.now();
+    try {
+      const result = await svc.executeNode(tenantId, node, contact || {});
+      results[nodeId] = { ...result, duration: Date.now() - startMs };
+    } catch (err) {
+      const label = node.data?.label || node.label || 'Node';
+      results[nodeId] = { status: 'error', message: err.message || `${label} failed`, duration: Date.now() - startMs };
+    }
+  }
+
+  sendSuccess(res, { run, results }, 'Workflow execution completed');
 }
 
 async function deleteWorkflow(req, res) {
@@ -319,28 +349,75 @@ async function deleteWebhook(req, res) {
 
 async function sendCampaign(req, res) {
   const { id } = req.params;
-  const { tenantId = req.user.tenant_id } = {};
+  const tenantId = req.user.tenant_id;
   try {
     const campaign = await svc.getCampaignById(tenantId, id);
     if (!campaign) return sendError(res, 'Campaign not found', 404);
 
-    // Get contacts for the campaign's list
     const contacts = await svc.getCampaignContacts(tenantId, id);
     if (!contacts.length) return sendError(res, 'No contacts found for this campaign', 400);
 
-    // Queue logs as 'queued' initially
     await svc.queueCampaignLogs(tenantId, id, contacts.map(c => c.id));
-
-    // Update campaign status to Sending
     await svc.updateCampaign(tenantId, id, { status: 'Sending' });
 
+    // Respond immediately so the client isn't left waiting
     sendSuccess(res, {
       queued: contacts.length,
       campaignId: id,
       status: 'Sending',
-    }, `Campaign queued for ${contacts.length} contacts`);
+    }, `Campaign sending to ${contacts.length} contacts`);
+
+    // ── Dispatch emails in background after response ──────────────────────────
+    const content = campaign.content || {};
+    const subject = content.subject || campaign.name || 'Campaign Message';
+    const htmlBody = content.body || content.html || `<p>${content.text || 'No content provided.'}</p>`;
+    const fromName = content.from_name || 'HubNest CRM';
+
+    // Prefer per-tenant SMTP credentials saved in Integrations, fall back to env
+    const savedSmtp = await svc.getRawCredentials(tenantId, 'smtp');
+    const smtpUser = savedSmtp?.user || process.env.SMTP_USER;
+    const smtpPass = savedSmtp?.pass || process.env.SMTP_PASS;
+    const smtpHost = savedSmtp?.host || process.env.SMTP_HOST || 'smtp.gmail.com';
+    const smtpPort = parseInt(savedSmtp?.port || process.env.SMTP_PORT || '587', 10);
+
+    if (!smtpUser || !smtpPass) {
+      await svc.updateCampaign(tenantId, id, { status: 'Failed' });
+      console.error('[Campaign Send] No SMTP credentials — set SMTP_USER/SMTP_PASS in .env or add via Integrations > SMTP');
+      return;
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: smtpHost, port: smtpPort,
+      secure: smtpPort === 465,
+      auth: { user: smtpUser, pass: smtpPass },
+    });
+
+    let sent = 0, failed = 0;
+    for (const contact of contacts) {
+      if (!contact.email) { failed++; continue; }
+      // Resolve {{first_name}} etc.
+      const personalHtml = htmlBody.replace(/\{\{(\w+)\}\}/g, (_, k) => contact[k] || '');
+      const personalSubject = subject.replace(/\{\{(\w+)\}\}/g, (_, k) => contact[k] || '');
+      try {
+        await transporter.sendMail({
+          from: `"${fromName}" <${smtpUser}>`,
+          to: contact.email,
+          subject: personalSubject,
+          html: personalHtml,
+        });
+        await svc.updateCampaignLogStatus(tenantId, id, contact.id, 'sent');
+        sent++;
+      } catch {
+        await svc.updateCampaignLogStatus(tenantId, id, contact.id, 'failed');
+        failed++;
+      }
+    }
+
+    await svc.updateCampaign(tenantId, id, { status: 'Completed', sent_count: sent });
+    console.log(`[Campaign Send] Campaign ${id} completed: ${sent} sent, ${failed} failed`);
   } catch (err) {
-    sendError(res, err.message, 500);
+    console.error('[Campaign Send] Error:', err.message);
+    try { await svc.updateCampaign(tenantId, id, { status: 'Failed' }); } catch {}
   }
 }
 
@@ -392,8 +469,12 @@ async function getIntegrationSettings(req, res) {
 async function upsertIntegrationSettings(req, res) {
   const { provider, credentials, enabled } = req.body;
   if (!provider) return sendError(res, 'provider is required', 400);
+  const creds = credentials || {};
+  // Reject if all values are empty (user submitted without filling anything)
+  const hasRealValue = Object.values(creds).some(v => v && String(v).trim().length > 0);
+  if (!hasRealValue) return sendError(res, 'Please fill in at least one credential field before saving', 422);
   try {
-    const settings = await svc.upsertIntegrationSettings(req.user.tenant_id, provider, credentials || {}, enabled !== false);
+    const settings = await svc.upsertIntegrationSettings(req.user.tenant_id, provider, creds, enabled !== false);
     sendSuccess(res, { settings }, 'Integration saved');
   } catch (err) {
     sendError(res, err.message, 500);
@@ -414,9 +495,12 @@ async function testIntegration(req, res) {
   const { provider } = req.params;
   try {
     const result = await svc.testIntegration(req.user.tenant_id, provider);
-    sendSuccess(res, result, result.success ? 'Connection successful' : 'Connection failed');
+    if (!result.success) {
+      return sendError(res, result.message || 'Connection failed', 422);
+    }
+    sendSuccess(res, { success: true, message: result.message, detail: result.detail }, 'Connection successful');
   } catch (err) {
-    sendError(res, err.message, 500);
+    sendError(res, err.message || 'Connection test failed', 500);
   }
 }
 
@@ -454,12 +538,12 @@ async function aiProxyHandler(req, res) {
 
 module.exports = {
   createCampaign, listCampaigns, getCampaign, updateCampaign, deleteCampaign,
-  listLeads, updateLead, bulkAssignLeads,
+  listLeads, updateLead, bulkAssignLeads, listSalesUsers,
   getIntegrationSettings, upsertIntegrationSettings, deleteIntegrationSettings, testIntegration,
   getDashboardAnalytics, getROIData,
   
   // Lists
-  listContactLists, createContactList, deleteContactList, importContacts,
+  listContactLists, createContactList, deleteContactList, importContacts, getContactListContacts,
   
   // Segments
   listSegments, createSegment, deleteSegment,
@@ -508,3 +592,15 @@ async function getCampaignTemplateById(req, res) {
   if (!tpl) return sendError(res, 'Template not found', 404);
   sendSuccess(res, { template: tpl });
 }
+
+async function getContactListContacts(req, res) {
+  try {
+    const listId = req.params.id;
+    const tenantId = req.user.tenant_id;
+    const contacts = await svc.getContactListContacts(tenantId, listId);
+    sendSuccess(res, { contacts });
+  } catch (err) {
+    sendError(res, err.message, 500);
+  }
+}
+

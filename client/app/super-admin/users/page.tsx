@@ -167,7 +167,7 @@ export default function SuperAdminUsersPage() {
         name: validatedData.name,
         email: validatedData.email,
         phone: validatedData.phone,
-        status: validatedData.status
+        status: validatedData.status,
       });
       if (res.data?.success) {
         setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, ...editForm, phone: validatedData.phone } : u));
@@ -454,8 +454,8 @@ export default function SuperAdminUsersPage() {
                   </div>
                   <div>
                     <label className="text-xs font-bold text-slate-500 mb-1 block">Status</label>
-                    <select 
-                      value={editForm.status} 
+                    <select
+                      value={editForm.status}
                       onChange={e => setEditForm(prev => ({ ...prev, status: e.target.value as UserStatus }))}
                       className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-[#1f1f1f] bg-slate-50 dark:bg-[#0a0a0a] text-slate-900 dark:text-[#ededed] outline-none focus:border-amber-500"
                     >

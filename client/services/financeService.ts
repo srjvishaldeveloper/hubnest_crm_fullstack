@@ -38,6 +38,8 @@ export const financeCreateInvoice = async (data: {
   total?: number;
   status?: string;
   due_date: string;
+  // Extended Indian GST fields (stored as metadata in notes column via JSON)
+  meta?: Record<string, unknown>;
 }) => {
   const res = await api.post(`${BASE}/invoices`, data);
   return res.data.data;
@@ -81,6 +83,11 @@ export const financeCreatePayment = async (data: {
   return res.data.data;
 };
 
+export const financeDeletePayment = async (id: string) => {
+  const res = await api.delete(`${BASE}/payments/${id}`);
+  return res.data.data;
+};
+
 // ─── EXPENSES ─────────────────────────────────────────────────────────────────
 export const financeGetExpenses = async (params?: {
   status?: string;
@@ -115,6 +122,11 @@ export const financeUpdateExpense = async (id: string, data: {
   expense_date?: string;
 }) => {
   const res = await api.patch(`${BASE}/expenses/${id}`, data);
+  return res.data.data;
+};
+
+export const financeDeleteExpense = async (id: string) => {
+  const res = await api.delete(`${BASE}/expenses/${id}`);
   return res.data.data;
 };
 

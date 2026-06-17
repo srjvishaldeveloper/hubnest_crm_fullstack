@@ -38,7 +38,7 @@ const ROLE_DASHBOARD: Record<string, string> = {
   'Marketing Executive':'/marketing/dashboard',
   'Support Manager':    '/support/dashboard',
   'Support Agent':      '/support/dashboard',
-  'Finance Executive':  '/finance/dashboard',
+  'Finance Executive':  '/finance',
 };
 
 function isPublicPath(pathname: string) {

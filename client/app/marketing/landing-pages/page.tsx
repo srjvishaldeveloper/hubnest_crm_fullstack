@@ -382,10 +382,13 @@ export default function LandingPagesPage() {
     e.preventDefault();
     setCreating(true);
     const templateContent = selectedTemplate?.content || '';
+    // Append timestamp suffix to ensure unique slug even with same template/name
+    const baseSlug = slug || pageName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const uniqueSlug = `${baseSlug}-${Date.now()}`;
     try {
       const res = await api.post('/marketing/pages', {
         title: pageName,
-        slug: slug || pageName.toLowerCase().replace(/\s+/g, '-'),
+        slug: uniqueSlug,
         status: 'Draft',
         content: { template: selectedTemplate?.id || 'blank', themeColor, html: templateContent },
         seo_settings: { title: seoTitle, description: seoDesc },
@@ -410,10 +413,11 @@ export default function LandingPagesPage() {
       setView('mypages');
       setBuilderModal(np);
       setBuilderContent(templateContent);
-    } catch {
+    } catch (err: any) {
+      // API error — still open builder with local fallback so user doesn't lose work
       const fallback: LandingPage = {
         id: `p-${Date.now()}`, name: pageName, title: pageName,
-        slug, campaign_id: campaignId || null, status: 'Draft',
+        slug: uniqueSlug, campaign_id: campaignId || null, status: 'Draft',
         visits: 0, conversions: 0,
         settings: { template: selectedTemplate?.id || 'blank', themeColor, content: templateContent } as any,
       };
@@ -448,7 +452,9 @@ export default function LandingPagesPage() {
   async function handleDuplicate(page: LandingPage) {
     setDuplicating(page.id);
     try {
-      const copy: LandingPage = { ...page, id: `p-${Date.now()}`, name: `${page.name} (Copy)`, title: `${page.title || page.name} (Copy)`, status: 'Draft' };
+      const ts = Date.now();
+      const baseSlug = (page.slug || page.name || 'page').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const copy: LandingPage = { ...page, id: `p-${ts}`, name: `${page.name} (Copy)`, title: `${page.title || page.name} (Copy)`, slug: `${baseSlug}-copy-${ts}`, status: 'Draft' };
       await api.post('/marketing/pages', copy);
       setPages([copy, ...pages]);
     } catch {

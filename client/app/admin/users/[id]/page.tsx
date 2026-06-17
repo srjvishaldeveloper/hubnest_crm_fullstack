@@ -1,8 +1,9 @@
 'use client';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Pencil, Ban, KeyRound, Trash2, Mail, Phone, Building2, Calendar, Clock, Target, TrendingUp, DollarSign, Activity, Briefcase, Shield, CheckCircle2, XCircle } from 'lucide-react';
-import { MOCK_USERS } from '../../../../store/mockData';
+import api from '../../../../services/api';
 
 /* Role-based permission labels */
 const ROLE_PERMISSIONS: Record<string, string[]> = {
@@ -18,8 +19,41 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 export default function UserDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const user = MOCK_USERS.find(u => u.id === id);
-  if (!user) return <div className="py-32 text-center"><p className="text-slate-500 text-sm">User not found</p><button onClick={() => router.back()} className="mt-4 text-sm text-[#2563EB] hover:underline">Go back</button></div>;
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/auth/users')
+      .then(res => {
+        const uList = res.data?.data?.users || [];
+        const found = uList.find((u: any) => String(u.id) === String(id));
+        setUser(found);
+      })
+      .catch(err => {
+        console.error('Failed to load user:', err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="py-32 text-center">
+        <span className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent inline-block"/>
+        <p className="text-sm text-slate-500 mt-3">Loading user details...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="py-32 text-center">
+        <p className="text-slate-500 text-sm">User not found</p>
+        <button onClick={() => router.back()} className="mt-4 text-sm text-[#2563EB] hover:underline">Go back</button>
+      </div>
+    );
+  }
 
   const perms = ROLE_PERMISSIONS[user.role] || [];
   const sc = user.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : user.status === 'Inactive' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-red-50 text-red-700 border-red-200';

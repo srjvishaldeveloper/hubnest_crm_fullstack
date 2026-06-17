@@ -183,7 +183,6 @@ async function getInvoiceById(tenantId, invoiceId) {
   );
   if (result.rows.length === 0) return null;
 
-  // Also get associated payments
   const payments = await query(
     `SELECT * FROM payments WHERE invoice_id = $1 AND tenant_id = $2 ORDER BY paid_at DESC`,
     [invoiceId, tenantId]
@@ -192,18 +191,45 @@ async function getInvoiceById(tenantId, invoiceId) {
   return { invoice: result.rows[0], payments: payments.rows };
 }
 
-async function createInvoice(tenantId, data) {
-  const { invoice_number, customer_name, amount, tax, total, status, due_date } = data;
+async function getInvoiceByNumber(invoiceNumber) {
   const result = await query(
-    `INSERT INTO invoices (tenant_id, invoice_number, customer_name, amount, tax, total, status, due_date)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-    [tenantId, invoice_number, customer_name, parseFloat(amount) || 0, parseFloat(tax) || 0, parseFloat(total) || 0, status || 'Draft', due_date]
+    `SELECT i.*, t.name AS tenant_name FROM invoices i
+     JOIN tenants t ON t.id = i.tenant_id
+     WHERE i.invoice_number = $1`,
+    [invoiceNumber]
+  );
+  if (result.rows.length === 0) return null;
+  return result.rows[0];
+}
+
+async function deletePayment(tenantId, paymentId) {
+  const result = await query(
+    `DELETE FROM payments WHERE id = $1 AND tenant_id = $2 RETURNING *`,
+    [paymentId, tenantId]
+  );
+  return result.rows[0] || null;
+}
+
+async function deleteExpense(tenantId, expenseId) {
+  const result = await query(
+    `DELETE FROM expenses WHERE id = $1 AND tenant_id = $2 RETURNING *`,
+    [expenseId, tenantId]
+  );
+  return result.rows[0] || null;
+}
+
+async function createInvoice(tenantId, data) {
+  const { invoice_number, customer_name, amount, tax, total, status, due_date, notes } = data;
+  const result = await query(
+    `INSERT INTO invoices (tenant_id, invoice_number, customer_name, amount, tax, total, status, due_date, notes)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+    [tenantId, invoice_number, customer_name, parseFloat(amount) || 0, parseFloat(tax) || 0, parseFloat(total) || 0, status || 'Draft', due_date, notes || null]
   );
   return result.rows[0];
 }
 
 async function updateInvoice(tenantId, invoiceId, data) {
-  const fields = ['invoice_number', 'customer_name', 'amount', 'tax', 'total', 'status', 'due_date', 'paid_date'];
+  const fields = ['invoice_number', 'customer_name', 'amount', 'tax', 'total', 'status', 'due_date', 'paid_date', 'notes'];
   const updates = [];
   const params = [];
 
@@ -601,13 +627,16 @@ module.exports = {
   getFinanceDashboard,
   listInvoices,
   getInvoiceById,
+  getInvoiceByNumber,
   createInvoice,
   updateInvoice,
   listPayments,
   createPayment,
+  deletePayment,
   listExpenses,
   createExpense,
   updateExpense,
+  deleteExpense,
   listVendors,
   getVendorById,
   createVendor,

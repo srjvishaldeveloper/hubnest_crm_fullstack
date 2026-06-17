@@ -4,7 +4,11 @@ const ctrl = require('./finance.controller');
 const { authenticate } = require('../../middleware/auth');
 const { authorizeFinance } = require('../../middleware/rbac');
 
-// All finance routes require authentication and Finance role check
+// ── Public (no auth) ──────────────────────────────────────────────────────────
+// Must be declared BEFORE the authenticate middleware
+router.get('/invoices/public/:number', ctrl.getPublicInvoice);
+
+// All other routes require authentication + Finance role
 router.use(authenticate);
 router.use(authorizeFinance);
 
@@ -24,11 +28,13 @@ router.patch('/invoices/:id', ctrl.updateInvoice);
 // Payments
 router.get('/payments', ctrl.listPayments);
 router.post('/payments', ctrl.createPayment);
+router.delete('/payments/:id', ctrl.deletePayment);
 
 // Expenses
 router.get('/expenses', ctrl.listExpenses);
 router.post('/expenses', ctrl.createExpense);
 router.patch('/expenses/:id', ctrl.updateExpense);
+router.delete('/expenses/:id', ctrl.deleteExpense);
 
 // Vendors
 router.get('/vendors', ctrl.listVendors);

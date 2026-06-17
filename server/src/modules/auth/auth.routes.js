@@ -51,6 +51,7 @@ router.post('/revoke-session',      authenticate, ctrl.revokeSession);
 // Tenant User management
 router.post('/create-user',         authenticate, ctrl.createUser);
 router.get('/users',               authenticate, ctrl.getUsers);
+router.patch('/users/:id',         authenticate, ctrl.updateUser);
 router.delete('/users/:id',        authenticate, ctrl.deleteUser);
 router.post('/users/:id/restore',   authenticate, ctrl.restoreUser);
 router.post('/users/toggle-block', authenticate, ctrl.toggleBlockUser);

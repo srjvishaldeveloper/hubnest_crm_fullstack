@@ -432,9 +432,9 @@ async function createUser(req, res) {
     // 3. Create User
     const passwordHash = await bcrypt.hash(password || 'Tenant@123!', 12);
     const result = await client.query(
-      `INSERT INTO users (tenant_id, role_id, name, email, admin_id, password_hash, status, phone) 
-       VALUES ($1, $2, $3, $4, $5, $6, 'Active', $7) RETURNING id`,
-      [tenantId, roleId, name, email, employeeId, passwordHash, phone || null]
+      `INSERT INTO users (tenant_id, role_id, name, email, admin_id, password_hash, status) 
+       VALUES ($1, $2, $3, $4, $5, $6, 'Active') RETURNING id`,
+      [tenantId, roleId, name, email, employeeId, passwordHash]
     );
     const userId = result.rows[0].id;
 
@@ -900,6 +900,33 @@ async function revokeSession(req, res) {
   }
 }
 
+async function updateUser(req, res) {
+  const { id } = req.params;
+  const tenantId = req.user.tenant_id;
+  const { department, role, name } = req.body;
+  try {
+    const userCheck = await query(`SELECT id FROM users WHERE id = $1 AND tenant_id = $2`, [id, tenantId]);
+    if (!userCheck.rows[0]) return sendError(res, 'User not found', 404);
+    if (name) {
+      await query(`UPDATE users SET name = $1, updated_at = NOW() WHERE id = $2`, [name, id]);
+    }
+    if (role) {
+      let roleRow = await query(`SELECT id FROM roles WHERE LOWER(name) = LOWER($1) AND (tenant_id = $2 OR tenant_id IS NULL) LIMIT 1`, [role, tenantId]);
+      if (!roleRow.rows[0]) {
+        roleRow = await query(`INSERT INTO roles (tenant_id, name, description, permissions) VALUES ($1, $2, $2, '[]') RETURNING id`, [tenantId, role]);
+      }
+      await query(`UPDATE users SET role_id = $1, updated_at = NOW() WHERE id = $2`, [roleRow.rows[0].id, id]);
+    }
+    if (department) {
+      await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS department VARCHAR(100)`);
+      await query(`UPDATE users SET department = $1, updated_at = NOW() WHERE id = $2`, [department, id]);
+    }
+    return sendSuccess(res, { id }, 'User updated');
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+}
+
 module.exports = {
   login,
   verifyOtp,
@@ -917,6 +944,7 @@ module.exports = {
   blockTenantAdmin,
   deleteTenantAdmin,
   getTenantAdmins,
+  updateUser,
   createUser,
   getUsers,
   deleteUser,

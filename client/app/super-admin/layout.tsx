@@ -25,15 +25,19 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { z } from 'zod';
 
+function validatePhone(val: string): string {
+  const cleaned = val.replace(/[\s\-().]/g, '');
+  if (!cleaned) return '';
+  if (!/^\+?[0-9]{7,15}$/.test(cleaned)) return 'Phone must be 7–15 digits, optionally starting with + (e.g. +919876543210)';
+  return '';
+}
+
 const createTenantSchema = z.object({
   companyName: z.string().min(2, "Company Name must be at least 2 characters"),
   adminName: z.string().min(2, "Admin Name must be at least 2 characters"),
   adminEmail: z.string().email("Invalid admin email address"),
-  companyEmail: z.string().email("Invalid company email").optional().or(z.literal('')),
-  adminPhone: z.string()
-    .transform(val => val.replace(/\s+/g, '').replace(/-/g, ''))
-    .refine(val => !val || /^\+?[0-9]\d{6,14}$/.test(val), "Invalid phone number format (e.g., +919599476483)")
-    .optional().or(z.literal('')),
+  companyEmail: z.union([z.string().email("Invalid company email"), z.literal('')]).optional(),
+  adminPhone: z.string().optional().transform(val => (val || '').replace(/[\s\-().]/g, '')),
 });
 
 const MOBILE_NAV = [
@@ -74,6 +78,10 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
 
+  // Phone validation state
+  const [phoneErr, setPhoneErr] = useState('');
+  const [formErr, setFormErr] = useState('');
+
   // Generate credentials when modal opens
   useEffect(() => {
     if (showAddTenantModal) {
@@ -92,6 +100,8 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       setEmailCheckErr('');
       setEmailAvailable(null);
       setCheckingEmail(false);
+      setPhoneErr('');
+      setFormErr('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAddTenantModal]);
@@ -137,6 +147,12 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   async function handleCreateTenant(e: React.FormEvent) {
     e.preventDefault();
 
+    setFormErr('');
+    // Validate phone inline before zod parse
+    const pErr = validatePhone(adminPhone);
+    if (pErr) { setPhoneErr(pErr); return; }
+    setPhoneErr('');
+
     try {
       const validatedData = createTenantSchema.parse({
         companyName,
@@ -145,7 +161,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         companyEmail,
         adminPhone
       });
-      
+
       if (emailAvailable === false) {
         setEmailCheckErr('This email is already in use. Try a different one.');
         return;
@@ -187,18 +203,18 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       setShowAddTenantModal(false);
     } catch (err: any) {
       if (err instanceof z.ZodError) {
-        alert(err.issues[0].message);
+        setFormErr(err.issues[0].message);
         setIsProvisioning(false);
         return;
       }
-      console.error('Failed to provision tenant in database / send email:', err);
+      console.error('Failed to provision tenant:', err);
       if (err.response?.status === 409) {
         setEmailCheckErr('This email is already in use. Try a different one.');
         setEmailAvailable(false);
+        setIsProvisioning(false);
         return;
       }
-      const msg = err.response?.data?.message || 'Failed to provision tenant. Please check your SMTP configuration or try again.';
-      alert(msg);
+      setFormErr(err.response?.data?.message || 'Failed to provision tenant. Please try again.');
     } finally {
       setIsProvisioning(false);
     }
@@ -384,10 +400,16 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                               <input
                                 type="tel"
                                 value={adminPhone}
-                                onChange={e => setAdminPhone(e.target.value)}
+                                onChange={e => {
+                                  setAdminPhone(e.target.value);
+                                  setFormErr('');
+                                  if (phoneErr) setPhoneErr(validatePhone(e.target.value));
+                                }}
+                                onBlur={e => setPhoneErr(validatePhone(e.target.value))}
                                 placeholder="e.g. +91 9876543210"
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition"
+                                className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:ring-2 outline-none transition ${phoneErr ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-slate-200 focus:border-amber-400 focus:ring-amber-100'}`}
                               />
+                              {phoneErr && <p className="text-[11px] text-red-500 mt-1 font-medium">{phoneErr}</p>}
                             </div>
                           </div>
                         </div>
@@ -480,6 +502,13 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                         </div>
                       </label>
                     </div>
+
+                    {/* Form-level error */}
+                    {formErr && (
+                      <div className="mx-6 mb-2 px-4 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-medium flex items-center gap-2">
+                        <span className="text-red-500 font-bold">✕</span> {formErr}
+                      </div>
+                    )}
 
                     {/* Footer */}
                     <div className="border-t border-slate-200/60 px-6 py-4 flex gap-3">

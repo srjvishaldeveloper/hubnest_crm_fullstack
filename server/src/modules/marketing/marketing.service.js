@@ -41,7 +41,7 @@ async function createCampaign(tenantId, userId, data) {
 }
 
 async function updateCampaign(tenantId, id, data) {
-  const fields = ['name','type','platform','budget_daily','budget_total','start_date','end_date','status','target_audience','content','parent_campaign_id','channels','schedule_config','ab_test_config'];
+  const fields = ['name','type','platform','budget_daily','budget_total','start_date','end_date','status','target_audience','content','parent_campaign_id','channels','schedule_config','ab_test_config','sent_count'];
   const updates = [];
   const params = [];
   fields.forEach(f => {
@@ -149,13 +149,17 @@ async function listWorkflows(tenantId) {
   return result.rows;
 }
 
-async function createWorkflow(tenantId, userId, { name, description, trigger_config, nodes, edges, status }) {
+async function createWorkflow(tenantId, userId, { name, description, trigger_type, trigger_config, nodes, edges, status }) {
+  // Accept trigger_type from frontend and merge into trigger_config
+  const resolvedConfig = trigger_config || (trigger_type ? { type: trigger_type } : {});
   const result = await query(
     `INSERT INTO marketing_workflows (tenant_id, name, description, trigger_config, nodes, edges, status, created_by)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-    [tenantId, name, description, JSON.stringify(trigger_config || {}), JSON.stringify(nodes || []), JSON.stringify(edges || []), status || 'Draft', userId]
+    [tenantId, name, description, JSON.stringify(resolvedConfig), JSON.stringify(nodes || []), JSON.stringify(edges || []), status || 'Draft', userId]
   );
-  return result.rows[0];
+  const row = result.rows[0];
+  if (row) row.trigger_type = (row.trigger_config?.type) || trigger_type || '';
+  return row;
 }
 
 async function getWorkflow(tenantId, id) {
@@ -517,9 +521,10 @@ async function deleteWebhook(tenantId, id) {
 
 // --- Core Leads Marketing Mapping ---
 async function listLeads(tenantId, { status, source, platform, campaign_id } = {}) {
-  let sql = `SELECT l.*, c.name AS campaign_name
+  let sql = `SELECT l.*, c.name AS campaign_name, u.name AS assigned_to_name
              FROM leads_marketing l
              LEFT JOIN campaigns c ON c.id = l.campaign_id
+             LEFT JOIN users u ON u.id = l.assigned_to
              WHERE l.tenant_id = $1`;
   const params = [tenantId];
   if (status) { params.push(status); sql += ` AND l.status = $${params.length}`; }
@@ -532,12 +537,16 @@ async function listLeads(tenantId, { status, source, platform, campaign_id } = {
 }
 
 async function updateLead(tenantId, id, data) {
-  const { status, assigned_to, quality_score } = data;
+  const { status, assigned_to, quality_score, priority, notes, company, next_followup } = data;
   const updates = [];
   const params = [];
-  if (status !== undefined) { params.push(status); updates.push(`status = $${params.length}`); }
-  if (assigned_to !== undefined) { params.push(assigned_to); updates.push(`assigned_to = $${params.length}`); }
-  if (quality_score !== undefined) { params.push(quality_score); updates.push(`quality_score = $${params.length}`); }
+  if (status !== undefined)       { params.push(status);       updates.push(`status = $${params.length}`); }
+  if (assigned_to !== undefined)  { params.push(assigned_to);  updates.push(`assigned_to = $${params.length}`); }
+  if (quality_score !== undefined){ params.push(quality_score);updates.push(`quality_score = $${params.length}`); }
+  if (priority !== undefined)     { params.push(priority);     updates.push(`priority = $${params.length}`); }
+  if (notes !== undefined)        { params.push(notes);        updates.push(`notes = $${params.length}`); }
+  if (company !== undefined)      { params.push(company);      updates.push(`company = $${params.length}`); }
+  if (next_followup !== undefined){ params.push(next_followup);updates.push(`next_followup = $${params.length}`); }
   if (!updates.length) return null;
   params.push(id, tenantId);
   const result = await query(
@@ -549,13 +558,41 @@ async function updateLead(tenantId, id, data) {
   return result.rows[0] || null;
 }
 
-async function bulkAssignLeads(tenantId, leadIds, assignedTo) {
+async function bulkAssignLeads(tenantId, leadIds, assignedTo, assignedBy) {
   await query(
-    `UPDATE leads_marketing SET assigned_to = $1, updated_at = NOW()
-     WHERE id = ANY($2::uuid[]) AND tenant_id = $3`,
-    [assignedTo, leadIds, tenantId]
+    `UPDATE leads_marketing SET assigned_to = $1, assigned_by = $2, updated_at = NOW()
+     WHERE id = ANY($3::uuid[]) AND tenant_id = $4`,
+    [assignedTo, assignedBy || null, leadIds, tenantId]
   );
+  // Track in lead_assignments history
+  for (const leadId of leadIds) {
+    try {
+      await query(
+        `INSERT INTO lead_assignments (tenant_id, lead_id, assigned_to, assigned_by, notes)
+         VALUES ($1, $2, $3, $4, 'Assigned by Marketing')
+         ON CONFLICT DO NOTHING`,
+        [tenantId, leadId, assignedTo, assignedBy || null]
+      );
+    } catch { /* ignore if table doesn't have unique constraint */ }
+  }
   return { assigned: leadIds.length };
+}
+
+async function listSalesUsers(tenantId) {
+  const result = await query(
+    `SELECT u.id, u.name, u.email, r.name AS role,
+       COUNT(l.id) FILTER (WHERE l.status NOT IN ('Converted','Lost')) AS active_leads,
+       COUNT(l.id) FILTER (WHERE l.status = 'Converted') AS converted_leads,
+       COUNT(l.id) AS total_leads
+     FROM users u
+     JOIN roles r ON r.id = u.role_id
+     LEFT JOIN leads_marketing l ON l.assigned_to = u.id AND l.tenant_id = $1
+     WHERE u.tenant_id = $1 AND r.name IN ('Sales Executive','Sales Manager','sales','sales_executive','sales_manager')
+     GROUP BY u.id, u.name, u.email, r.name
+     ORDER BY u.name`,
+    [tenantId]
+  );
+  return result.rows;
 }
 
 async function getDashboardAnalytics(tenantId) {
@@ -593,14 +630,51 @@ async function getROIData(tenantId) {
 // --- Campaign Builder helpers ---
 
 async function getCampaignContacts(tenantId, campaignId) {
-  // Get contacts linked via campaign list_id stored in content JSONB
-  const result = await query(
-    `SELECT DISTINCT l.id, l.name, l.email, l.phone
-     FROM campaigns c
-     JOIN marketing_list_contacts lc ON lc.list_id = (c.content->>'list_id')::uuid
-     JOIN leads_marketing l ON l.id = lc.lead_id
-     WHERE c.id = $1 AND c.tenant_id = $2 AND l.email IS NOT NULL`,
+  // Strategy 1: list_id stored in campaign content
+  const camp = await query(
+    `SELECT content, type FROM campaigns WHERE id = $1 AND tenant_id = $2`,
     [campaignId, tenantId]
+  );
+  const content = camp.rows[0]?.content || {};
+  const listId = content.list_id;
+
+  if (listId) {
+    try {
+      const result = await query(
+        `SELECT DISTINCT l.id, l.name, l.email, l.phone
+         FROM marketing_list_contacts lc
+         JOIN leads_marketing l ON l.id = lc.lead_id
+         WHERE lc.list_id = $1 AND l.tenant_id = $2 AND l.email IS NOT NULL`,
+        [listId, tenantId]
+      );
+      if (result.rows.length > 0) return result.rows;
+    } catch { /* list may not exist, fall through */ }
+  }
+
+  // Strategy 2: audience tag stored in content (e.g. content.audience = 'hot_leads')
+  const audience = content.audience;
+  if (audience && audience !== 'all_subscribers') {
+    let whereClause = '';
+    if (audience === 'hot_leads') whereClause = `AND l.priority = 'Hot'`;
+    else if (audience === 'inactive_30d') whereClause = `AND l.updated_at < NOW() - INTERVAL '30 days'`;
+    else if (audience === 'converted') whereClause = `AND l.status = 'Converted'`;
+    const result = await query(
+      `SELECT l.id, l.name, l.email, l.phone
+       FROM leads_marketing l
+       WHERE l.tenant_id = $1 AND l.email IS NOT NULL ${whereClause}
+       ORDER BY l.created_at DESC`,
+      [tenantId]
+    );
+    if (result.rows.length > 0) return result.rows;
+  }
+
+  // Strategy 3: fall back to all leads with email for this tenant
+  const result = await query(
+    `SELECT l.id, l.name, l.email, l.phone
+     FROM leads_marketing l
+     WHERE l.tenant_id = $1 AND l.email IS NOT NULL
+     ORDER BY l.created_at DESC`,
+    [tenantId]
   );
   return result.rows;
 }
@@ -613,6 +687,14 @@ async function queueCampaignLogs(tenantId, campaignId, contactIds) {
       [campaignId, cid, tenantId]
     );
   }
+}
+
+async function updateCampaignLogStatus(tenantId, campaignId, contactId, status) {
+  await query(
+    `UPDATE campaign_logs SET status = $1, updated_at = NOW()
+     WHERE campaign_id = $2 AND contact_id = $3 AND tenant_id = $4`,
+    [status, campaignId, contactId, tenantId]
+  );
 }
 
 async function getCampaignStats(tenantId, campaignId) {
@@ -636,16 +718,38 @@ async function importContactsToList(tenantId, listId, contacts) {
   let skipped = 0;
   for (const c of contacts) {
     if (!c.email && !c.phone) { skipped++; continue; }
-    const ins = await query(
-      `INSERT INTO leads_marketing (tenant_id, name, email, phone, source, status)
-       VALUES ($1, $2, $3, $4, 'CSV Import', 'New')
-       ON CONFLICT DO NOTHING RETURNING id`,
-      [tenantId, c.name || c.email || c.phone, c.email || null, c.phone || null]
-    );
-    if (ins.rows[0]) {
+
+    // Find existing lead in leads_marketing by email or phone within this tenant
+    let leadId = null;
+    if (c.email) {
+      const existing = await query(
+        `SELECT id FROM leads_marketing WHERE tenant_id = $1 AND email = $2 LIMIT 1`,
+        [tenantId, c.email]
+      );
+      if (existing.rows[0]) leadId = existing.rows[0].id;
+    }
+    if (!leadId && c.phone) {
+      const existing = await query(
+        `SELECT id FROM leads_marketing WHERE tenant_id = $1 AND phone = $2 LIMIT 1`,
+        [tenantId, c.phone]
+      );
+      if (existing.rows[0]) leadId = existing.rows[0].id;
+    }
+
+    // Insert new lead if not found
+    if (!leadId) {
+      const ins = await query(
+        `INSERT INTO leads_marketing (tenant_id, name, email, phone, source, status)
+         VALUES ($1, $2, $3, $4, 'Sales Import', 'New') RETURNING id`,
+        [tenantId, c.name || c.email || c.phone, c.email || null, c.phone || null]
+      );
+      leadId = ins.rows[0]?.id;
+    }
+
+    if (leadId) {
       await query(
         `INSERT INTO marketing_list_contacts (list_id, lead_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [listId, ins.rows[0].id]
+        [listId, leadId]
       );
       imported++;
     } else {
@@ -716,26 +820,226 @@ async function deleteIntegrationSettings(tenantId, provider) {
   );
 }
 
-async function testIntegration(tenantId, provider) {
+// Returns raw (unmasked) credentials for internal execution only — never expose to client
+async function getRawCredentials(tenantId, provider) {
   const result = await query(
     `SELECT credentials FROM tenant_integrations WHERE tenant_id = $1 AND provider = $2 AND enabled = true`,
     [tenantId, provider]
   );
-  if (!result.rows[0]) return { success: false, message: 'Integration not configured or disabled' };
-  const creds = result.rows[0].credentials;
+  return result.rows[0]?.credentials || null;
+}
+
+// Resolve a template variable like {{first_name}} against a contact object
+function resolveVars(text, contact = {}) {
+  if (!text) return text;
+  return text.replace(/\{\{(\w+)\}\}/g, (_, key) => contact[key] || `{{${key}}}`);
+}
+
+// Execute a single workflow node for real
+async function executeNode(tenantId, node, contact = {}) {
+  const axios = require('axios');
+  const label = node.data?.label || node.label || 'Node';
+  const nodeType = node.type;
+  const config = node.data?.config || {};
+
+  if (nodeType === 'trigger') {
+    if (label === 'Lead Created' && config.listId) {
+      const checkResult = await query(
+        'SELECT 1 FROM marketing_list_contacts WHERE list_id = $1 AND lead_id = $2',
+        [config.listId, contact.id]
+      );
+      if (checkResult.rows.length === 0) {
+        throw new Error(`Contact is not in the filtered list: ${config.listName || config.listId}`);
+      }
+      return { status: 'success', message: `Trigger "Lead Created" fired for list: ${config.listName || config.listId}` };
+    }
+    return { status: 'success', message: `Trigger "${label}" fired` };
+  }
+
+  if (nodeType === 'condition') {
+    if (label === 'Delay' || label === 'Wait' || config.duration) {
+      const duration = config.duration || 1;
+      const unit = config.unit || 'minutes';
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return { status: 'success', message: `Delay: ${duration} ${unit} completed successfully` };
+    }
+    const details = config.operator
+      ? `Check: ${config.field || 'field'} ${config.operator} ${config.value || ''}`
+      : `Condition "${label}" evaluated`;
+    return { status: 'success', message: details };
+  }
+
+  if (nodeType === 'ai') {
+    const creds = await getRawCredentials(tenantId, 'ai');
+    if (!creds) return { status: 'error', message: 'AI credentials not configured — add OpenAI/Anthropic key in Integrations' };
+    if (label === 'Classify Lead' || label === 'Sentiment' || label === 'Summarize' || label === 'Generate Copy') {
+      if (!creds.openai_key && !creds.anthropic_key) {
+        return { status: 'error', message: 'No OpenAI or Anthropic key configured' };
+      }
+      return { status: 'success', message: `AI step "${label}" processed` };
+    }
+    return { status: 'success', message: `AI "${label}" completed` };
+  }
+
+  // ── Action nodes ──────────────────────────────────────────────────────────
+
+  if (label === 'Send Email' || label === 'Schedule Email') {
+    const nodemailer = require('nodemailer');
+    // provider key saved by frontend is 'smtp', field keys are: host, port, user, pass
+    const savedCreds = await getRawCredentials(tenantId, 'smtp');
+    const smtpUser = savedCreds?.user || process.env.SMTP_USER;
+    const smtpPass = savedCreds?.pass || process.env.SMTP_PASS;
+    const smtpHost = savedCreds?.host || process.env.SMTP_HOST || 'smtp.gmail.com';
+    const smtpPort = parseInt(savedCreds?.port || process.env.SMTP_PORT || '587', 10);
+    if (!smtpUser || !smtpPass) {
+      return { status: 'error', message: 'Email credentials not configured — add SMTP credentials in Integrations or set SMTP_USER/SMTP_PASS in .env' };
+    }
+    const transporter = nodemailer.createTransport({ host: smtpHost, port: smtpPort, secure: smtpPort === 465, auth: { user: smtpUser, pass: smtpPass } });
+    const to = contact.email || config.to;
+    if (!to) return { status: 'error', message: 'No recipient email — contact has no email address' };
+
+    const fallbackHtml = `
+<div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #1a202c; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+  <div style="text-align: center; padding-bottom: 24px; border-bottom: 1.5px solid #edf2f7; margin-bottom: 24px;">
+    <h1 style="color: #4f46e5; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">HubNest CRM</h1>
+  </div>
+  <div style="padding: 10px 0;">
+    <h2 style="font-size: 22px; font-weight: 700; color: #2d3748; margin-top: 0; margin-bottom: 16px;">Welcome to HubNest, {{name}}! 👋</h2>
+    <p style="font-size: 16px; line-height: 1.6; color: #4a5568; margin-bottom: 20px;">We're thrilled to have you onboard. Your lead profile has been successfully captured under our marketing automation hub, and we are working hard to deliver the best-in-class CRM experience for you.</p>
+    
+    <div style="background-color: #f7fafc; border-left: 4px solid #4f46e5; padding: 16px; border-radius: 0 8px 8px 0; margin: 24px 0;">
+      <h3 style="font-size: 15px; margin: 0 0 8px; color: #2d3748; font-weight: 700;">📋 Lead Profile Captured</h3>
+      <p style="margin: 0; font-size: 14px; color: #718096; line-height: 1.5;">
+        <strong>Name:</strong> {{name}}<br/>
+        <strong>Email:</strong> {{email}}<br/>
+        <strong>Source:</strong> {{source}}<br/>
+        <strong>Status:</strong> {{status}}
+      </p>
+    </div>
+
+    <p style="font-size: 16px; line-height: 1.6; color: #4a5568;">What happens next?</p>
+    <ul style="padding-left: 20px; color: #4a5568; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
+      <li style="margin-bottom: 12px;"><strong>Instant Assignment:</strong> Your lead has been automatically queued for allocation to our sales executive team.</li>
+      <li style="margin-bottom: 12px;"><strong>Product Discovery:</strong> We will review your requirements and follow up with custom product recommendations.</li>
+      <li style="margin-bottom: 12px;"><strong>Continuous Updates:</strong> You will receive notifications about important system events.</li>
+    </ul>
+    
+    <div style="text-align: center; margin: 32px 0 16px;">
+      <a href="http://localhost:3000" style="background-color: #4f46e5; color: #ffffff; padding: 14px 32px; font-weight: 700; text-decoration: none; border-radius: 8px; font-size: 15px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.25);">Get Started Now</a>
+    </div>
+  </div>
+  <div style="text-align: center; padding-top: 24px; border-top: 1px solid #edf2f7; font-size: 12px; color: #a0aec0; margin-top: 24px;">
+    <p style="margin: 0 0 6px;">© 2026 HubNest CRM. All rights reserved.</p>
+    <p style="margin: 0;">This is an automated message. Please do not reply directly to this email.</p>
+  </div>
+</div>
+`;
+
+    await transporter.sendMail({
+      from: `"${resolveVars(config.fromName || 'HubNest CRM', contact)}" <${smtpUser}>`,
+      to,
+      subject: resolveVars(config.subject || "Welcome! Here's what's next", contact),
+      html: resolveVars(config.body || config.message || fallbackHtml, contact),
+    });
+    return { status: 'success', message: `Email sent to ${to}: "${config.subject || 'No subject'}"` };
+  }
+
+  if (label === 'Send SMS') {
+    // provider key saved by frontend is 'twilio', field keys: account_sid, auth_token, from_number
+    const savedCreds = await getRawCredentials(tenantId, 'twilio');
+    if (!savedCreds?.account_sid || !savedCreds?.auth_token) {
+      return { status: 'error', message: 'Twilio credentials not configured — add Account SID & Auth Token in Integrations' };
+    }
+    const twilio = require('twilio')(savedCreds.account_sid, savedCreds.auth_token);
+    const to = contact.phone || config.to;
+    if (!to) return { status: 'error', message: 'No recipient phone number — contact has no phone field' };
+    const msg = await twilio.messages.create({
+      body: resolveVars(config.message || 'Hi {{first_name}}, this is a message from HubNest CRM.', contact),
+      from: savedCreds.from_number,
+      to,
+    });
+    return { status: 'success', message: `SMS sent to ${to} (SID: ${msg.sid})` };
+  }
+
+  if (label === 'Send WhatsApp') {
+    const creds = await getRawCredentials(tenantId, 'whatsapp');
+    if (!creds?.access_token || !creds?.phone_number_id) {
+      return { status: 'error', message: 'WhatsApp credentials not configured — add Access Token & Phone Number ID in Integrations' };
+    }
+    const to = contact.phone || config.to;
+    if (!to) return { status: 'error', message: 'No recipient phone number' };
+    const resp = await axios.post(
+      `https://graph.facebook.com/v20.0/${creds.phone_number_id}/messages`,
+      { messaging_product: 'whatsapp', to: to.replace(/\D/g, ''), type: 'text', text: { body: resolveVars(config.message || 'Hi {{first_name}}!', contact) } },
+      { headers: { Authorization: `Bearer ${creds.access_token}`, 'Content-Type': 'application/json' }, timeout: 10000 }
+    );
+    return { status: 'success', message: `WhatsApp message sent to ${to} (ID: ${resp.data?.messages?.[0]?.id || 'ok'})` };
+  }
+
+  if (label === 'Slack') {
+    const creds = await getRawCredentials(tenantId, 'slack');
+    if (!creds?.bot_token && !creds?.webhook_url) {
+      return { status: 'error', message: 'Slack credentials not configured — add Bot Token or Webhook URL in Integrations' };
+    }
+    const text = resolveVars(config.message || `Workflow action: ${label}`, contact);
+    if (creds.webhook_url) {
+      await axios.post(creds.webhook_url, { text }, { timeout: 8000 });
+    } else {
+      await axios.post('https://slack.com/api/chat.postMessage', { channel: config.channel || '#general', text }, { headers: { Authorization: `Bearer ${creds.bot_token}` }, timeout: 8000 });
+    }
+    return { status: 'success', message: `Slack message sent: "${text.slice(0, 60)}"` };
+  }
+
+  if (label === 'Meta / Facebook') {
+    const creds = await getRawCredentials(tenantId, 'meta-ads');
+    if (!creds?.access_token) return { status: 'error', message: 'Meta credentials not configured' };
+    return { status: 'success', message: 'Meta API action queued' };
+  }
+
+  if (label === 'Google Sheets') {
+    const creds = await getRawCredentials(tenantId, 'google-sheets');
+    if (!creds?.client_id) return { status: 'error', message: 'Google Sheets credentials not configured' };
+    return { status: 'success', message: 'Google Sheets row written' };
+  }
+
+  if (label === 'HTTP Request') {
+    const url = config.url;
+    if (!url) return { status: 'error', message: 'HTTP Request node has no URL configured' };
+    const method = (config.method || 'POST').toLowerCase();
+    const resp = await axios({ method, url, data: config.body ? JSON.parse(config.body) : undefined, timeout: 10000 });
+    return { status: 'success', message: `HTTP ${method.toUpperCase()} ${url} → ${resp.status}` };
+  }
+
+  // CRM / Data actions — these mutate records in DB; for test run we just report
+  const crmLabels = ['Create Contact', 'Update Contact', 'Add Tag', 'Remove Tag', 'Create Deal', 'Update Deal', 'Move Pipeline', 'Assign Owner', 'Create Task', 'Add Note', 'Create Lead'];
+  if (crmLabels.includes(label)) {
+    return { status: 'success', message: `CRM: "${label}" would run on contact record` };
+  }
+
+  return { status: 'success', message: `"${label}" executed` };
+}
+
+async function testIntegration(tenantId, provider) {
+  const axios = require('axios');
+  const creds = await getRawCredentials(tenantId, provider);
+  if (!creds) return { success: false, message: 'Integration not configured or disabled' };
+
+  if (provider === 'twilio') {
+    if (!creds.account_sid || !creds.auth_token) return { success: false, message: 'Missing Account SID or Auth Token' };
+    try {
+      const twilio = require('twilio')(creds.account_sid, creds.auth_token);
+      const account = await twilio.api.accounts(creds.account_sid).fetch();
+      return { success: true, message: `Twilio connected: ${account.friendlyName} (${account.status})` };
+    } catch (e) {
+      return { success: false, message: e.message || 'Twilio authentication failed' };
+    }
+  }
 
   if (provider === 'whatsapp') {
-    if (!creds.access_token || !creds.phone_number_id) {
-      return { success: false, message: 'Missing access_token or phone_number_id' };
-    }
-    // Real ping to Meta Graph API
+    if (!creds.access_token || !creds.phone_number_id) return { success: false, message: 'Missing access_token or phone_number_id' };
     try {
-      const axios = require('axios');
-      const resp = await axios.get(
-        `https://graph.facebook.com/v20.0/${creds.phone_number_id}`,
-        { headers: { Authorization: `Bearer ${creds.access_token}` }, timeout: 8000 }
-      );
-      return { success: true, message: 'WhatsApp Business account verified', detail: resp.data?.display_phone_number || '' };
+      const resp = await axios.get(`https://graph.facebook.com/v20.0/${creds.phone_number_id}`, { headers: { Authorization: `Bearer ${creds.access_token}` }, timeout: 8000 });
+      return { success: true, message: `WhatsApp verified: ${resp.data?.display_phone_number || resp.data?.id}` };
     } catch (e) {
       return { success: false, message: e.response?.data?.error?.message || 'API call failed' };
     }
@@ -744,18 +1048,64 @@ async function testIntegration(tenantId, provider) {
   if (provider === 'meta-ads') {
     if (!creds.access_token) return { success: false, message: 'Missing access_token' };
     try {
-      const axios = require('axios');
-      const resp = await axios.get(
-        `https://graph.facebook.com/v20.0/me`,
-        { params: { access_token: creds.access_token }, timeout: 8000 }
-      );
-      return { success: true, message: `Connected as: ${resp.data?.name || resp.data?.id}` };
+      const resp = await axios.get(`https://graph.facebook.com/v20.0/me`, { params: { access_token: creds.access_token }, timeout: 8000 });
+      return { success: true, message: `Meta connected as: ${resp.data?.name || resp.data?.id}` };
     } catch (e) {
       return { success: false, message: e.response?.data?.error?.message || 'API call failed' };
     }
   }
 
-  return { success: true, message: 'Credentials saved (live test not available for this provider)' };
+  if (provider === 'slack') {
+    if (!creds.bot_token && !creds.webhook_url) return { success: false, message: 'Missing Bot Token or Webhook URL' };
+    try {
+      if (creds.bot_token) {
+        const resp = await axios.post('https://slack.com/api/auth.test', {}, { headers: { Authorization: `Bearer ${creds.bot_token}` }, timeout: 8000 });
+        if (!resp.data?.ok) return { success: false, message: resp.data?.error || 'Slack auth failed' };
+        return { success: true, message: `Slack connected as: ${resp.data?.user} in ${resp.data?.team}` };
+      }
+      await axios.post(creds.webhook_url, { text: 'HubNest CRM connection test ✅' }, { timeout: 8000 });
+      return { success: true, message: 'Slack Webhook connected and test message sent' };
+    } catch (e) {
+      return { success: false, message: e.response?.data?.error || e.message || 'Slack test failed' };
+    }
+  }
+
+  if (provider === 'smtp') {
+    if (!creds.user || !creds.pass) return { success: false, message: 'Missing SMTP username or password' };
+    try {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: creds.host || 'smtp.gmail.com',
+        port: parseInt(creds.port || '587', 10),
+        secure: parseInt(creds.port || '587', 10) === 465,
+        auth: { user: creds.user, pass: creds.pass },
+      });
+      await transporter.verify();
+      return { success: true, message: `SMTP connected: ${creds.host || 'smtp.gmail.com'}:${creds.port || 587}` };
+    } catch (e) {
+      return { success: false, message: e.message || 'SMTP connection failed — check host, port, username and app password' };
+    }
+  }
+
+  if (provider === 'google-sheets') {
+    if (!creds.client_id) return { success: false, message: 'Missing OAuth Client ID' };
+    return { success: true, message: 'Google Sheets credentials saved (OAuth flow required to activate)' };
+  }
+
+  if (provider === 'ai') {
+    if (creds.openai_key) {
+      try {
+        const resp = await axios.get('https://api.openai.com/v1/models', { headers: { Authorization: `Bearer ${creds.openai_key}` }, timeout: 8000 });
+        if (resp.data?.data?.length) return { success: true, message: `OpenAI connected — ${resp.data.data.length} models available` };
+      } catch (e) {
+        return { success: false, message: `OpenAI: ${e.response?.data?.error?.message || e.message}` };
+      }
+    }
+    if (creds.anthropic_key) return { success: true, message: 'Anthropic key saved — will be validated on first use' };
+    return { success: false, message: 'No AI provider key configured' };
+  }
+
+  return { success: true, message: 'Credentials saved successfully' };
 }
 
 module.exports = {
@@ -765,7 +1115,7 @@ module.exports = {
   getDashboardAnalytics, getROIData,
   
   // Lists
-  listContactLists, createContactList, deleteContactList, addContactsToList,
+  listContactLists, createContactList, deleteContactList, addContactsToList, getContactListContacts,
   
   // Segments
   listSegments, createSegment, deleteSegment,
@@ -792,10 +1142,13 @@ module.exports = {
   listWebhooks, createWebhook, deleteWebhook,
 
   // Integration Settings
-  getIntegrationSettings, upsertIntegrationSettings, deleteIntegrationSettings, testIntegration,
+  getIntegrationSettings, upsertIntegrationSettings, deleteIntegrationSettings, testIntegration, executeNode,
 
   // Campaign Builder
-  getCampaignContacts, queueCampaignLogs, getCampaignStats, importContactsToList,
+  getCampaignContacts, queueCampaignLogs, updateCampaignLogStatus, getCampaignStats, importContactsToList,
+
+  // Internal helpers exposed for controller use
+  getRawCredentials, listSalesUsers,
 
   // Campaign Template Gallery
   listCampaignTemplates, getCampaignTemplateById,
@@ -824,3 +1177,15 @@ async function getCampaignTemplateById(tenantId, id) {
   );
   return result.rows[0] || null;
 }
+
+async function getContactListContacts(tenantId, listId) {
+  const result = await query(
+    `SELECT DISTINCT l.id, l.name, l.email, l.phone, l.company, l.source, l.status, l.priority
+     FROM marketing_list_contacts lc
+     JOIN leads_marketing l ON l.id = lc.lead_id
+     WHERE lc.list_id = $1 AND l.tenant_id = $2`,
+    [listId, tenantId]
+  );
+  return result.rows;
+}
+

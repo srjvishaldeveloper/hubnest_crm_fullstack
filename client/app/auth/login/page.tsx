@@ -85,7 +85,7 @@ export default function LoginPage() {
     'Sales Executive':     '/sales/dashboard',
     'Support Manager':     '/support/dashboard',
     'Support Agent':       '/support/dashboard',
-    'Finance Executive':   '/finance/dashboard',
+    'Finance Executive':   '/finance',
   };
 
   async function handleLoginWithPhone(phone: string, otp: string) {

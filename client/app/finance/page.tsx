@@ -117,25 +117,32 @@ export default function FinanceDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Header section */}
+      {/* Header section with Premium Gradient Banner */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)] tracking-tight">
-            Finance Dashboard 💰
-          </h1>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">
-            Welcome back, {user?.name || 'Finance Manager'}. Here is your financial overview.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <a href="/finance/invoices" className="flex items-center gap-2 bg-[var(--primary)] hover:opacity-90 text-[var(--primary-foreground)] px-4 py-2.5 rounded-xl font-semibold text-sm shadow-md transition-all active:scale-95">
-            <FileText className="w-4 h-4" />
-            New Invoice
-          </a>
-          <button onClick={loadDashboard} className="p-2.5 bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--accent)] rounded-xl text-[var(--muted-foreground)] transition">
-            <RefreshCw className="w-4 h-4" />
-          </button>
+        className="relative rounded-2xl overflow-hidden shadow-lg p-6 sm:p-8"
+        style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 55%, #60a5fa 100%)' }}
+      >
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-24 translate-x-24 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-400/20 rounded-full translate-y-24 -translate-x-12 blur-2xl pointer-events-none" />
+        
+        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-2">
+              Finance Dashboard <DollarSign className="w-8 h-8 text-amber-300 drop-shadow-md" />
+            </h1>
+            <p className="text-blue-100 mt-2 font-medium">
+              Welcome back, {user?.name || 'Finance Manager'}. Here is your financial overview.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <a href="/finance/invoices" className="flex items-center gap-2 bg-white text-blue-700 hover:bg-blue-50 px-5 py-2.5 rounded-xl font-bold text-sm shadow-[0_4px_14px_0_rgba(0,0,0,0.1)] transition-all active:scale-95">
+              <FileText className="w-4 h-4" />
+              New Invoice
+            </a>
+            <button onClick={loadDashboard} className="p-2.5 bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md rounded-xl text-white transition-all active:scale-95 shadow-md">
+              <RefreshCw className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -143,69 +150,28 @@ export default function FinanceDashboard() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.05 }}
         className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         
-        <div className="bg-[var(--card)] p-5 rounded-2xl border border-[var(--border)] shadow-sm hover:shadow-md transition">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Revenue</span>
-            <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 rounded-xl"><DollarSign className="w-4 h-4" /></div>
+        {[
+          { label: 'Revenue', value: kpis.totalRevenue, icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-500/10', border: 'border-emerald-200 dark:border-emerald-500/20', shadow: 'shadow-emerald-500/10', sub: 'Total collected', subIcon: ArrowUpRight, subColor: 'text-emerald-600' },
+          { label: 'Expenses', value: kpis.totalExpenses, icon: TrendingDown, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-500/10', border: 'border-rose-200 dark:border-rose-500/20', shadow: 'shadow-rose-500/10', sub: 'Total approved', subIcon: ArrowDownRight, subColor: 'text-rose-600' },
+          { label: 'Profit', value: kpis.profit, icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-500/10', border: 'border-blue-200 dark:border-blue-500/20', shadow: 'shadow-blue-500/10', sub: 'Revenue - Expenses', subIcon: null, subColor: 'text-[var(--muted-foreground)]' },
+          { label: 'Outstanding', value: kpis.outstandingInvoices.amount, icon: Receipt, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-200 dark:border-amber-500/20', shadow: 'shadow-amber-500/10', sub: `${kpis.outstandingInvoices.count} pending`, subIcon: Clock, subColor: 'text-amber-600' },
+          { label: 'Overdue', value: kpis.overdueInvoices.amount, icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-500/10', border: 'border-red-200 dark:border-red-500/20', shadow: 'shadow-red-500/10', sub: `${kpis.overdueInvoices.count} overdue`, subIcon: AlertCircle, subColor: 'text-red-600' },
+          { label: 'Tax Pending', value: kpis.taxPending, icon: Wallet, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-500/10', border: 'border-indigo-200 dark:border-indigo-500/20', shadow: 'shadow-indigo-500/10', sub: `₹${kpis.taxPaid} paid`, subIcon: CheckCircle2, subColor: 'text-indigo-600', colSpan: 'col-span-2 lg:col-span-1' },
+        ].map((kpi, i) => (
+          <div key={i} className={`${kpi.colSpan || ''} bg-white/60 dark:bg-[#1A1A1A]/60 backdrop-blur-xl p-5 rounded-2xl border ${kpi.border} shadow-sm hover:shadow-lg hover:-translate-y-1 ${kpi.shadow} transition-all duration-300 relative overflow-hidden group`}>
+            <div className={`absolute top-0 right-0 w-24 h-24 ${kpi.bg} rounded-full blur-2xl -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500`} />
+            <div className="relative flex items-center justify-between">
+              <span className="text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">{kpi.label}</span>
+              <div className={`p-2 ${kpi.bg} ${kpi.color} rounded-xl shadow-sm`}><kpi.icon className="w-4 h-4" /></div>
+            </div>
+            <p className={`text-2xl font-black mt-4 relative z-10 ${kpi.label === 'Profit' && kpi.value < 0 ? 'text-red-600' : 'text-[var(--foreground)]'}`}>
+              {formatCurrency(kpi.value)}
+            </p>
+            <p className={`text-xs font-bold mt-1.5 flex items-center gap-1 ${kpi.subColor} relative z-10`}>
+              {kpi.subIcon && <kpi.subIcon className="w-3.5 h-3.5" />} {kpi.sub}
+            </p>
           </div>
-          <p className="text-2xl font-bold text-[var(--foreground)] mt-4">{formatCurrency(kpis.totalRevenue)}</p>
-          <p className="text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-            <ArrowUpRight className="w-3.5 h-3.5" /> Total collected
-          </p>
-        </div>
-
-        <div className="bg-[var(--card)] p-5 rounded-2xl border border-[var(--border)] shadow-sm hover:shadow-md transition">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Expenses</span>
-            <div className="p-2 bg-red-50 dark:bg-red-950/30 text-red-600 rounded-xl"><TrendingDown className="w-4 h-4" /></div>
-          </div>
-          <p className="text-2xl font-bold text-[var(--foreground)] mt-4">{formatCurrency(kpis.totalExpenses)}</p>
-          <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
-            <ArrowDownRight className="w-3.5 h-3.5" /> Total approved
-          </p>
-        </div>
-
-        <div className="bg-[var(--card)] p-5 rounded-2xl border border-[var(--border)] shadow-sm hover:shadow-md transition">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Profit</span>
-            <div className="p-2 bg-blue-50 dark:bg-blue-950/30 text-blue-600 rounded-xl"><TrendingUp className="w-4 h-4" /></div>
-          </div>
-          <p className={`text-2xl font-bold mt-4 ${kpis.profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{formatCurrency(kpis.profit)}</p>
-          <p className="text-xs text-[var(--muted-foreground)] font-semibold mt-1">Revenue - Expenses</p>
-        </div>
-
-        <div className="bg-[var(--card)] p-5 rounded-2xl border border-[var(--border)] shadow-sm hover:shadow-md transition">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Outstanding</span>
-            <div className="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-600 rounded-xl"><Receipt className="w-4 h-4" /></div>
-          </div>
-          <p className="text-2xl font-bold text-[var(--foreground)] mt-4">{formatCurrency(kpis.outstandingInvoices.amount)}</p>
-          <p className="text-xs text-amber-600 font-semibold mt-1 flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" /> {kpis.outstandingInvoices.count} invoices pending
-          </p>
-        </div>
-
-        <div className="bg-[var(--card)] p-5 rounded-2xl border border-[var(--border)] shadow-sm hover:shadow-md transition">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Overdue</span>
-            <div className="p-2 bg-red-50 dark:bg-red-950/30 text-red-600 rounded-xl"><AlertCircle className="w-4 h-4" /></div>
-          </div>
-          <p className="text-2xl font-bold text-red-600 mt-4">{formatCurrency(kpis.overdueInvoices.amount)}</p>
-          <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
-            <AlertCircle className="w-3.5 h-3.5" /> {kpis.overdueInvoices.count} overdue
-          </p>
-        </div>
-
-        <div className="col-span-2 lg:col-span-1 bg-[var(--card)] p-5 rounded-2xl border border-[var(--border)] shadow-sm hover:shadow-md transition">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Tax Summary</span>
-            <div className="p-2 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 rounded-xl"><Wallet className="w-4 h-4" /></div>
-          </div>
-          <p className="text-2xl font-bold text-[var(--foreground)] mt-4">{formatCurrency(kpis.taxPaid)}</p>
-          <p className="text-xs text-amber-600 font-semibold mt-1 flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" /> {formatCurrency(kpis.taxPending)} pending
-          </p>
-        </div>
+        ))}
       </motion.div>
 
       {/* Charts Row */}
@@ -213,44 +179,58 @@ export default function FinanceDashboard() {
         className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         
         {/* Cash Flow Chart */}
-        <div className="lg:col-span-3 bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-[var(--foreground)] text-base">Cash Flow Overview</h3>
-            <span className="text-xs text-[var(--muted-foreground)] font-semibold uppercase tracking-wider">Last 6 Months</span>
+        <div className="lg:col-span-3 bg-white/60 dark:bg-[#1A1A1A]/60 backdrop-blur-xl rounded-3xl border border-[var(--border)] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-extrabold text-[var(--foreground)] text-lg flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-500" /> Cash Flow
+            </h3>
+            <span className="px-3 py-1 bg-[var(--accent)] text-[var(--muted-foreground)] text-xs font-bold uppercase tracking-wider rounded-lg">6 Months</span>
           </div>
-          <div className="h-64">
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={cashFlowData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid var(--border)', fontSize: 12, backgroundColor: 'var(--card)', color: 'var(--foreground)' }} formatter={(value: any) => [`₹${Number(value).toLocaleString()}`, '']} />
-                <Area type="monotone" dataKey="revenue" stroke="var(--chart-green)" fill="var(--chart-green)" fillOpacity={0.1} strokeWidth={2} name="Revenue" />
-                <Area type="monotone" dataKey="expenses" stroke="var(--chart-red)" fill="var(--chart-red)" fillOpacity={0.1} strokeWidth={2} name="Expenses" />
+                <defs>
+                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'var(--muted-foreground)', fontWeight: 600 }} axisLine={false} tickLine={false} dy={10} />
+                <YAxis tick={{ fontSize: 12, fill: 'var(--muted-foreground)', fontWeight: 600 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`} dx={-10} />
+                <Tooltip contentStyle={{ borderRadius: 16, border: '1px solid var(--border)', fontSize: 13, fontWeight: 600, backgroundColor: 'var(--card)', color: 'var(--foreground)', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} formatter={(value: any) => [`₹${Number(value).toLocaleString()}`, '']} />
+                <Area type="monotone" dataKey="revenue" stroke="#10b981" fill="url(#colorRev)" strokeWidth={3} name="Revenue" />
+                <Area type="monotone" dataKey="expenses" stroke="#ef4444" fill="url(#colorExp)" strokeWidth={3} name="Expenses" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Expense Breakdown Pie */}
-        <div className="lg:col-span-2 bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
-          <h3 className="font-bold text-[var(--foreground)] text-base mb-4">Expense Breakdown</h3>
-          <div className="h-48">
+        <div className="lg:col-span-2 bg-white/60 dark:bg-[#1A1A1A]/60 backdrop-blur-xl rounded-3xl border border-[var(--border)] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] hover:shadow-lg transition-shadow">
+          <h3 className="font-extrabold text-[var(--foreground)] text-lg mb-6 flex items-center gap-2">
+            <PieChart className="w-5 h-5 text-indigo-500" /> Expense Breakdown
+          </h3>
+          <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
               <RechartsPie>
-                <Pie data={data?.expenseByCategory || []} cx="50%" cy="50%" innerRadius={45} outerRadius={75} dataKey="total" paddingAngle={3} nameKey="category">
+                <Pie data={data?.expenseByCategory || []} cx="50%" cy="50%" innerRadius={55} outerRadius={85} dataKey="total" paddingAngle={5} nameKey="category" stroke="none">
                   {(data?.expenseByCategory || []).map((_e, i) => (
                     <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid var(--border)', fontSize: 12, backgroundColor: 'var(--card)', color: 'var(--foreground)' }} formatter={(value: any) => [`₹${Number(value).toLocaleString()}`, '']} />
+                <Tooltip contentStyle={{ borderRadius: 12, border: 'none', fontSize: 13, fontWeight: 600, backgroundColor: 'var(--card)', color: 'var(--foreground)', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} formatter={(value: any) => [`₹${Number(value).toLocaleString()}`, '']} />
               </RechartsPie>
             </ResponsiveContainer>
           </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2">
+          <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 justify-center">
             {(data?.expenseByCategory || []).map((d, i) => (
-              <div key={d.category} className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+              <div key={d.category} className="flex items-center gap-2 text-xs font-bold text-[var(--muted-foreground)] bg-[var(--accent)] px-2.5 py-1 rounded-lg">
+                <span className="w-3 h-3 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
                 {d.category}
               </div>
             ))}
@@ -262,105 +242,82 @@ export default function FinanceDashboard() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
         className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Recent Invoices */}
-        <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-[var(--foreground)] text-base">Recent Invoices</h3>
-            <a href="/finance/invoices" className="text-xs text-[var(--primary)] font-bold hover:underline">View All</a>
-          </div>
-          <div className="space-y-3">
-            {(data?.recentInvoices || []).length === 0 ? (
-              <div className="text-center py-6 text-[var(--muted-foreground)] text-xs">No invoices yet.</div>
-            ) : (
-              (data?.recentInvoices || []).map(inv => (
-                <div key={inv.id} className="p-3 bg-[var(--surface)] rounded-xl flex items-center justify-between border border-[var(--border)]">
-                  <div className="space-y-0.5">
-                    <p className="text-xs font-bold text-[var(--foreground)] truncate max-w-[160px]">{inv.invoice_number}</p>
-                    <span className="text-[10px] text-[var(--muted-foreground)] font-medium">{inv.customer_name}</span>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-[var(--foreground)]">₹{parseFloat(String(inv.total)).toLocaleString()}</p>
-                    <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider mt-0.5
-                      ${inv.status === 'Paid' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' :
-                        inv.status === 'Overdue' ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400' :
-                        inv.status === 'Sent' ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400' :
-                        'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}
-                    >
-                      {inv.status}
-                    </span>
-                  </div>
+        {[
+          { title: 'Recent Invoices', icon: FileText, data: data?.recentInvoices, link: '/finance/invoices', color: 'text-blue-500', render: (inv: any) => (
+            <>
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-[var(--foreground)] truncate max-w-[160px]">{inv.invoice_number}</p>
+                <span className="text-[11px] text-[var(--muted-foreground)] font-semibold">{inv.customer_name}</span>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-black text-[var(--foreground)]">₹{parseFloat(String(inv.total)).toLocaleString()}</p>
+                <span className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider mt-1
+                  ${inv.status === 'Paid' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' :
+                    inv.status === 'Overdue' ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' :
+                    inv.status === 'Sent' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' :
+                    'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}
+                >
+                  {inv.status}
+                </span>
+              </div>
+            </>
+          )},
+          { title: 'Recent Payments', icon: CreditCard, data: data?.recentPayments, link: '/finance/payments', color: 'text-emerald-500', render: (pay: any) => (
+            <>
+              <div className="space-y-1">
+                <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">+ ₹{parseFloat(String(pay.amount)).toLocaleString()}</p>
+                <span className="text-[11px] text-[var(--muted-foreground)] font-semibold">{pay.invoice_number || 'Direct'}</span>
+              </div>
+              <div className="text-right">
+                <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 uppercase tracking-wider">
+                  {pay.method}
+                </span>
+                <p className="text-[11px] text-[var(--muted-foreground)] font-semibold mt-1">
+                  {new Date(pay.paid_at).toLocaleDateString()}
+                </p>
+              </div>
+            </>
+          )},
+          { title: 'Pending Approvals', icon: AlertCircle, data: data?.pendingExpenses, link: '/finance/expenses', color: 'text-amber-500', render: (exp: any) => (
+            <>
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-[var(--foreground)] truncate max-w-[160px]">{exp.description}</p>
+                <span className="text-[11px] text-[var(--muted-foreground)] font-semibold">{exp.category} {exp.vendor_name ? `• ${exp.vendor_name}` : ''}</span>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-black text-amber-600">₹{parseFloat(String(exp.amount)).toLocaleString()}</p>
+                <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 uppercase tracking-wider mt-1">
+                  Pending
+                </span>
+              </div>
+            </>
+          )}
+        ].map((list, i) => (
+          <div key={i} className="bg-white/60 dark:bg-[#1A1A1A]/60 backdrop-blur-xl rounded-3xl border border-[var(--border)] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] hover:shadow-lg transition-shadow flex flex-col">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-extrabold text-[var(--foreground)] text-lg flex items-center gap-2">
+                <list.icon className={`w-5 h-5 ${list.color}`} /> {list.title}
+              </h3>
+            </div>
+            <div className="space-y-3 flex-1">
+              {(list.data || []).length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-[var(--muted-foreground)] text-sm font-medium py-8 opacity-60">
+                  <list.icon className="w-8 h-8 mb-2 opacity-50" />
+                  No records found.
                 </div>
-              ))
-            )}
-          </div>
-          <a href="/finance/invoices" className="w-full mt-4 py-2.5 bg-[var(--surface)] hover:bg-[var(--accent)] border border-[var(--border)] text-[var(--muted-foreground)] text-xs font-bold rounded-xl text-center block transition-all">
-            View All Invoices
-          </a>
-        </div>
-
-        {/* Recent Payments */}
-        <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-[var(--foreground)] text-base">Recent Payments</h3>
-            <a href="/finance/payments" className="text-xs text-[var(--primary)] font-bold hover:underline">View All</a>
-          </div>
-          <div className="space-y-3">
-            {(data?.recentPayments || []).length === 0 ? (
-              <div className="text-center py-6 text-[var(--muted-foreground)] text-xs">No payments yet.</div>
-            ) : (
-              (data?.recentPayments || []).map(pay => (
-                <div key={pay.id} className="p-3 bg-[var(--surface)] rounded-xl flex items-center justify-between border border-[var(--border)]">
-                  <div className="space-y-0.5">
-                    <p className="text-xs font-bold text-[var(--foreground)]">₹{parseFloat(String(pay.amount)).toLocaleString()}</p>
-                    <span className="text-[10px] text-[var(--muted-foreground)] font-medium">{pay.invoice_number || 'Direct Payment'}</span>
+              ) : (
+                (list.data || []).map((item: any) => (
+                  <div key={item.id} className="p-4 bg-[var(--surface)] hover:bg-[var(--accent)] transition-colors rounded-2xl flex items-center justify-between border border-[var(--border)] group cursor-pointer">
+                    {list.render(item)}
                   </div>
-                  <div className="text-right">
-                    <span className="inline-block px-2 py-0.5 rounded text-[9px] font-extrabold bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 uppercase tracking-wider">
-                      {pay.method}
-                    </span>
-                    <p className="text-[10px] text-[var(--muted-foreground)] font-semibold mt-0.5">
-                      {new Date(pay.paid_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
+            <a href={list.link} className="w-full mt-5 py-3 bg-[var(--surface)] hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-200 dark:hover:border-blue-500/30 border border-[var(--border)] text-[var(--muted-foreground)] text-sm font-bold rounded-xl text-center block transition-all shadow-sm">
+              View All
+            </a>
           </div>
-          <a href="/finance/payments" className="w-full mt-4 py-2.5 bg-[var(--surface)] hover:bg-[var(--accent)] border border-[var(--border)] text-[var(--muted-foreground)] text-xs font-bold rounded-xl text-center block transition-all">
-            View All Payments
-          </a>
-        </div>
-
-        {/* Pending Expenses */}
-        <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-[var(--foreground)] text-base">Pending Approvals</h3>
-            <a href="/finance/expenses" className="text-xs text-[var(--primary)] font-bold hover:underline">View All</a>
-          </div>
-          <div className="space-y-3">
-            {(data?.pendingExpenses || []).length === 0 ? (
-              <div className="text-center py-6 text-[var(--muted-foreground)] text-xs">No pending expenses.</div>
-            ) : (
-              (data?.pendingExpenses || []).map(exp => (
-                <div key={exp.id} className="p-3 bg-[var(--surface)] rounded-xl flex items-center justify-between border border-[var(--border)]">
-                  <div className="space-y-0.5">
-                    <p className="text-xs font-bold text-[var(--foreground)] truncate max-w-[160px]">{exp.description}</p>
-                    <span className="text-[10px] text-[var(--muted-foreground)] font-medium">{exp.category} {exp.vendor_name ? `• ${exp.vendor_name}` : ''}</span>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-amber-600">₹{parseFloat(String(exp.amount)).toLocaleString()}</p>
-                    <span className="inline-block px-2 py-0.5 rounded text-[9px] font-extrabold bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 uppercase tracking-wider mt-0.5">
-                      Pending
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          <a href="/finance/expenses" className="w-full mt-4 py-2.5 bg-[var(--surface)] hover:bg-[var(--accent)] border border-[var(--border)] text-[var(--muted-foreground)] text-xs font-bold rounded-xl text-center block transition-all">
-            Review All Expenses
-          </a>
-        </div>
+        ))}
       </motion.div>
 
       {/* Tax Summary & Quick Actions */}
@@ -368,28 +325,30 @@ export default function FinanceDashboard() {
         className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Tax Summary Table */}
-        <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
-          <h3 className="font-bold text-[var(--foreground)] text-base mb-4">Tax Summary</h3>
-          <div className="overflow-x-auto">
+        <div className="bg-white/60 dark:bg-[#1A1A1A]/60 backdrop-blur-xl rounded-3xl border border-[var(--border)] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]">
+          <h3 className="font-extrabold text-[var(--foreground)] text-lg mb-6 flex items-center gap-2">
+            <Wallet className="w-5 h-5 text-indigo-500" /> Tax Summary
+          </h3>
+          <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-[var(--border)] text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">
-                  <th className="pb-3 font-semibold">Tax Type</th>
-                  <th className="pb-3 font-semibold text-right">Amount</th>
-                  <th className="pb-3 font-semibold text-right">Status</th>
+                <tr className="bg-[var(--surface)] border-b border-[var(--border)] text-[11px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">
+                  <th className="p-4">Tax Type</th>
+                  <th className="p-4 text-right">Amount</th>
+                  <th className="p-4 text-right">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border)] text-xs font-medium text-[var(--foreground)]">
+              <tbody className="divide-y divide-[var(--border)] text-sm font-bold text-[var(--foreground)] bg-[var(--card)]">
                 {(data?.taxSummary || []).map((t, i) => (
-                  <tr key={i} className="hover:bg-[var(--accent)] transition">
-                    <td className="py-3">{t.taxType}</td>
-                    <td className="py-3 text-right font-bold">₹{t.total.toLocaleString()}</td>
-                    <td className="py-3 text-right">
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider
-                        ${t.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' :
-                          t.status === 'Filed' ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400' :
-                          t.status === 'Overdue' ? 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400' :
-                          'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'}`}
+                  <tr key={i} className="hover:bg-[var(--accent)] transition-colors">
+                    <td className="p-4">{t.taxType}</td>
+                    <td className="p-4 text-right">₹{t.total.toLocaleString()}</td>
+                    <td className="p-4 text-right">
+                      <span className={`inline-block px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider
+                        ${t.status === 'Paid' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' :
+                          t.status === 'Filed' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' :
+                          t.status === 'Overdue' ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' :
+                          'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'}`}
                       >
                         {t.status}
                       </span>
@@ -397,7 +356,7 @@ export default function FinanceDashboard() {
                   </tr>
                 ))}
                 {(data?.taxSummary || []).length === 0 && (
-                  <tr><td colSpan={3} className="py-6 text-center text-[var(--muted-foreground)]">No tax records found.</td></tr>
+                  <tr><td colSpan={3} className="p-8 text-center text-[var(--muted-foreground)] font-medium">No tax records found.</td></tr>
                 )}
               </tbody>
             </table>
@@ -405,28 +364,30 @@ export default function FinanceDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
-          <h3 className="font-bold text-[var(--foreground)] text-base mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <a href="/finance/invoices" className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl flex flex-col items-center justify-center gap-2 text-center text-emerald-600 transition-all active:scale-95 group">
-              <div className="p-2.5 bg-emerald-600 text-white rounded-xl group-hover:scale-110 transition"><FileText className="w-4 h-4" /></div>
-              <span className="text-xs font-bold">Invoices</span>
+        <div className="bg-white/60 dark:bg-[#1A1A1A]/60 backdrop-blur-xl rounded-3xl border border-[var(--border)] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]">
+          <h3 className="font-extrabold text-[var(--foreground)] text-lg mb-6 flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-violet-500" /> Quick Actions
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <a href="/finance/invoices" className="p-5 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/40 dark:to-emerald-900/20 border border-emerald-200/60 dark:border-emerald-500/20 rounded-2xl flex flex-col items-center justify-center gap-3 text-center transition-all hover:shadow-lg hover:-translate-y-1 active:scale-95 group">
+              <div className="p-3 bg-emerald-500 text-white rounded-2xl shadow-emerald-500/30 shadow-lg group-hover:scale-110 transition-transform duration-300"><FileText className="w-5 h-5" /></div>
+              <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Invoices</span>
             </a>
-            <a href="/finance/payments" className="p-4 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-50 dark:hover:bg-blue-950/30 border border-blue-100 dark:border-blue-900/30 rounded-2xl flex flex-col items-center justify-center gap-2 text-center text-blue-600 transition-all active:scale-95 group">
-              <div className="p-2.5 bg-blue-600 text-white rounded-xl group-hover:scale-110 transition"><CreditCard className="w-4 h-4" /></div>
-              <span className="text-xs font-bold">Payments</span>
+            <a href="/finance/payments" className="p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/40 dark:to-blue-900/20 border border-blue-200/60 dark:border-blue-500/20 rounded-2xl flex flex-col items-center justify-center gap-3 text-center transition-all hover:shadow-lg hover:-translate-y-1 active:scale-95 group">
+              <div className="p-3 bg-blue-500 text-white rounded-2xl shadow-blue-500/30 shadow-lg group-hover:scale-110 transition-transform duration-300"><CreditCard className="w-5 h-5" /></div>
+              <span className="text-sm font-bold text-blue-800 dark:text-blue-300">Payments</span>
             </a>
-            <a href="/finance/expenses" className="p-4 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-50 dark:hover:bg-amber-950/30 border border-amber-100 dark:border-amber-900/30 rounded-2xl flex flex-col items-center justify-center gap-2 text-center text-amber-600 transition-all active:scale-95 group">
-              <div className="p-2.5 bg-amber-600 text-white rounded-xl group-hover:scale-110 transition"><Receipt className="w-4 h-4" /></div>
-              <span className="text-xs font-bold">Expenses</span>
+            <a href="/finance/expenses" className="p-5 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/40 dark:to-amber-900/20 border border-amber-200/60 dark:border-amber-500/20 rounded-2xl flex flex-col items-center justify-center gap-3 text-center transition-all hover:shadow-lg hover:-translate-y-1 active:scale-95 group">
+              <div className="p-3 bg-amber-500 text-white rounded-2xl shadow-amber-500/30 shadow-lg group-hover:scale-110 transition-transform duration-300"><Receipt className="w-5 h-5" /></div>
+              <span className="text-sm font-bold text-amber-800 dark:text-amber-300">Expenses</span>
             </a>
-            <a href="/finance/vendors" className="p-4 bg-violet-50/50 dark:bg-violet-950/20 hover:bg-violet-50 dark:hover:bg-violet-950/30 border border-violet-100 dark:border-violet-900/30 rounded-2xl flex flex-col items-center justify-center gap-2 text-center text-violet-600 transition-all active:scale-95 group">
-              <div className="p-2.5 bg-violet-600 text-white rounded-xl group-hover:scale-110 transition"><Building2 className="w-4 h-4" /></div>
-              <span className="text-xs font-bold">Vendors</span>
+            <a href="/finance/vendors" className="p-5 bg-gradient-to-br from-violet-50 to-violet-100/50 dark:from-violet-950/40 dark:to-violet-900/20 border border-violet-200/60 dark:border-violet-500/20 rounded-2xl flex flex-col items-center justify-center gap-3 text-center transition-all hover:shadow-lg hover:-translate-y-1 active:scale-95 group">
+              <div className="p-3 bg-violet-500 text-white rounded-2xl shadow-violet-500/30 shadow-lg group-hover:scale-110 transition-transform duration-300"><Building2 className="w-5 h-5" /></div>
+              <span className="text-sm font-bold text-violet-800 dark:text-violet-300">Vendors</span>
             </a>
           </div>
-          <a href="/finance/analytics" className="w-full mt-4 py-2.5 flex items-center justify-center gap-2 bg-[var(--surface)] hover:bg-[var(--accent)] border border-[var(--border)] text-[var(--muted-foreground)] text-xs font-bold rounded-xl text-center transition-all">
-            <PieChart className="w-3.5 h-3.5" /> View Full Analytics
+          <a href="/finance/analytics" className="w-full mt-4 py-3.5 flex items-center justify-center gap-2 bg-[var(--surface)] hover:bg-[var(--accent)] border border-[var(--border)] text-[var(--foreground)] text-sm font-black uppercase tracking-wider rounded-2xl text-center transition-all shadow-sm">
+            <PieChart className="w-4 h-4" /> View Full Analytics
           </a>
         </div>
       </motion.div>

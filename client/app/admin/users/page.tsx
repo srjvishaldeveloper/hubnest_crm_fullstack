@@ -61,129 +61,7 @@ interface UserRecord {
   revenueGenerated: string;
 }
 
-const MOCK_USERS_DETAILED: UserRecord[] = [
-  {
-    id: '1',
-    name: 'Varun Malhotra',
-    email: 'varun@jobnest.com',
-    employeeId: 'EMP-3012',
-    role: 'Sales Manager',
-    department: 'Sales',
-    status: 'Active',
-    lastLogin: '2 mins ago',
-    phone: '+91 98765 43210',
-    joinedDate: '12 Jan 2024',
-    avatar: 'VM',
-    leadsHandled: 142,
-    loginDays: 24,
-    actionsPerformed: 820,
-    conversionRate: '88%',
-    dealsClosed: 32,
-    revenueGenerated: '$45,000'
-  },
-  {
-    id: '2',
-    name: 'Sneha Gupta',
-    email: 'sneha@jobnest.com',
-    employeeId: 'EMP-3045',
-    role: 'Sales Executive',
-    department: 'Sales',
-    status: 'Active',
-    lastLogin: '1 hour ago',
-    phone: '+91 99887 76655',
-    joinedDate: '01 Feb 2024',
-    avatar: 'SG',
-    leadsHandled: 98,
-    loginDays: 20,
-    actionsPerformed: 412,
-    conversionRate: '94%',
-    dealsClosed: 24,
-    revenueGenerated: '$28,500'
-  },
-  {
-    id: '3',
-    name: 'Amit Patel',
-    email: 'amit@jobnest.com',
-    employeeId: 'EMP-3010',
-    role: 'Support Manager',
-    department: 'Support',
-    status: 'Active',
-    lastLogin: 'Today, 10:45 AM',
-    phone: '+91 98888 77777',
-    joinedDate: '15 Oct 2023',
-    avatar: 'AP',
-    leadsHandled: 0,
-    loginDays: 22,
-    actionsPerformed: 980,
-    conversionRate: 'N/A',
-    dealsClosed: 0,
-    revenueGenerated: 'N/A'
-  },
-  {
-    id: '4',
-    name: 'Priya Sharma',
-    email: 'priya.s@jobnest.com',
-    employeeId: 'EMP-3098',
-    role: 'Marketing Executive',
-    department: 'Marketing',
-    status: 'Inactive',
-    lastLogin: '5 days ago',
-    phone: '+91 91111 22222',
-    joinedDate: '10 Mar 2024',
-    avatar: 'PS',
-    leadsHandled: 45,
-    loginDays: 12,
-    actionsPerformed: 120,
-    conversionRate: '72%',
-    dealsClosed: 8,
-    revenueGenerated: '$9,200'
-  },
-  {
-    id: '5',
-    name: 'Karthik Nair',
-    email: 'karthik@jobnest.com',
-    employeeId: 'EMP-3022',
-    role: 'Support Agent',
-    department: 'Support',
-    status: 'Blocked',
-    lastLogin: '2 weeks ago',
-    phone: '+91 92222 33333',
-    joinedDate: '18 Nov 2023',
-    avatar: 'KN',
-    leadsHandled: 0,
-    loginDays: 0,
-    actionsPerformed: 0,
-    conversionRate: 'N/A',
-    dealsClosed: 0,
-    revenueGenerated: 'N/A'
-  },
-  {
-    id: '6',
-    name: 'Rohan Mehta',
-    email: 'rohan.m@jobnest.com',
-    employeeId: 'EMP-3114',
-    role: 'Finance Executive',
-    department: 'Finance',
-    status: 'Active',
-    lastLogin: '3 hours ago',
-    phone: '+91 93333 44444',
-    joinedDate: '05 May 2024',
-    avatar: 'RM',
-    leadsHandled: 0,
-    loginDays: 25,
-    actionsPerformed: 640,
-    conversionRate: 'N/A',
-    dealsClosed: 0,
-    revenueGenerated: 'N/A'
-  }
-];
 
-const DONUT_DATA = [
-  { name: 'Sales Executives', value: 48, color: '#2563EB' },
-  { name: 'Support Agents', value: 25, color: '#10B981' },
-  { name: 'Marketing', value: 15, color: '#F59E0B' },
-  { name: 'Managers', value: 12, color: '#8B5CF6' }
-];
 
 const WEEKLY_ACTIVITY = [
   { day: 'Mon', actions: 120 },
@@ -199,6 +77,11 @@ function AdminUsersPageContent() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'All' | 'Active' | 'Inactive' | 'Blocked'>('All');
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  };
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -210,6 +93,7 @@ function AdminUsersPageContent() {
       })
       .catch(err => {
         console.error('Failed to fetch users:', err);
+        showToast(err?.response?.data?.message || 'Failed to load users', 'error');
       });
   }, []);
 
@@ -328,10 +212,10 @@ function AdminUsersPageContent() {
         setUsers(res.data.data.users);
       }
       setShowAddModal(false);
-      alert('User restored successfully!');
+      showToast('User restored successfully!');
     } catch (err: any) {
       console.error('Restore failed:', err);
-      alert(err.response?.data?.message || 'Failed to restore user');
+      showToast(err.response?.data?.message || 'Failed to restore user', 'error');
     } finally {
       setRestoringUser(false);
     }
@@ -340,15 +224,54 @@ function AdminUsersPageContent() {
   // Detail View Right Drawer
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
   const [drawerTab, setDrawerTab] = useState<'Overview' | 'Permissions' | 'Activity' | 'Performance' | 'Security'>('Overview');
+  const [editDept, setEditDept] = useState('');
+  const [editRole, setEditRole] = useState('');
+  const [savingDeptRole, setSavingDeptRole] = useState(false);
+
+  useEffect(() => {
+    if (selectedUser) { setEditDept(selectedUser.department || ''); setEditRole(selectedUser.role || ''); }
+  }, [selectedUser]);
+
+  const handleSaveDeptRole = async () => {
+    if (!selectedUser) return;
+    setSavingDeptRole(true);
+    try {
+      await api.patch(`/auth/users/${selectedUser.id}`, { department: editDept, role: editRole });
+      setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, department: editDept, role: editRole } : u));
+      setSelectedUser(prev => prev ? { ...prev, department: editDept, role: editRole } : prev);
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'Failed to update', 'error');
+    } finally {
+      setSavingDeptRole(false);
+    }
+  };
 
   const stats = useMemo(() => {
     return {
       total: users.length,
       active: users.filter(u => u.status === 'Active').length,
       inactive: users.filter(u => u.status === 'Inactive').length,
-      newMonth: users.filter(u => u.joinedDate.includes('2024')).length,
+      newMonth: users.filter(u => {
+        const d = new Date(u.joinedDate); const now = new Date();
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      }).length,
       blocked: users.filter(u => u.status === 'Blocked').length,
     };
+  }, [users]);
+
+  const donutData = useMemo(() => {
+    if (!users.length) return [{ name: 'No Users', value: 100, color: '#E2E8F0' }];
+    const groups: Record<string, { color: string; count: number }> = {
+      'Sales': { color: '#2563EB', count: 0 },
+      'Marketing': { color: '#F59E0B', count: 0 },
+      'Support': { color: '#10B981', count: 0 },
+      'Management': { color: '#8B5CF6', count: 0 },
+      'Finance': { color: '#F43F5E', count: 0 },
+    };
+    users.forEach(u => { if (groups[u.department]) groups[u.department].count++; });
+    return Object.entries(groups)
+      .filter(([, v]) => v.count > 0)
+      .map(([name, v]) => ({ name, value: Math.round((v.count / users.length) * 100), color: v.color }));
   }, [users]);
 
   const sortedAndFilteredUsers = useMemo(() => {
@@ -398,7 +321,7 @@ function AdminUsersPageContent() {
         phone: newPhone
       });
 
-      if (emailAvailable === false) {
+      if (emailAvailable === false && emailCheckCode !== 'USER_ARCHIVED') {
         setEmailCheckErr('This email is already in use. Try a different one.');
         return;
       }
@@ -441,9 +364,9 @@ function AdminUsersPageContent() {
         setNewName('');
         setNewEmail('');
         setNewPhone('');
-        alert('User created successfully!');
+        showToast('User created successfully!');
       } else {
-        alert(res.data.message || 'Failed to create user');
+        showToast(res.data.message || 'Failed to create user', 'error');
       }
     }).catch(err => {
       console.error(err);
@@ -462,7 +385,7 @@ function AdminUsersPageContent() {
         setEmailAvailable(false);
         return;
       }
-      alert(err.response?.data?.message || 'Failed to create user');
+      showToast(err.response?.data?.message || 'Failed to create user', 'error');
     });
     } catch (err: any) {
       if (err instanceof z.ZodError) {
@@ -473,16 +396,16 @@ function AdminUsersPageContent() {
 
   const handleDeleteUser = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('Are you sure you want to delete this user?')) {
+    if (window.confirm('Are you sure you want to delete this user?')) {
       api.delete(`/auth/users/${id}`)
         .then(() => {
           setUsers(prev => prev.filter(u => u.id !== id));
           if (selectedUser?.id === id) setSelectedUser(null);
-          alert('User deleted successfully!');
+          showToast('User deleted successfully!');
         })
         .catch(err => {
           console.error(err);
-          alert(err.response?.data?.message || 'Failed to delete user');
+          showToast(err.response?.data?.message || 'Failed to delete user', 'error');
         });
     }
   };
@@ -490,32 +413,32 @@ function AdminUsersPageContent() {
   const handleToggleBlock = (id: string, currentStatus: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const nextStatus = currentStatus === 'Blocked' ? 'Active' : 'Blocked';
-    if (confirm(`Are you sure you want to change user status to ${nextStatus}?`)) {
+    if (window.confirm(`Are you sure you want to change user status to ${nextStatus}?`)) {
       api.post('/auth/users/toggle-block', { id, status: nextStatus })
         .then(() => {
           setUsers(prev => prev.map(u => u.id === id ? { ...u, status: nextStatus as any } : u));
           if (selectedUser?.id === id) {
             setSelectedUser(prev => prev ? { ...prev, status: nextStatus as any } : null);
           }
-          alert(`User status updated to ${nextStatus} successfully!`);
+          showToast(`User status updated to ${nextStatus} successfully!`);
         })
         .catch(err => {
           console.error(err);
-          alert(err.response?.data?.message || 'Failed to update user status');
+          showToast(err.response?.data?.message || 'Failed to update user status', 'error');
         });
     }
   };
 
   const handleResetUserPassword = (id: string, name: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm(`Are you sure you want to reset the password for ${name}?`)) {
+    if (window.confirm(`Are you sure you want to reset the password for ${name}?`)) {
       api.post(`/auth/users/${id}/reset-password`)
         .then((res: any) => {
-          alert(res.data?.message || 'Password has been reset and credentials sent to email.');
+          showToast(res.data?.message || 'Password has been reset and credentials sent to email.');
         })
         .catch((err: any) => {
           console.error(err);
-          alert(err.response?.data?.message || 'Failed to reset password');
+          showToast(err.response?.data?.message || 'Failed to reset password', 'error');
         });
     }
   };
@@ -528,6 +451,15 @@ function AdminUsersPageContent() {
 
   return (
     <div className="space-y-6">
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-[9999] flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold text-white transition-all ${
+          toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'
+        }`}>
+          {toast.type === 'success' ? <BadgeCheck className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+          {toast.msg}
+        </div>
+      )}
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -790,11 +722,11 @@ function AdminUsersPageContent() {
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Role Distribution</h3>
             <p className="text-[10px] text-slate-500 mt-0.5">Summary of user seat counts within client system</p>
           </div>
-          <div className="flex-1 min-h-0 flex items-center justify-center relative mt-3">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="flex-1 min-h-0 flex items-center justify-center relative mt-3" style={{ minHeight: 200 }}>
+            <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
-                  data={DONUT_DATA}
+                  data={donutData}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -802,7 +734,7 @@ function AdminUsersPageContent() {
                   paddingAngle={3}
                   dataKey="value"
                 >
-                  {DONUT_DATA.map((entry, idx) => (
+                  {donutData.map((entry, idx) => (
                     <Cell key={`cell-${idx}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -815,7 +747,7 @@ function AdminUsersPageContent() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 text-center border-t border-slate-50 pt-3 mt-1">
-            {DONUT_DATA.map((item, idx) => (
+            {donutData.map((item, idx) => (
               <div key={idx} className="flex items-center gap-1.5 justify-center">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
                 <span className="text-[11px] text-slate-600 font-semibold">{item.name} ({item.value}%)</span>
@@ -830,8 +762,8 @@ function AdminUsersPageContent() {
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">User Activity (This Week)</h3>
             <p className="text-[10px] text-slate-500 mt-0.5">Aggregate actions completed daily by active executives</p>
           </div>
-          <div className="flex-1 min-h-0 mt-5">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="flex-1 min-h-0 mt-5" style={{ minHeight: 180 }}>
+            <ResponsiveContainer width="100%" height={180}>
               <LineChart data={WEEKLY_ACTIVITY}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                 <XAxis dataKey="day" stroke="#94A3B8" fontSize={10} tickLine={false} />
@@ -1177,6 +1109,31 @@ function AdminUsersPageContent() {
                           <p className="text-xs text-[#0F172A] dark:text-[#F9FAFB] font-semibold mt-0.5">{selectedUser.phone}</p>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Department & Role Edit */}
+                    <div className="space-y-3">
+                      <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Department & Role</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Department</label>
+                          <select value={editDept} onChange={e => { setEditDept(e.target.value); setEditRole(DEPT_ROLES[e.target.value]?.[0] || ''); }}
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-[#333] bg-white dark:bg-[#161616] text-[#0F172A] dark:text-[#F9FAFB] outline-none focus:border-blue-500 font-semibold">
+                            {['Sales','Marketing','Support','Finance'].map(d => <option key={d} value={d}>{d}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Role</label>
+                          <select value={editRole} onChange={e => setEditRole(e.target.value)}
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-[#333] bg-white dark:bg-[#161616] text-[#0F172A] dark:text-[#F9FAFB] outline-none focus:border-blue-500 font-semibold">
+                            {(DEPT_ROLES[editDept] || [editRole]).map(r => <option key={r} value={r}>{r}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <button onClick={handleSaveDeptRole} disabled={savingDeptRole}
+                        className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition disabled:opacity-50">
+                        {savingDeptRole ? 'Saving…' : 'Save Department & Role'}
+                      </button>
                     </div>
 
                     {/* Activity Summary */}

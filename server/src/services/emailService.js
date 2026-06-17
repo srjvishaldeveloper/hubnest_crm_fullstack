@@ -81,6 +81,11 @@ function buildOTPTemplate(otp, userName, subject, expiryMinutes) {
 }
 
 async function sendOTPEmail(to, otp, userName) {
+  if (!env.smtp.user || !env.smtp.pass) {
+    // Log OTP to console in dev when SMTP is not configured
+    logger.warn(`[DEV] OTP for ${to}: ${otp} (SMTP not configured — check SMTP_USER/SMTP_PASS in .env)`);
+    return;
+  }
   const expiryMinutes = Math.floor(env.otpExpirySeconds / 60);
   const subject = 'JOB NEST CRM Login OTP';
 
@@ -314,6 +319,10 @@ function buildFormConfirmationTemplate(formName, submitterName, fields, accent =
 
 async function sendFormConfirmationEmail({ to, formName, submitterName, fields, accentColor }) {
   if (!to) return;
+  if (!env.smtp.user || !env.smtp.pass) {
+    logger.warn('Form confirmation email skipped: SMTP_USER/SMTP_PASS not configured in .env');
+    return;
+  }
   try {
     const info = await getTransporter().sendMail({
       from: `"HubNest CRM" <${env.smtp.user}>`,

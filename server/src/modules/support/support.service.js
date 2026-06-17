@@ -5,32 +5,32 @@ const { query } = require('../../config/database');
 async function getSupportDashboard(tenantId, userId, roleName) {
   const isManager = roleName === 'Support Manager' || roleName === 'Admin' || roleName === 'Super Admin';
 
-  // KPI Calculations
-  const agentFilter = isManager ? '' : `AND assigned_agent_id = '${userId}'`;
+  // Use parameterized queries — no string interpolation of userId
+  const params = isManager ? [tenantId] : [tenantId, userId];
+  const agentClause = isManager ? '' : 'AND assigned_agent_id = $2';
 
-  const totalTicketsResult = await query(`SELECT COUNT(*) AS cnt FROM support_tickets WHERE tenant_id = $1 ${agentFilter}`, [tenantId]);
-  const openTicketsResult = await query(`SELECT COUNT(*) AS cnt FROM support_tickets WHERE tenant_id = $1 AND status = 'Open' ${agentFilter}`, [tenantId]);
-  const resolvedTicketsResult = await query(`SELECT COUNT(*) AS cnt FROM support_tickets WHERE tenant_id = $1 AND status = 'Resolved' ${agentFilter}`, [tenantId]);
-  const pendingTicketsResult = await query(`SELECT COUNT(*) AS cnt FROM support_tickets WHERE tenant_id = $1 AND status = 'In Progress' ${agentFilter}`, [tenantId]);
+  const totalTicketsResult = await query(`SELECT COUNT(*) AS cnt FROM support_tickets WHERE tenant_id = $1 ${agentClause}`, params);
+  const openTicketsResult = await query(`SELECT COUNT(*) AS cnt FROM support_tickets WHERE tenant_id = $1 AND status = 'Open' ${agentClause}`, params);
+  const resolvedTicketsResult = await query(`SELECT COUNT(*) AS cnt FROM support_tickets WHERE tenant_id = $1 AND status = 'Resolved' ${agentClause}`, params);
+  const pendingTicketsResult = await query(`SELECT COUNT(*) AS cnt FROM support_tickets WHERE tenant_id = $1 AND status = 'In Progress' ${agentClause}`, params);
 
   // SLA Compliance
-  // Resolved tickets whose updated_at was <= sla_deadline
   const slaResult = await query(
-    `SELECT 
+    `SELECT
        COUNT(*) FILTER (WHERE status = 'Resolved' AND updated_at <= sla_deadline) AS met,
        COUNT(*) FILTER (WHERE status = 'Resolved') AS total
-     FROM support_tickets 
-     WHERE tenant_id = $1 ${agentFilter}`,
-    [tenantId]
+     FROM support_tickets
+     WHERE tenant_id = $1 ${agentClause}`,
+    params
   );
   const metSla = parseInt(slaResult.rows[0]?.met || 0);
   const totalResolved = parseInt(slaResult.rows[0]?.total || 0);
-  const slaCompliance = totalResolved > 0 ? Math.round((metSla / totalResolved) * 100) : 92; // default 92% if no tickets resolved
+  const slaCompliance = totalResolved > 0 ? Math.round((metSla / totalResolved) * 100) : 92;
 
   // Ticket Status Overview
   const statusOverviewResult = await query(
-    `SELECT status, COUNT(*) AS cnt FROM support_tickets WHERE tenant_id = $1 ${agentFilter} GROUP BY status`,
-    [tenantId]
+    `SELECT status, COUNT(*) AS cnt FROM support_tickets WHERE tenant_id = $1 ${agentClause} GROUP BY status`,
+    params
   );
   const statusOverview = statusOverviewResult.rows.map(r => ({
     status: r.status,
@@ -42,24 +42,24 @@ async function getSupportDashboard(tenantId, userId, roleName) {
     `SELECT t.id, t.title, t.priority, t.sla_deadline, t.status, c.name AS customer_name
      FROM support_tickets t
      JOIN customers c ON c.id = t.customer_id
-     WHERE t.tenant_id = $1 AND t.status IN ('Open', 'In Progress') ${agentFilter}
+     WHERE t.tenant_id = $1 AND t.status IN ('Open', 'In Progress') ${agentClause}
      ORDER BY t.priority = 'High' DESC, t.sla_deadline ASC LIMIT 5`,
-    [tenantId]
+    params
   );
 
   // SLA Tracking Panel (Tickets close to breach)
   const slaBreaches = await query(
     `SELECT t.id, t.title, t.sla_deadline, c.name AS customer_name,
-       CASE 
+       CASE
          WHEN NOW() > t.sla_deadline THEN 'Breached'
          WHEN NOW() + INTERVAL '1 hour' > t.sla_deadline THEN 'At Risk (< 1hr)'
          ELSE 'Within SLA'
        END AS status
      FROM support_tickets t
      JOIN customers c ON c.id = t.customer_id
-     WHERE t.tenant_id = $1 AND t.status IN ('Open', 'In Progress') ${agentFilter}
+     WHERE t.tenant_id = $1 AND t.status IN ('Open', 'In Progress') ${agentClause}
      ORDER BY t.sla_deadline ASC LIMIT 5`,
-    [tenantId]
+    params
   );
 
   // Agent Performance Overview

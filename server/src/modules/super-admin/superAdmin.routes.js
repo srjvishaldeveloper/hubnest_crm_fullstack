@@ -28,13 +28,10 @@ router.get('/admins', authCtrl.getTenantAdmins);
 // PATCH /api/v1/super-admin/admins/:id -> 200 updated
 router.patch('/admins/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, email, status, phone } = req.body;
+  const { name, email, status, phone, role, department } = req.body;
   try {
-    // Find the user by ID or admin_id
     const userCheck = await query('SELECT id, tenant_id FROM users WHERE id::text = $1 OR admin_id = $1', [id]);
-    if (userCheck.rows.length === 0) {
-      return sendError(res, 'Admin account not found', 404);
-    }
+    if (userCheck.rows.length === 0) return sendError(res, 'Admin account not found', 404);
     const userId = userCheck.rows[0].id;
     const tenantId = userCheck.rows[0].tenant_id;
 
@@ -44,14 +41,30 @@ router.patch('/admins/:id', async (req, res) => {
         [name, email, phone, userId]
       );
     }
+
+    if (role) {
+      // Look up role by name; if not found, create it on the fly
+      let roleRow = await query(`SELECT id FROM roles WHERE LOWER(name) = LOWER($1) LIMIT 1`, [role]);
+      if (roleRow.rows.length === 0) {
+        roleRow = await query(`INSERT INTO roles (name, description, permissions) VALUES ($1, $2, '[]') RETURNING id`, [role, role]);
+      }
+      const roleId = roleRow.rows[0].id;
+      await query(`UPDATE users SET role_id = $1, updated_at = NOW() WHERE id = $2`, [roleId, userId]);
+    }
+
+    if (department) {
+      // Store department as a free-text field; add the column if it doesn't exist yet
+      await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS department VARCHAR(100)`);
+      await query(`UPDATE users SET department = $1, updated_at = NOW() WHERE id = $2`, [department, userId]);
+    }
+
     if (status) {
       const dbStatus = status === 'Blocked' ? 'Suspended' : (status === 'Inactive' ? 'Inactive' : 'Active');
       await query(`UPDATE users SET status = $1 WHERE id = $2`, [dbStatus, userId]);
-      
-      const tenantStatus = status === 'Blocked' ? 'Suspended' : (status === 'Inactive' ? 'Inactive' : 'Active');
-      await query(`UPDATE tenants SET status = $1 WHERE id = $2`, [tenantStatus, tenantId]);
+      await query(`UPDATE tenants SET status = $1 WHERE id = $2`, [dbStatus, tenantId]);
     }
-    return sendSuccess(res, { id }, 'Admin updated successfully');
+
+    return sendSuccess(res, { id }, 'User updated successfully');
   } catch (err) {
     return sendError(res, err.message, 500);
   }
@@ -309,22 +322,23 @@ router.get('/users', async (req, res) => {
     const result = await query(`
       SELECT u.id, u.name, u.email, u.admin_id as "employeeId",
              u.status, u.created_at as "lastLogin", t.name as "company",
-             r.name as "role", COALESCE(u.phone_number, u.phone) as "phone"
+             r.name as "role"
       FROM users u
       LEFT JOIN roles r ON r.id = u.role_id
       LEFT JOIN tenants t ON t.id = u.tenant_id
       WHERE u.status != 'Archived'
       ORDER BY u.created_at DESC
     `);
-    
-    // Process formatting to match frontend expectations
+
     const users = result.rows.map(u => {
+      // Derive department from role name
       let dept = 'Platform';
       if (u.role) {
         if (u.role.includes('Sales')) dept = 'Sales';
         else if (u.role.includes('Marketing')) dept = 'Marketing';
         else if (u.role.includes('Support')) dept = 'Support';
         else if (u.role.includes('Finance')) dept = 'Finance';
+        else if (u.role.includes('Admin')) dept = 'Admin';
       }
 
       return {
@@ -337,7 +351,7 @@ router.get('/users', async (req, res) => {
         company: u.company || 'System',
         status: u.status === 'Suspended' ? 'Blocked' : u.status || 'Active',
         lastLogin: u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'Never',
-        phone: u.phone || 'N/A',
+        phone: 'N/A',
         avatar: u.name ? u.name.substring(0, 2).toUpperCase() : 'US'
       };
     });
@@ -694,7 +708,8 @@ router.get('/billing/invoices/:id/download', async (req, res) => {
       SELECT i.id as "_id", i.invoice_number as "invoiceNumber",
              t.name as "tenantName", i.customer_name as "tenant",
              i.total as amount, 'INR' as currency, LOWER(i.status) as status,
-             i.due_date as "dueDate", i.created_at as "issuedDate"
+             i.due_date as "dueDate", i.created_at as "issuedDate",
+             i.notes as "notes", i.amount as "subTotal", i.tax as "tax", i.total as "grandTotal"
       FROM invoices i
       LEFT JOIN tenants t ON t.id = i.tenant_id
       WHERE i.id = $1

@@ -224,7 +224,10 @@ export default function Sidebar({ open, collapsed, onClose }: SidebarProps) {
                 <p className="text-[11px] font-bold text-orange-50 uppercase tracking-wider">AI Assistant</p>
               </div>
               <p className="text-xs text-orange-100 leading-relaxed">Ask anything about your tenants, admins &amp; system health.</p>
-              <button className="w-full mt-3 py-2 bg-card text-orange-600 hover:bg-orange-50 text-sm font-bold rounded-lg transition-colors shadow-sm shadow-orange-500/20">
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('open-ai-chatbot'))}
+                className="w-full mt-3 py-2 bg-card text-orange-600 hover:bg-orange-50 text-sm font-bold rounded-lg transition-colors shadow-sm shadow-orange-500/20 cursor-pointer"
+              >
                 Ask AI
               </button>
             </div>

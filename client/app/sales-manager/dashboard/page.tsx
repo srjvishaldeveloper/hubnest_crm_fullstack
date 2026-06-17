@@ -307,8 +307,57 @@ export default function SalesManagerDashboard() {
       else setLoading(true);
       setError(null);
       const res = await smGetDashboard();
-      setData(res ?? MOCK_DATA);
-    } catch {
+      if (!res) { setData(MOCK_DATA); return; }
+
+      // Normalize backend response to match frontend DashboardData interface
+      const normalized: DashboardData = {
+        kpis: {
+          totalLeads: res.kpis?.totalLeads ?? 0,
+          revenueGenerated: res.managerTarget?.revenue_achieved ?? 0,
+          conversionRate: res.kpis?.conversionRate ?? 0,
+          activeDeals: res.kpis?.activeDeals ?? 0,
+          leadsTrend: 0,
+          revenueTrend: 0,
+          conversionTrend: 0,
+          dealsTrend: 0,
+        },
+        pipeline: res.pipeline ?? [],
+        // Backend returns achievedAmount/targetAmount — map to what frontend expects
+        teamPerformance: (res.teamPerformance ?? []).map((m: any) => ({
+          id: m.id,
+          name: m.name,
+          target: m.targetAmount ?? 0,
+          achieved: m.achievedAmount ?? 0,
+          conversionRate: m.conversionRate ?? 0,
+          status: m.status === 'Active' ? 'Active' : m.status === 'Suspended' ? 'Inactive' : 'Active',
+        })),
+        todayTasks: (res.todayTasks ?? []).map((t: any) => ({
+          id: t.id,
+          type: t.type ?? 'Call',
+          leadName: t.lead_name ?? t.leadName ?? 'Unknown',
+          assignedExec: t.assigned_name ?? t.assignedExec ?? '',
+          time: t.scheduled_at ? new Date(t.scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '',
+          priority: t.priority ?? 'Medium',
+        })),
+        hotLeads: (res.hotLeads ?? []).map((l: any) => ({
+          id: l.id,
+          name: l.name,
+          company: l.company,
+          probability: l.conversion_probability ?? l.probability ?? 0,
+          assignedExec: l.assigned_name ?? '',
+          value: l.deal_value ? `₹${Number(l.deal_value).toLocaleString('en-IN')}` : undefined,
+        })),
+        // Backend returns activitySummary: {Call, Email, Meeting}
+        activity: {
+          calls: res.activitySummary?.Call ?? 0,
+          emails: res.activitySummary?.Email ?? 0,
+          meetings: res.activitySummary?.Meeting ?? 0,
+        },
+        aiInsights: res.aiInsights ?? [],
+      };
+      setData(normalized);
+    } catch (err) {
+      console.error('Dashboard fetch failed:', err);
       setData(MOCK_DATA);
     } finally {
       setLoading(false);

@@ -89,10 +89,20 @@ app.use((req, res) => {
 // Global error handler (catches errors thrown from async route handlers)
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _next) => {
-  const statusCode = err.statusCode || 500;
+  // Map PostgreSQL constraint violations to user-friendly HTTP codes
+  if (err.code === '23505') {
+    // Unique constraint violation → 409 Conflict
+    const detail = err.detail || '';
+    const field = detail.match(/Key \(([^)]+)\)/)?.[1] || 'field';
+    logger.warn('Unique constraint violation', { path: req.path, detail });
+    return sendError(res, `A record with this ${field} already exists`, 409);
+  }
+  if (err.code === '23503') {
+    // Foreign key violation → 400 Bad Request
+    return sendError(res, 'Referenced record does not exist', 400);
+  }
 
-  // Show the actual message for any error thrown intentionally by our code
-  // (those have an explicit statusCode). For truly unhandled errors, hide details.
+  const statusCode = err.statusCode || 500;
   const message = err.statusCode ? err.message : 'Internal server error';
 
   logger.error('Application error', {
