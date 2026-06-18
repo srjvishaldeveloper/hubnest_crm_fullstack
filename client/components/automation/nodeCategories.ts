@@ -43,8 +43,13 @@ export const nodeCategories: NodeCategory[] = [
       { type: 'trigger', label: 'Page Visited',        icon: 'Globe',       description: 'Contact visits a landing page' },
       { type: 'trigger', label: 'Email Opened',        icon: 'MailOpen',    description: 'Contact opens an email' },
       { type: 'trigger', label: 'Link Clicked',        icon: 'MousePointer',description: 'Contact clicks an email link' },
+      { type: 'trigger', label: 'Email Replied',       icon: 'MailCheck',   description: 'Contact replies to an email' },
+      { type: 'trigger', label: 'Email Bounced',       icon: 'MailX',       description: 'Email could not be delivered' },
+      { type: 'trigger', label: 'Email Unsubscribed',  icon: 'MailMinus',   description: 'Contact unsubscribes from emails' },
       { type: 'trigger', label: 'Schedule / Cron',     icon: 'Clock',       description: 'Time-based trigger (daily, weekly)' },
       { type: 'trigger', label: 'Pipeline Stage Change',icon: 'ArrowRight', description: 'Deal moves to a new stage' },
+      { type: 'trigger', label: 'Call Missed',         icon: 'PhoneMissed', description: 'A call was missed' },
+      { type: 'trigger', label: 'Note Added',          icon: 'StickyNote',  description: 'A note is added to a contact' },
     ],
   },
   {

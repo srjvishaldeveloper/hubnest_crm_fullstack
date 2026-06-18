@@ -201,6 +201,10 @@ async function deleteWorkflow(tenantId, id) {
 
 // --- Workflow Runs ---
 async function triggerWorkflowRun(tenantId, workflowId, leadId, initialNodeId) {
+  // If no leadId provided, skip DB run record (table requires NOT NULL lead_id)
+  if (!leadId) {
+    return { id: null, workflow_id: workflowId, status: 'Running', created_at: new Date().toISOString() };
+  }
   const result = await query(
     `INSERT INTO marketing_workflow_runs (tenant_id, workflow_id, lead_id, current_node_id, status)
      VALUES ($1, $2, $3, $4, 'Running') RETURNING *`,
@@ -213,7 +217,7 @@ async function getWorkflowRuns(tenantId, workflowId) {
   const result = await query(
     `SELECT r.*, l.name AS lead_name, l.email AS lead_email
      FROM marketing_workflow_runs r
-     JOIN leads_marketing l ON l.id = r.lead_id
+     LEFT JOIN leads_marketing l ON l.id = r.lead_id
      WHERE r.tenant_id = $1 AND r.workflow_id = $2
      ORDER BY r.created_at DESC`,
     [tenantId, workflowId]
@@ -843,15 +847,14 @@ async function executeNode(tenantId, node, contact = {}) {
   const config = node.data?.config || {};
 
   if (nodeType === 'trigger') {
-    if (label === 'Lead Created' && config.listId) {
+    if (label === 'Lead Created' && config.listId && contact.id) {
       const checkResult = await query(
         'SELECT 1 FROM marketing_list_contacts WHERE list_id = $1 AND lead_id = $2',
         [config.listId, contact.id]
       );
       if (checkResult.rows.length === 0) {
-        throw new Error(`Contact is not in the filtered list: ${config.listName || config.listId}`);
+        return { status: 'error', message: `Contact is not in the filtered list: ${config.listName || config.listId}` };
       }
-      return { status: 'success', message: `Trigger "Lead Created" fired for list: ${config.listName || config.listId}` };
     }
     return { status: 'success', message: `Trigger "${label}" fired` };
   }

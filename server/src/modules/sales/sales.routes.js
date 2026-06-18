@@ -19,6 +19,7 @@ router.get('/leads',              authorize('leads', 'read'),   ctrl.listLeads);
 router.get('/leads/:id',          authorize('leads', 'read'),   ctrl.getLead);
 router.post('/leads',             authorize('leads', 'create'), ctrl.createLead);
 router.patch('/leads/:id',        authorize('leads', 'update'), ctrl.updateLead);
+router.delete('/leads/:id',       authorize('leads', 'delete'), ctrl.deleteLead);
 router.get('/leads/:id/activity', authorize('leads', 'read'),   ctrl.getLeadActivity);
 
 // TASKS

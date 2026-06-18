@@ -99,4 +99,8 @@ router.post('/integrations',            authorize('campaigns', 'update'), ctrl.u
 router.delete('/integrations/:provider',authorize('campaigns', 'update'), ctrl.deleteIntegrationSettings);
 router.post('/integrations/:provider/test', authorize('campaigns', 'update'), ctrl.testIntegration);
 
+// Meta OAuth flow
+router.get('/integrations/meta/oauth-url',   authorize('campaigns', 'update'), ctrl.getMetaOAuthUrl);
+router.get('/integrations/meta/callback',     ctrl.handleMetaOAuthCallback);   // no auth — redirect from Meta
+
 module.exports = router;

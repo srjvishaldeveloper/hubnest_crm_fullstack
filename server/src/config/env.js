@@ -32,4 +32,6 @@ module.exports = {
   nodeEnv: process.env.NODE_ENV || 'development',
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+  metaAppId: process.env.META_APP_ID || '',
+  metaAppSecret: process.env.META_APP_SECRET || '',
 };

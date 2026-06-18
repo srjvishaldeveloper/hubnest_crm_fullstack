@@ -104,7 +104,7 @@ function InvoicePreview({ inv, meta, printRef }: {
     : '';
 
   return (
-    <div ref={printRef} className="bg-white text-[#1a1a1a] text-[11px] leading-snug w-full" style={{ fontFamily: 'Arial,sans-serif' }}>
+    <div ref={printRef} className="keep-light bg-white text-[#1a1a1a] text-[11px] leading-snug w-full" style={{ fontFamily: 'Arial,sans-serif' }}>
       {/* Header */}
       <div style={{ background: accent }} className="px-6 py-4 flex items-start justify-between">
         <div>
@@ -283,28 +283,82 @@ function loadScript(src: string): Promise<boolean> {
   });
 }
 
-export default function PublicInvoiceViewPage() {
-  const params = useParams<{ number: string }>();
-  const [inv, setInv]     = useState<PublicInvoice | null>(null);
-  const [meta, setMeta]   = useState<InvoiceMeta>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const printRef = useRef<HTMLDivElement>(null);
+// ─── STRIPE CARD ELEMENT MOUNT HOOK ──────────────────────────────────────────
 
-  // Payment UI State
-  const [paymentConfig, setPaymentConfig] = useState<{ gateways: { gateway: string; publishableKey?: string; keyId?: string }[] } | null>(null);
-  const [showPayModal, setShowPayModal] = useState(false);
-  const [selectedGateway, setSelectedGateway] = useState<string>('');
-  const [stripeInstance, setStripeInstance] = useState<any>(null);
-  const [stripeElements, setStripeElements] = useState<any>(null);
-  const [stripeCard, setStripeCard] = useState<any>(null);
-  const [paying, setPaying] = useState(false);
-  const [paymentError, setPaymentError] = useState('');
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
+function StripeCardMount({
+  publishableKey,
+  onReady,
+  onError,
+}: {
+  publishableKey: string;
+  onReady: (stripe: any, card: any) => void;
+  onError: (msg: string) => void;
+}) {
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    if (!params.number) return;
-    axios.get(`${API_BASE}/finance/invoices/public/${params.number}`)
+    if (mountedRef.current) return;
+    mountedRef.current = true;
+
+    loadScript('https://js.stripe.com/v3/').then((loaded) => {
+      if (!loaded) { onError('Failed to load Stripe SDK. Check your connection.'); return; }
+      try {
+        const stripe = (window as any).Stripe(publishableKey);
+        const elements = stripe.elements();
+        const card = elements.create('card', {
+          style: {
+            base: {
+              fontSize: '14px', color: '#32325d',
+              fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+              '::placeholder': { color: '#aab7c4' },
+            },
+            invalid: { color: '#fa755a', iconColor: '#fa755a' },
+          },
+        });
+        card.mount('#stripe-card-element');
+        onReady(stripe, card);
+      } catch {
+        onError('Failed to initialize Stripe card field.');
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div id="stripe-card-element"
+      className="p-3.5 border border-slate-200 rounded-xl bg-slate-50 min-h-[44px]" />
+  );
+}
+
+// ─── PAGE ─────────────────────────────────────────────────────────────────────
+
+export default function PublicInvoiceViewPage() {
+  const params = useParams<{ number: string | string[] }>();
+  const invoiceNumber = Array.isArray(params.number)
+    ? params.number.map(decodeURIComponent).join('/')
+    : params.number ? decodeURIComponent(params.number) : '';
+  const [inv,     setInv]     = useState<PublicInvoice | null>(null);
+  const [meta,    setMeta]    = useState<InvoiceMeta>({});
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState('');
+  const printRef = useRef<HTMLDivElement>(null);
+
+  // Payment state
+  type GatewayInfo = { gateway: string; publishableKey?: string; keyId?: string };
+  const [gateways,       setGateways]       = useState<GatewayInfo[]>([]);
+  const [configLoading,  setConfigLoading]  = useState(true);
+  const [showPayModal,   setShowPayModal]   = useState(false);
+  const [selectedGW,     setSelectedGW]     = useState<string>('');
+  const [stripeReady,    setStripeReady]    = useState<{ stripe: any; card: any } | null>(null);
+  const [paying,         setPaying]         = useState(false);
+  const [payError,       setPayError]       = useState('');
+  const [paySuccess,     setPaySuccess]     = useState(false);
+
+  // Load invoice + payment config in parallel
+  useEffect(() => {
+    if (!invoiceNumber) return;
+
+    axios.get(`${API_BASE}/finance/invoices/public/${invoiceNumber}`)
       .then(r => {
         const data: PublicInvoice = r.data.data;
         setInv(data);
@@ -315,190 +369,146 @@ export default function PublicInvoiceViewPage() {
       .catch(() => setError('Invoice not found or unavailable.'))
       .finally(() => setLoading(false));
 
-    axios.get(`${API_BASE}/finance/invoices/public/${params.number}/payment-config`)
+    axios.get(`${API_BASE}/finance/invoices/public/${invoiceNumber}/payment-config`)
       .then(r => {
-        setPaymentConfig(r.data.data);
+        const data = r.data?.data;
+        setGateways(Array.isArray(data?.gateways) ? data.gateways : []);
       })
-      .catch(() => { /* Payment gateway configurations optional */ });
-  }, [params.number]);
+      .catch(() => setGateways([]))
+      .finally(() => setConfigLoading(false));
+  }, [invoiceNumber]);
 
-  // Handle Stripe scripts initialization when Stripe is selected in modal
+  // Auto-print if query param print=true is specified
   useEffect(() => {
-    if (selectedGateway === 'stripe' && paymentConfig && showPayModal) {
-      const stripeConfig = paymentConfig.gateways.find(g => g.gateway === 'stripe');
-      if (stripeConfig?.publishableKey) {
-        loadScript('https://js.stripe.com/v3/').then(async (loaded) => {
-          if (!loaded) {
-            setPaymentError('Failed to load Stripe SDK');
-            return;
-          }
-          const stripe = (window as any).Stripe(stripeConfig.publishableKey);
-          setStripeInstance(stripe);
-          
-          try {
-            // Get Stripe elements instance
-            const elements = stripe.elements();
-            setStripeElements(elements);
-            
-            setTimeout(() => {
-              const card = elements.create('card', {
-                style: {
-                  base: {
-                    fontSize: '14px',
-                    color: '#32325d',
-                    fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-                    '::placeholder': { color: '#aab7c4' },
-                  },
-                  invalid: { color: '#fa755a', iconColor: '#fa755a' },
-                }
-              });
-              card.mount('#stripe-card-element');
-              setStripeCard(card);
-            }, 100);
-          } catch (err: any) {
-            setPaymentError('Failed to initialize Stripe elements UI.');
-          }
-        });
+    if (!loading && inv) {
+      const isPrint = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('print') === 'true';
+      if (isPrint) {
+        setTimeout(() => {
+          handlePrint();
+        }, 1000);
       }
     }
-  }, [selectedGateway, paymentConfig, showPayModal]);
+  }, [loading, inv]);
 
-  const handleOpenPayModal = () => {
-    setPaymentSuccess(false);
-    setPaymentError('');
+
+  function openPayModal() {
+    setPayError('');
+    setPaySuccess(false);
     setPaying(false);
-    
-    if (paymentConfig?.gateways && paymentConfig.gateways.length > 0) {
-      // Automatically pre-select first gateway if only 1 connected
-      if (paymentConfig.gateways.length === 1) {
-        setSelectedGateway(paymentConfig.gateways[0].gateway);
-      } else {
-        setSelectedGateway('');
-      }
-      setShowPayModal(true);
-    } else {
-      alert('No payment gateway is configured by this company yet.');
-    }
-  };
+    setStripeReady(null);
+    if (gateways.length === 1) setSelectedGW(gateways[0].gateway);
+    else setSelectedGW('');
+    setShowPayModal(true);
+  }
 
-  const handleStripePay = async () => {
-    if (!stripeInstance || !stripeCard || !paymentConfig || !inv) return;
+  function closePayModal() {
+    if (paying) return; // don't close mid-transaction
+    setShowPayModal(false);
+  }
+
+  async function handleStripePay() {
+    if (!stripeReady || !inv) return;
     setPaying(true);
-    setPaymentError('');
+    setPayError('');
     try {
-      // 1. Create client-side Stripe Payment Intent
-      const intentRes = await axios.post(`${API_BASE}/finance/invoices/public/${params.number}/create-payment-intent`);
-      const clientSecret = intentRes.data.data.clientSecret;
+      const intentRes = await axios.post(
+        `${API_BASE}/finance/invoices/public/${invoiceNumber}/create-payment-intent`
+      );
+      const { clientSecret } = intentRes.data.data;
 
-      // 2. Prompt client Stripe Elements payment checkout
-      const result = await stripeInstance.confirmCardPayment(clientSecret, {
+      const result = await stripeReady.stripe.confirmCardPayment(clientSecret, {
         payment_method: {
-          card: stripeCard,
-          billing_details: { name: inv.customer_name }
-        }
+          card: stripeReady.card,
+          billing_details: { name: inv.customer_name },
+        },
       });
 
       if (result.error) {
-        setPaymentError(result.error.message || 'Payment failed');
+        setPayError(result.error.message || 'Card payment failed. Please try again.');
         setPaying(false);
-      } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-        // 3. Verify checkout on server
-        await axios.post(`${API_BASE}/finance/invoices/public/${params.number}/payment-verify`, {
-          gateway: 'stripe',
-          gateway_order_id: result.paymentIntent.id
-        });
-        setPaymentSuccess(true);
+        return;
+      }
+      if (result.paymentIntent?.status === 'succeeded') {
+        await axios.post(
+          `${API_BASE}/finance/invoices/public/${invoiceNumber}/payment-verify`,
+          { gateway: 'stripe', gateway_order_id: result.paymentIntent.id }
+        );
+        setPaySuccess(true);
         setInv(prev => prev ? { ...prev, status: 'Paid', paid_date: new Date().toISOString() } : null);
-        setTimeout(() => setShowPayModal(false), 2000);
+        setTimeout(() => setShowPayModal(false), 3000);
       }
     } catch (err: any) {
-      setPaymentError(err.response?.data?.message || 'Payment processing failed');
+      setPayError(err?.response?.data?.message || err?.message || 'Payment failed. Please try again.');
       setPaying(false);
     }
-  };
+  }
 
-  const handleRazorpayPay = async () => {
+  async function handleRazorpayPay() {
+    if (!inv) return;
     setPaying(true);
-    setPaymentError('');
+    setPayError('');
     try {
       const loaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
       if (!loaded) {
-        setPaymentError('Failed to load Razorpay checkout script');
+        setPayError('Failed to load Razorpay. Check your internet connection.');
         setPaying(false);
         return;
       }
 
-      // 1. Create client-side Razorpay order
-      const orderRes = await axios.post(`${API_BASE}/finance/invoices/public/${params.number}/create-order`);
+      const orderRes = await axios.post(
+        `${API_BASE}/finance/invoices/public/${invoiceNumber}/create-order`
+      );
       const { orderId, amount, currency, razorpayKeyId } = orderRes.data.data;
 
-      // 2. Initialize Razorpay Checkout
-      const options = {
+      const rzp = new (window as any).Razorpay({
         key: razorpayKeyId,
-        amount: amount,
-        currency: currency,
-        name: inv?.tenant_name || 'HubNest Invoice Payment',
-        description: `Invoice ${inv?.invoice_number}`,
+        amount,
+        currency,
+        name: inv.tenant_name || 'Invoice Payment',
+        description: `Invoice ${inv.invoice_number}`,
         order_id: orderId,
-        handler: async function (response: any) {
-          setPaying(true);
+        prefill: { name: inv.customer_name },
+        theme: { color: '#2563eb' },
+        modal: { ondismiss: () => setPaying(false) },
+        handler: async (response: any) => {
           try {
-            // 3. Verify signature on server
-            await axios.post(`${API_BASE}/finance/invoices/public/${params.number}/payment-verify`, {
-              gateway: 'razorpay',
-              gateway_payment_id: response.razorpay_payment_id,
-              gateway_order_id: response.razorpay_order_id,
-              gateway_signature: response.razorpay_signature
-            });
-            setPaymentSuccess(true);
+            await axios.post(
+              `${API_BASE}/finance/invoices/public/${invoiceNumber}/payment-verify`,
+              {
+                gateway: 'razorpay',
+                gateway_payment_id: response.razorpay_payment_id,
+                gateway_order_id:   response.razorpay_order_id,
+                gateway_signature:  response.razorpay_signature,
+              }
+            );
+            setPaySuccess(true);
             setInv(prev => prev ? { ...prev, status: 'Paid', paid_date: new Date().toISOString() } : null);
-            setTimeout(() => setShowPayModal(false), 2000);
+            setTimeout(() => setShowPayModal(false), 3000);
           } catch (err: any) {
-            setPaymentError('Payment signature verification failed.');
+            setPayError(err?.response?.data?.message || 'Payment verification failed. Contact the merchant.');
           } finally {
             setPaying(false);
           }
         },
-        prefill: {
-          name: inv?.customer_name
-        },
-        theme: {
-          color: '#2563eb'
-        },
-        modal: {
-          ondismiss: function() {
-            setPaying(false);
-          }
-        }
-      };
-
-      const rzp = new (window as any).Razorpay(options);
+      });
       rzp.open();
     } catch (err: any) {
-      setPaymentError(err.response?.data?.message || 'Failed to start Razorpay payment');
+      setPayError(err?.response?.data?.message || err?.message || 'Could not start Razorpay. Try again.');
       setPaying(false);
     }
-  };
+  }
 
   function handlePrint() {
     const content = printRef.current?.innerHTML;
     if (!content) return;
-    const win = window.open('','_blank','width=900,height=700');
+    const win = window.open('', '_blank', 'width=900,height=700');
     if (!win) return;
     win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice ${inv?.invoice_number}</title><script src="https://cdn.tailwindcss.com"></script><style>*{font-family:Arial,sans-serif}body{background:#fff}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>${content}</body></html>`);
     win.document.close(); win.focus();
     setTimeout(() => { win.print(); win.close(); }, 1500);
   }
 
-  async function handleDownload() {
-    const content = printRef.current?.innerHTML;
-    if (!content) return;
-    const win = window.open('','_blank','width=900,height=700');
-    if (!win) return;
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice ${inv?.invoice_number}</title><script src="https://cdn.tailwindcss.com"></script><style>*{font-family:Arial,sans-serif}body{background:#fff}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>${content}</body></html>`);
-    win.document.close(); win.focus();
-    setTimeout(() => { win.print(); win.close(); }, 1500);
-  }
+  // ── Loading / Error screens ───────────────────────────────────────────────
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -516,40 +526,50 @@ export default function PublicInvoiceViewPage() {
           <AlertCircle className="w-8 h-8 text-red-400"/>
         </div>
         <h1 className="text-lg font-black text-slate-800 mb-2">Invoice Not Found</h1>
-        <p className="text-sm text-slate-500">{error || 'This invoice link may be invalid or the invoice has been deleted.'}</p>
+        <p className="text-sm text-slate-500">{error || 'This invoice link may be invalid or has been deleted.'}</p>
       </div>
     </div>
   );
 
-  const showPayNowButton = inv.status !== 'Paid' && paymentConfig?.gateways && paymentConfig.gateways.length > 0;
+  const isPaid = inv.status === 'Paid';
+  const canPay = !isPaid && !configLoading && gateways.length > 0;
+  const accent = TEMPLATES[meta.template || 'modern'] || '#2563eb';
 
   return (
-    <div className="min-h-screen bg-slate-100 py-8 px-4 relative">
+    <div className="min-h-screen bg-slate-100 py-8 px-4">
       <div className="max-w-[900px] mx-auto">
+
         {/* Toolbar */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center">
-              <span className="text-white text-xs font-black">INV</span>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: accent }}>
+              <span className="text-white text-[10px] font-black">INV</span>
             </div>
             <div>
               <p className="text-xs font-black text-slate-800">{inv.tenant_name}</p>
               <p className="text-[10px] text-slate-400">Tax Invoice · {inv.invoice_number}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handlePrint} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 shadow-sm transition">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Paid badge */}
+            {isPaid && (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-black text-emerald-700">
+                <CheckCircle2 className="w-3.5 h-3.5"/>Payment Received
+              </span>
+            )}
+            <button onClick={handlePrint}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 shadow-sm transition">
               <Printer className="w-3.5 h-3.5"/>Print
             </button>
-            <button onClick={handleDownload} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 shadow-sm transition">
+            <button onClick={handlePrint}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 shadow-sm transition">
               <Download className="w-3.5 h-3.5"/>Download PDF
             </button>
-            {showPayNowButton && (
-              <button 
-                onClick={handleOpenPayModal} 
-                className="flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-xl text-xs font-black text-white shadow-md shadow-emerald-500/20 transition hover:scale-105 active:scale-95 cursor-pointer"
-              >
-                <CreditCard className="w-3.5 h-3.5"/>Pay Now
+            {canPay && (
+              <button onClick={openPayModal}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-black text-white shadow-md transition hover:scale-105 active:scale-95"
+                style={{ background: 'linear-gradient(135deg,#10b981,#0d9488)' }}>
+                <CreditCard className="w-3.5 h-3.5"/>Pay Now {fmtINR(parseFloat(String(inv.total)))}
               </button>
             )}
           </div>
@@ -557,117 +577,139 @@ export default function PublicInvoiceViewPage() {
 
         {/* Invoice preview */}
         <div className="shadow-2xl rounded overflow-hidden border border-slate-300 bg-white">
-          <InvoicePreview inv={inv} meta={meta} printRef={printRef} />
+          <InvoicePreview inv={inv} meta={meta} printRef={printRef}/>
         </div>
 
         <p className="text-center text-[10px] text-slate-300 mt-6 font-medium">Powered by HubNest CRM</p>
       </div>
 
-      {/* Pay Now Modal overlay */}
+      {/* ── Pay Now Modal ─────────────────────────────────────────────────── */}
       {showPayModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 max-w-md w-full shadow-2xl space-y-6 relative">
-            <button 
-              onClick={() => setShowPayModal(false)}
-              className="absolute top-4 right-4 p-1 rounded-full text-slate-400 hover:bg-slate-100 transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 max-w-md w-full shadow-2xl space-y-5 relative">
 
+            {/* Close */}
+            {!paying && (
+              <button onClick={closePayModal}
+                className="absolute top-4 right-4 p-1 rounded-full text-slate-400 hover:bg-slate-100 transition">
+                <X className="w-5 h-5"/>
+              </button>
+            )}
+
+            {/* Title */}
             <div>
-              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50 px-2.5 py-1 rounded-md">Invoice Payment</span>
-              <h3 className="text-xl font-bold text-slate-900 mt-2">Pay Invoice {inv.invoice_number}</h3>
-              <p className="text-xs text-slate-500 mt-1">Select a gateway below to complete your payment.</p>
+              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50 px-2.5 py-1 rounded-md">
+                Secure Payment
+              </span>
+              <h3 className="text-lg font-black text-slate-900 mt-2">Pay Invoice {inv.invoice_number}</h3>
+              <p className="text-xs text-slate-500 mt-0.5">{inv.tenant_name}</p>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/50 flex justify-between items-center">
+            {/* Amount summary */}
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex justify-between items-center">
               <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Amount Due</p>
-                <p className="text-2xl font-black text-slate-950 mt-1">{fmtINR(inv.total)}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Amount Due</p>
+                <p className="text-2xl font-black text-slate-900 mt-0.5">{fmtINR(parseFloat(String(inv.total)))}</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Due Date</p>
-                <p className="text-xs font-bold text-slate-800 mt-1">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Due Date</p>
+                <p className="text-xs font-bold text-slate-700 mt-0.5">
+                  {inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                </p>
               </div>
             </div>
 
-            {paymentError && (
-              <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{paymentError}</span>
+            {/* Error */}
+            {payError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5"/>
+                <span>{payError}</span>
               </div>
             )}
 
-            {paymentSuccess && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs font-semibold flex flex-col items-center justify-center text-center gap-2">
-                <CheckCircle2 className="w-10 h-10 text-emerald-500 animate-bounce" />
-                <span className="font-bold text-sm">Payment Successful!</span>
-                <p className="text-[11px] text-emerald-600 mt-0.5">Thank you for your payment. Invoice status updated to Paid.</p>
+            {/* Success */}
+            {paySuccess ? (
+              <div className="py-6 flex flex-col items-center gap-3 text-center">
+                <CheckCircle2 className="w-14 h-14 text-emerald-500"/>
+                <p className="text-sm font-black text-slate-900">Payment Successful!</p>
+                <p className="text-xs text-slate-500">Thank you. Invoice has been marked as Paid.</p>
               </div>
-            )}
-
-            {!paymentSuccess && (
+            ) : (
               <div className="space-y-4">
-                {/* Gateway Selector */}
-                {paymentConfig && paymentConfig.gateways.length > 1 && (
-                  <div className="grid grid-cols-2 gap-4">
-                    {paymentConfig.gateways.map(g => (
-                      <button
-                        key={g.gateway}
-                        onClick={() => {
-                          setSelectedGateway(g.gateway);
-                          setPaymentError('');
-                        }}
-                        className={`p-4 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-2 font-bold text-xs capitalize ${
-                          selectedGateway === g.gateway
-                            ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-                            : 'border-slate-200 hover:bg-slate-50 text-slate-600'
-                        }`}
-                      >
-                        <CreditCard className="w-5 h-5 text-slate-400" />
-                        <span>{g.gateway === 'stripe' ? 'Stripe Checkout' : 'Razorpay UPI'}</span>
+                {/* Gateway selector — shown only if multiple gateways */}
+                {gateways.length > 1 && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {gateways.map(g => (
+                      <button key={g.gateway}
+                        onClick={() => { setSelectedGW(g.gateway); setPayError(''); setStripeReady(null); }}
+                        className={`p-3 rounded-2xl border-2 flex flex-col items-center gap-1.5 text-xs font-bold transition ${
+                          selectedGW === g.gateway
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                        }`}>
+                        <CreditCard className="w-5 h-5"/>
+                        {g.gateway === 'stripe' ? 'Stripe' : 'Razorpay'}
                       </button>
                     ))}
                   </div>
                 )}
 
-                {/* Gateway payment containers */}
-                {selectedGateway === 'stripe' && (
-                  <div className="space-y-4 pt-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Credit / Debit Card</label>
-                    <div id="stripe-card-element" className="p-3.5 border border-slate-200 rounded-xl bg-slate-50 min-h-[44px]"></div>
-                    <button
-                      onClick={handleStripePay}
-                      disabled={paying}
-                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 disabled:opacity-60"
-                    >
-                      {paying ? <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin inline-block"></span> : null}
-                      <span>Pay {fmtINR(inv.total)}</span>
+                {/* Stripe card */}
+                {selectedGW === 'stripe' && (() => {
+                  const stripeGW = gateways.find(g => g.gateway === 'stripe');
+                  if (!stripeGW?.publishableKey) return (
+                    <p className="text-xs text-red-500 font-semibold">Stripe configuration missing. Contact the merchant.</p>
+                  );
+                  return (
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Credit / Debit Card</p>
+                      <StripeCardMount
+                        publishableKey={stripeGW.publishableKey}
+                        onReady={(stripe, card) => setStripeReady({ stripe, card })}
+                        onError={msg => setPayError(msg)}
+                      />
+                      <button onClick={handleStripePay}
+                        disabled={paying || !stripeReady}
+                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition">
+                        {paying
+                          ? <><span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin"/>Processing…</>
+                          : `Pay ${fmtINR(parseFloat(String(inv.total)))}`
+                        }
+                      </button>
+                      {!stripeReady && !paying && (
+                        <p className="text-[10px] text-slate-400 text-center">Loading card form…</p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Razorpay */}
+                {selectedGW === 'razorpay' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-slate-500">
+                      Pay securely via UPI, Netbanking, cards or wallets through Razorpay.
+                    </p>
+                    <button onClick={handleRazorpayPay} disabled={paying}
+                      className="w-full py-3 font-bold rounded-xl text-sm text-white flex items-center justify-center gap-2 transition disabled:opacity-60"
+                      style={{ background: paying ? '#b45309' : '#f59e0b' }}>
+                      {paying
+                        ? <><span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin"/>Opening Razorpay…</>
+                        : `Pay ${fmtINR(parseFloat(String(inv.total)))} via Razorpay`
+                      }
                     </button>
                   </div>
                 )}
 
-                {selectedGateway === 'razorpay' && (
-                  <div className="space-y-4 pt-2">
-                    <p className="text-xs text-slate-500 leading-relaxed">Razorpay handles payments securely via UPI, Netbanking, wallets, and credit cards.</p>
-                    <button
-                      onClick={handleRazorpayPay}
-                      disabled={paying}
-                      className="w-full py-3 bg-[#F5A623] hover:bg-[#E0961B] text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 disabled:opacity-60"
-                    >
-                      {paying ? <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin inline-block"></span> : null}
-                      <span>Proceed with Razorpay</span>
-                    </button>
-                  </div>
-                )}
-
-                {paying && (
-                  <div className="flex flex-col items-center justify-center text-slate-500 text-[10px] font-semibold gap-1.5 pt-2 animate-pulse">
-                    <span>Processing transaction safely. Please do not refresh.</span>
-                  </div>
+                {/* No gateway selected and multiple available */}
+                {!selectedGW && gateways.length > 1 && (
+                  <p className="text-xs text-slate-400 text-center">Select a payment method above.</p>
                 )}
               </div>
             )}
+
+            <p className="text-[9px] text-slate-300 text-center flex items-center justify-center gap-1">
+              <Lock className="w-3 h-3"/>Payments are encrypted and processed securely.
+            </p>
           </div>
         </div>
       )}

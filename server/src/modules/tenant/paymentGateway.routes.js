@@ -28,14 +28,18 @@ router.post('/connect', async (req, res) => {
     // 1. Verify credentials by making test API call via Axios
     if (gateway === 'stripe') {
       try {
-        await axios.get('https://api.stripe.com/v1/payment_intents', {
+        const stripeRes = await axios.get('https://api.stripe.com/v1/payment_intents', {
           headers: { Authorization: `Bearer ${keySecret}` },
           params: { limit: 1 },
-          timeout: 8000
+          timeout: 8000,
+          validateStatus: () => true
         });
+        if (stripeRes.status === 401 || stripeRes.status === 403) {
+          return sendError(res, 'Invalid Stripe credentials. Please check your Secret Key.', 422);
+        }
         isVerified = true;
       } catch (err) {
-        return sendError(res, 'Invalid Stripe credentials. Connection test failed.', 422);
+        isVerified = false;
       }
     } else if (gateway === 'razorpay') {
       if (!keyId) {
@@ -43,14 +47,20 @@ router.post('/connect', async (req, res) => {
       }
       try {
         const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64');
-        await axios.get('https://api.razorpay.com/v1/orders', {
+        const rzpRes = await axios.get('https://api.razorpay.com/v1/orders', {
           headers: { Authorization: `Basic ${auth}` },
           params: { count: 1 },
-          timeout: 8000
+          timeout: 8000,
+          validateStatus: () => true // never throw on HTTP status
         });
+        // Only reject on explicit auth failures — 400/404/network errors are fine for test accounts
+        if (rzpRes.status === 401 || rzpRes.status === 403) {
+          return sendError(res, 'Invalid Razorpay credentials. Please check your Key ID and Secret.', 422);
+        }
         isVerified = true;
       } catch (err) {
-        return sendError(res, 'Invalid Razorpay credentials. Connection test failed.', 422);
+        // Network/timeout error — save anyway, mark unverified
+        isVerified = false;
       }
     }
 

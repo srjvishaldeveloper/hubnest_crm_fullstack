@@ -10,6 +10,7 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
 });
+logger.info(`PostgreSQL Pool initialized with: ${env.databaseUrl}`);
 
 pool.on('error', (err) => {
   logger.error('Unexpected error on idle PostgreSQL client', { message: err.message });

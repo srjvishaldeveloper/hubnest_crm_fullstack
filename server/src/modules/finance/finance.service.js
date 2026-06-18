@@ -168,9 +168,17 @@ async function listInvoices(tenantId, filters = {}) {
   if (search) { countParams.push(`%${search}%`); countSql += ` AND (invoice_number ILIKE $${countParams.length} OR customer_name ILIKE $${countParams.length})`; }
   const countResult = await query(countSql, countParams);
 
+  // Get sum from gst_amount table
+  const gstSumResult = await query(
+    `SELECT COALESCE(SUM(amount), 0) AS total_gst FROM gst_amount WHERE tenant_id = $1`,
+    [tenantId]
+  );
+  const totalGst = parseFloat(gstSumResult.rows[0]?.total_gst || 0);
+
   return {
     invoices: result.rows,
     total: parseInt(countResult.rows[0]?.cnt || 0),
+    totalGst,
     page,
     limit
   };
@@ -225,7 +233,16 @@ async function createInvoice(tenantId, data) {
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
     [tenantId, invoice_number, customer_name, parseFloat(amount) || 0, parseFloat(tax) || 0, parseFloat(total) || 0, status || 'Draft', due_date, notes || null]
   );
-  return result.rows[0];
+  const invoice = result.rows[0];
+  if (invoice) {
+    await query(
+      `INSERT INTO gst_amount (tenant_id, invoice_id, amount, created_at)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (invoice_id) DO UPDATE SET amount = EXCLUDED.amount`,
+      [tenantId, invoice.id, invoice.tax, invoice.created_at]
+    );
+  }
+  return invoice;
 }
 
 async function updateInvoice(tenantId, invoiceId, data) {
@@ -251,7 +268,16 @@ async function updateInvoice(tenantId, invoiceId, data) {
   `;
 
   const result = await query(sql, params);
-  return result.rows[0] || null;
+  const updatedInvoice = result.rows[0];
+  if (updatedInvoice) {
+    await query(
+      `INSERT INTO gst_amount (tenant_id, invoice_id, amount)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (invoice_id) DO UPDATE SET amount = EXCLUDED.amount`,
+      [tenantId, invoiceId, updatedInvoice.tax]
+    );
+  }
+  return updatedInvoice;
 }
 
 // ─── PAYMENTS ─────────────────────────────────────────────────────────────────
@@ -623,6 +649,43 @@ async function getFinanceAnalytics(tenantId) {
   };
 }
 
+// ─── CREDIT / DEBIT NOTES ─────────────────────────────────────────────────────
+
+async function listCreditNotes(tenantId, invoiceId) {
+  const result = await query(
+    `SELECT * FROM credit_notes WHERE tenant_id = $1 AND invoice_id = $2 ORDER BY created_at DESC`,
+    [tenantId, invoiceId]
+  );
+  return result.rows;
+}
+
+async function createCreditNote(tenantId, invoiceId, data) {
+  const { note_number, type, reason, items, amount, notes } = data;
+
+  // Ensure the parent invoice belongs to this tenant and is Paid
+  const invResult = await query(
+    `SELECT * FROM invoices WHERE id = $1 AND tenant_id = $2`,
+    [invoiceId, tenantId]
+  );
+  if (!invResult.rows[0]) throw new Error('Invoice not found');
+  if (invResult.rows[0].status !== 'Paid') throw new Error('Only Paid invoices can have a return / credit note');
+
+  const result = await query(
+    `INSERT INTO credit_notes (tenant_id, invoice_id, note_number, type, reason, items, amount, notes, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Issued')
+     RETURNING *`,
+    [
+      tenantId, invoiceId,
+      note_number, type || 'Credit Note',
+      reason || null,
+      items ? JSON.stringify(items) : null,
+      parseFloat(amount) || 0,
+      notes || null,
+    ]
+  );
+  return result.rows[0];
+}
+
 module.exports = {
   getFinanceDashboard,
   listInvoices,
@@ -643,5 +706,7 @@ module.exports = {
   updateVendor,
   listPayroll,
   listTaxRecords,
-  getFinanceAnalytics
+  getFinanceAnalytics,
+  listCreditNotes,
+  createCreditNote,
 };

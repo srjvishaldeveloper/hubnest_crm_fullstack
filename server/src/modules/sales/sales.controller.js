@@ -26,6 +26,12 @@ async function updateLead(req, res) {
   sendSuccess(res, { lead }, 'Lead updated successfully');
 }
 
+async function deleteLead(req, res) {
+  const deleted = await svc.deleteLead(req.user.tenant_id, req.salesScope, req.params.id);
+  if (!deleted) return sendError(res, 'Lead not found or access denied', 404);
+  sendSuccess(res, { id: deleted.id }, 'Lead deleted successfully');
+}
+
 async function getLeadActivity(req, res) {
   const activities = await svc.getLeadActivities(req.user.tenant_id, req.salesScope, req.params.id);
   sendSuccess(res, { activities });
@@ -106,7 +112,7 @@ async function getDashboard(req, res) {
 }
 
 module.exports = {
-  listLeads, getLead, createLead, updateLead, getLeadActivity,
+  listLeads, getLead, createLead, updateLead, deleteLead, getLeadActivity,
   listTasks, createTask, updateTask, deleteTask, getTodayTasks,
   listActivities, logActivity, getActivitiesSummary,
   getProfile, updateProfile, getPerformance, getDashboard

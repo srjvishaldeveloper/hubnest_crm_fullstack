@@ -18,7 +18,9 @@ interface GatewayStatus {
 export default function PaymentGatewaySettingsPage() {
   const user = useAuthStore((s) => s.user);
   const tenantId = user?.tenantId || '';
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  // Strip /api/v1 suffix if present — webhook URL needs the raw server origin
+  const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+  const apiBaseUrl = rawApiUrl.replace(/\/api\/v1\/?$/, '');
 
   const [gateways, setGateways] = useState<GatewayStatus[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +33,7 @@ export default function PaymentGatewaySettingsPage() {
   const [stripeWebhook, setStripeWebhook] = useState('');
   const [stripeLoading, setStripeLoading] = useState(false);
   const [stripeCopied, setStripeCopied] = useState(false);
+  const [stripeReconfigure, setStripeReconfigure] = useState(false);
 
   // Razorpay form state
   const [razorpayId, setRazorpayId] = useState('');
@@ -38,6 +41,7 @@ export default function PaymentGatewaySettingsPage() {
   const [razorpayWebhook, setRazorpayWebhook] = useState('');
   const [razorpayLoading, setRazorpayLoading] = useState(false);
   const [razorpayCopied, setRazorpayCopied] = useState(false);
+  const [razorpayReconfigure, setRazorpayReconfigure] = useState(false);
 
   // Masking toggles (key -> visibility boolean)
   const [revealStates, setRevealStates] = useState<Record<string, boolean>>({});
@@ -50,7 +54,7 @@ export default function PaymentGatewaySettingsPage() {
     setLoading(true);
     setErrorMessage('');
     try {
-      const response = await api.get('/api/v1/tenant/payment-gateway/status');
+      const response = await api.get('/tenant/payment-gateway/status');
       if (response.data.success) {
         setGateways(response.data.data.gateways || []);
       }
@@ -87,7 +91,7 @@ export default function PaymentGatewaySettingsPage() {
     setErrorMessage('');
     setSuccessMessage('');
     try {
-      const res = await api.post('/api/v1/tenant/payment-gateway/connect', {
+      const res = await api.post('/tenant/payment-gateway/connect', {
         gateway: 'stripe',
         publishableKey: stripePub,
         keySecret: stripeSecret,
@@ -113,7 +117,7 @@ export default function PaymentGatewaySettingsPage() {
     setErrorMessage('');
     setSuccessMessage('');
     try {
-      const res = await api.post('/api/v1/tenant/payment-gateway/connect', {
+      const res = await api.post('/tenant/payment-gateway/connect', {
         gateway: 'razorpay',
         keyId: razorpayId,
         keySecret: razorpaySecret,
@@ -140,7 +144,7 @@ export default function PaymentGatewaySettingsPage() {
     setErrorMessage('');
     setSuccessMessage('');
     try {
-      const res = await api.delete(`/api/v1/tenant/payment-gateway/${gateway}`);
+      const res = await api.delete(`/tenant/payment-gateway/${gateway}`);
       if (res.data.success) {
         setSuccessMessage(`${gateway === 'stripe' ? 'Stripe' : 'Razorpay'} disconnected successfully`);
         fetchGatewayStatus();
@@ -244,77 +248,83 @@ export default function PaymentGatewaySettingsPage() {
               </div>
             )}
 
-            <form onSubmit={handleConnectStripe} className="space-y-4">
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Stripe Publishable Key</label>
-                <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-blue-500 transition">
-                  <input
-                    type={revealStates['stripe_pub'] ? 'text' : 'password'}
-                    placeholder="pk_test_..."
-                    value={stripePub}
-                    onChange={(e) => setStripePub(e.target.value)}
-                    required
-                    className="flex-1 px-3 py-2 text-xs bg-transparent outline-none font-semibold text-slate-800"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleReveal('stripe_pub')}
-                    className="p-2 text-slate-400 hover:text-slate-600 transition"
-                  >
-                    {revealStates['stripe_pub'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+            {stripeStatus?.is_active && !stripeReconfigure ? (
+              <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-2 text-emerald-700 text-xs font-semibold">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Stripe is active. Keys are encrypted and stored securely.
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setStripeReconfigure(true)}
+                  className="text-xs text-slate-500 hover:text-slate-700 underline font-medium transition"
+                >
+                  Update Keys
+                </button>
               </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Stripe Secret Key</label>
-                <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-blue-500 transition">
-                  <input
-                    type={revealStates['stripe_sec'] ? 'text' : 'password'}
-                    placeholder="sk_test_..."
-                    value={stripeSecret}
-                    onChange={(e) => setStripeSecret(e.target.value)}
-                    required
-                    className="flex-1 px-3 py-2 text-xs bg-transparent outline-none font-semibold text-slate-800"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleReveal('stripe_sec')}
-                    className="p-2 text-slate-400 hover:text-slate-600 transition"
-                  >
-                    {revealStates['stripe_sec'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+            ) : (
+              <form onSubmit={async (e) => { await handleConnectStripe(e); setStripeReconfigure(false); }} className="space-y-4">
+                {stripeStatus?.is_active && (
+                  <div className="flex justify-end">
+                    <button type="button" onClick={() => setStripeReconfigure(false)} className="text-xs text-slate-400 hover:text-slate-600 underline">Cancel</button>
+                  </div>
+                )}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Stripe Publishable Key</label>
+                  <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-blue-500 transition">
+                    <input
+                      type={revealStates['stripe_pub'] ? 'text' : 'password'}
+                      placeholder="pk_test_..."
+                      value={stripePub}
+                      onChange={(e) => setStripePub(e.target.value)}
+                      required
+                      className="flex-1 px-3 py-2 text-xs bg-transparent outline-none font-semibold text-slate-800"
+                    />
+                    <button type="button" onClick={() => handleReveal('stripe_pub')} className="p-2 text-slate-400 hover:text-slate-600 transition">
+                      {revealStates['stripe_pub'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Stripe Webhook Secret (Recommended)</label>
-                <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-blue-500 transition">
-                  <input
-                    type={revealStates['stripe_web'] ? 'text' : 'password'}
-                    placeholder="whsec_..."
-                    value={stripeWebhook}
-                    onChange={(e) => setStripeWebhook(e.target.value)}
-                    className="flex-1 px-3 py-2 text-xs bg-transparent outline-none font-semibold text-slate-800"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleReveal('stripe_web')}
-                    className="p-2 text-slate-400 hover:text-slate-600 transition"
-                  >
-                    {revealStates['stripe_web'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Stripe Secret Key</label>
+                  <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-blue-500 transition">
+                    <input
+                      type={revealStates['stripe_sec'] ? 'text' : 'password'}
+                      placeholder="sk_test_..."
+                      value={stripeSecret}
+                      onChange={(e) => setStripeSecret(e.target.value)}
+                      required
+                      className="flex-1 px-3 py-2 text-xs bg-transparent outline-none font-semibold text-slate-800"
+                    />
+                    <button type="button" onClick={() => handleReveal('stripe_sec')} className="p-2 text-slate-400 hover:text-slate-600 transition">
+                      {revealStates['stripe_sec'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={stripeLoading}
-                className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center justify-center gap-1.5"
-              >
-                {stripeLoading ? 'Testing & Saving...' : 'Connect Stripe'}
-              </button>
-            </form>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Stripe Webhook Secret (Recommended)</label>
+                  <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-blue-500 transition">
+                    <input
+                      type={revealStates['stripe_web'] ? 'text' : 'password'}
+                      placeholder="whsec_..."
+                      value={stripeWebhook}
+                      onChange={(e) => setStripeWebhook(e.target.value)}
+                      className="flex-1 px-3 py-2 text-xs bg-transparent outline-none font-semibold text-slate-800"
+                    />
+                    <button type="button" onClick={() => handleReveal('stripe_web')} className="p-2 text-slate-400 hover:text-slate-600 transition">
+                      {revealStates['stripe_web'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={stripeLoading}
+                  className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center justify-center gap-1.5"
+                >
+                  {stripeLoading ? 'Testing & Saving...' : stripeStatus?.is_active ? 'Update Stripe Keys' : 'Connect Stripe'}
+                </button>
+              </form>
+            )}
           </div>
 
           {stripeStatus?.is_active && (
@@ -377,76 +387,82 @@ export default function PaymentGatewaySettingsPage() {
               </div>
             )}
 
-            <form onSubmit={handleConnectRazorpay} className="space-y-4">
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Razorpay Key ID</label>
-                <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-blue-500 transition">
-                  <input
-                    type={revealStates['rzp_id'] ? 'text' : 'password'}
-                    placeholder="rzp_test_..."
-                    value={razorpayId}
-                    onChange={(e) => setRazorpayId(e.target.value)}
-                    required
-                    className="flex-1 px-3 py-2 text-xs bg-transparent outline-none font-semibold text-slate-800"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleReveal('rzp_id')}
-                    className="p-2 text-slate-400 hover:text-slate-600 transition"
-                  >
-                    {revealStates['rzp_id'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+            {razorpayStatus?.is_active && !razorpayReconfigure ? (
+              <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-2 text-emerald-700 text-xs font-semibold">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Razorpay is active. Keys are encrypted and stored securely.
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setRazorpayReconfigure(true)}
+                  className="text-xs text-slate-500 hover:text-slate-700 underline font-medium transition"
+                >
+                  Update Keys
+                </button>
               </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Razorpay Key Secret</label>
-                <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-blue-500 transition">
-                  <input
-                    type={revealStates['rzp_sec'] ? 'text' : 'password'}
-                    value={razorpaySecret}
-                    onChange={(e) => setRazorpaySecret(e.target.value)}
-                    required
-                    className="flex-1 px-3 py-2 text-xs bg-transparent outline-none font-semibold text-slate-800"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleReveal('rzp_sec')}
-                    className="p-2 text-slate-400 hover:text-slate-600 transition"
-                  >
-                    {revealStates['rzp_sec'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+            ) : (
+              <form onSubmit={async (e) => { await handleConnectRazorpay(e); setRazorpayReconfigure(false); }} className="space-y-4">
+                {razorpayStatus?.is_active && (
+                  <div className="flex justify-end">
+                    <button type="button" onClick={() => setRazorpayReconfigure(false)} className="text-xs text-slate-400 hover:text-slate-600 underline">Cancel</button>
+                  </div>
+                )}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Razorpay Key ID</label>
+                  <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-orange-400 transition">
+                    <input
+                      type={revealStates['rzp_id'] ? 'text' : 'password'}
+                      placeholder="rzp_test_..."
+                      value={razorpayId}
+                      onChange={(e) => setRazorpayId(e.target.value)}
+                      required
+                      className="flex-1 px-3 py-2 text-xs bg-transparent outline-none font-semibold text-slate-800"
+                    />
+                    <button type="button" onClick={() => handleReveal('rzp_id')} className="p-2 text-slate-400 hover:text-slate-600 transition">
+                      {revealStates['rzp_id'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Razorpay Webhook Secret (Recommended)</label>
-                <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-blue-500 transition">
-                  <input
-                    type={revealStates['rzp_web'] ? 'text' : 'password'}
-                    placeholder="Webhook secret configured in Razorpay dashboard"
-                    value={razorpayWebhook}
-                    onChange={(e) => setRazorpayWebhook(e.target.value)}
-                    className="flex-1 px-3 py-2 text-xs bg-transparent outline-none font-semibold text-slate-800"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleReveal('rzp_web')}
-                    className="p-2 text-slate-400 hover:text-slate-600 transition"
-                  >
-                    {revealStates['rzp_web'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Razorpay Key Secret</label>
+                  <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-orange-400 transition">
+                    <input
+                      type={revealStates['rzp_sec'] ? 'text' : 'password'}
+                      value={razorpaySecret}
+                      onChange={(e) => setRazorpaySecret(e.target.value)}
+                      required
+                      className="flex-1 px-3 py-2 text-xs bg-transparent outline-none font-semibold text-slate-800"
+                    />
+                    <button type="button" onClick={() => handleReveal('rzp_sec')} className="p-2 text-slate-400 hover:text-slate-600 transition">
+                      {revealStates['rzp_sec'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={razorpayLoading}
-                className="w-full py-2 bg-[#F5A623] hover:bg-[#E0961B] disabled:opacity-50 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center justify-center gap-1.5"
-              >
-                {razorpayLoading ? 'Testing & Saving...' : 'Connect Razorpay'}
-              </button>
-            </form>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Razorpay Webhook Secret (Recommended)</label>
+                  <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-orange-400 transition">
+                    <input
+                      type={revealStates['rzp_web'] ? 'text' : 'password'}
+                      placeholder="Webhook secret configured in Razorpay dashboard"
+                      value={razorpayWebhook}
+                      onChange={(e) => setRazorpayWebhook(e.target.value)}
+                      className="flex-1 px-3 py-2 text-xs bg-transparent outline-none font-semibold text-slate-800"
+                    />
+                    <button type="button" onClick={() => handleReveal('rzp_web')} className="p-2 text-slate-400 hover:text-slate-600 transition">
+                      {revealStates['rzp_web'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={razorpayLoading}
+                  className="w-full py-2 bg-[#F5A623] hover:bg-[#E0961B] disabled:opacity-50 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center justify-center gap-1.5"
+                >
+                  {razorpayLoading ? 'Testing & Saving...' : razorpayStatus?.is_active ? 'Update Razorpay Keys' : 'Connect Razorpay'}
+                </button>
+              </form>
+            )}
           </div>
 
           {razorpayStatus?.is_active && (

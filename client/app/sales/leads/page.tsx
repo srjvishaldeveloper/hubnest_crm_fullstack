@@ -307,17 +307,23 @@ export default function LeadsPage() {
     }
   };
 
-  // ── Delete Lead (soft: mark Lost) ────────────────────────────────────────────
+  // ── Delete Lead (hard delete) ────────────────────────────────────────────────
   const handleDeleteLead = async () => {
     if (!isDeleteOpen) return;
+    const leadId = isDeleteOpen.id;
+    const leadName = isDeleteOpen.name;
+    setIsDeleteOpen(null);
+    // Optimistic remove immediately
+    setLeads(prev => prev.filter(l => l.id !== leadId));
+    if (selectedLead?.id === leadId) setSelectedLead(null);
     try {
-      await api.patch(`/sales/leads/${isDeleteOpen.id}`, { status: 'Lost' });
-      setLeads(prev => prev.map(l => l.id === isDeleteOpen.id ? { ...l, status: 'Lost' } : l));
-      if (selectedLead?.id === isDeleteOpen.id) setSelectedLead(null);
-      setIsDeleteOpen(null);
-      showToast('Lead marked as Lost');
+      await api.delete(`/sales/leads/${leadId}`);
+      showToast(`"${leadName}" deleted permanently`);
     } catch (err: any) {
-      showToast(err?.response?.data?.message || 'Failed to update lead', 'error');
+      // Rollback by reloading
+      const res = await api.get('/sales/leads').catch(() => null);
+      if (res) setLeads(res.data?.data?.leads || []);
+      showToast(err?.response?.data?.message || 'Failed to delete lead', 'error');
     }
   };
 
@@ -574,7 +580,7 @@ export default function LeadsPage() {
                         <Send className="w-3.5 h-3.5" />
                       </button>
                       <button onClick={e => { e.stopPropagation(); setIsDeleteOpen(lead); }}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition" title="Mark Lost">
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition" title="Delete Lead">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -830,8 +836,8 @@ export default function LeadsPage() {
                           <Trash2 className="w-4 h-4 text-red-500" />
                         </div>
                         <div>
-                          <p className="font-bold text-red-600">Mark as Lost</p>
-                          <p className="text-[10px] text-slate-400">Move lead to Lost status</p>
+                          <p className="font-bold text-red-600">Delete Lead</p>
+                          <p className="text-[10px] text-slate-400">Permanently remove this lead</p>
                         </div>
                       </button>
                     </div>
@@ -1128,7 +1134,7 @@ export default function LeadsPage() {
         )}
       </AnimatePresence>
 
-      {/* ── Confirm Delete / Mark Lost ── */}
+      {/* ── Confirm Delete ── */}
       <AnimatePresence>
         {isDeleteOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1139,11 +1145,11 @@ export default function LeadsPage() {
               <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <AlertCircle className="w-6 h-6 text-red-500" />
               </div>
-              <h3 className="text-sm font-bold text-slate-800 mb-1">Mark as Lost?</h3>
-              <p className="text-xs text-slate-500 mb-5">"{isDeleteOpen.name}" will be moved to Lost status. You can restore it by updating the status.</p>
+              <h3 className="text-sm font-bold text-slate-800 mb-1">Delete Lead?</h3>
+              <p className="text-xs text-slate-500 mb-5">"{isDeleteOpen.name}" will be permanently deleted. This action cannot be undone.</p>
               <div className="flex gap-2">
                 <button onClick={() => setIsDeleteOpen(null)} className="flex-1 py-2 border border-slate-200 text-slate-600 font-bold rounded-xl text-xs hover:bg-slate-50 transition">Cancel</button>
-                <button onClick={handleDeleteLead} className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition">Mark Lost</button>
+                <button onClick={handleDeleteLead} className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition">Delete</button>
               </div>
             </motion.div>
           </div>

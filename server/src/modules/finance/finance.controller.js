@@ -540,6 +540,34 @@ async function getPaymentStats(req, res) {
   }
 }
 
+// ─── CREDIT / DEBIT NOTES ─────────────────────────────────────────────────────
+
+async function listCreditNotes(req, res) {
+  try {
+    const notes = await svc.listCreditNotes(req.user.tenant_id, req.params.id);
+    return sendSuccess(res, { notes }, 'Credit notes retrieved');
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+}
+
+async function createCreditNote(req, res) {
+  try {
+    const { type, reason, items, amount, notes } = req.body;
+    if (!amount) return sendError(res, 'amount is required', 400);
+    const year = new Date().getFullYear();
+    const rand = String(Math.floor(Math.random() * 9000) + 1000);
+    const prefix = (type === 'Debit Note') ? 'DN' : 'CN';
+    const note_number = `${prefix}-${year}-${rand}`;
+    const note = await svc.createCreditNote(req.user.tenant_id, req.params.id, {
+      note_number, type, reason, items, amount, notes,
+    });
+    return sendSuccess(res, { note }, 'Credit note created successfully', 201);
+  } catch (err) {
+    return sendError(res, err.message, err.message.includes('Only Paid') ? 400 : 500);
+  }
+}
+
 module.exports = {
   getDashboard,
   listInvoices,
@@ -566,5 +594,7 @@ module.exports = {
   createPublicInvoiceOrder,
   createPublicInvoicePaymentIntent,
   verifyPublicInvoicePayment,
-  getPaymentStats
+  getPaymentStats,
+  listCreditNotes,
+  createCreditNote,
 };

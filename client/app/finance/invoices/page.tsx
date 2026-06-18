@@ -1,16 +1,34 @@
 'use client';
 
 import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { z } from 'zod';
 import { financeGetInvoices, financeCreateInvoice, financeUpdateInvoice } from '../../../services/financeService';
 import api from '../../../services/api';
 import {
   FileText, Search, Plus, RefreshCw, X, Download, Eye,
   Share2, Copy, Check, Link2, Printer, Mail, IndianRupee,
   Building2, Package, Info, Hash, Pencil, AlertCircle,
-  Globe, ChevronRight, LayoutTemplate, Percent
+  Globe, ChevronRight, LayoutTemplate, Percent, RotateCcw,
+  ArrowLeftRight, CheckCircle2
 } from 'lucide-react';
+
+// ─── ZOD SCHEMAS ───────────────────────────────────────────────────────────────
+
+const InvoiceFormSchema = z.object({
+  invoiceNumber: z.string().min(1, 'Invoice number is required'),
+  customerName:  z.string().min(1, 'Customer name is required'),
+  dueDate:       z.string().min(1, 'Due date is required'),
+  sellerEmail:   z.string().email('Seller email is invalid').or(z.literal('')),
+  customerEmail: z.string().email('Customer email is invalid').or(z.literal('')),
+  sellerPhone: z.string().regex(/^$|^\+?[0-9\s\-()]{7,15}$/, 'Seller phone is invalid').optional(),
+  customerPhone: z.string().regex(/^$|^\+?[0-9\s\-()]{7,15}$/, 'Customer phone is invalid').optional(),
+  sellerPin: z.string().regex(/^$|^[1-9][0-9]{5}$/, 'Seller PIN must be 6 digits').optional(),
+  customerPin: z.string().regex(/^$|^[1-9][0-9]{5}$/, 'Customer PIN must be 6 digits').optional(),
+});
+
+type InvoiceValidationErrors = Partial<Record<keyof z.infer<typeof InvoiceFormSchema>, string>>;
 
 // ─── TYPES ─────────────────────────────────────────────────────────────────────
 
@@ -149,7 +167,7 @@ function InvoicePreview({ form, printRef }: { form: InvoiceFormData; printRef: R
   const hasIgst     = form.items.some(i => i.gstType === 'IGST'       && i.igst > 0);
 
   return (
-    <div ref={printRef} className="bg-white text-[#1a1a1a] text-[11px] leading-snug w-full" style={{ fontFamily: 'Arial,sans-serif' }}>
+    <div ref={printRef} className="keep-light bg-white text-[#1a1a1a] text-[11px] leading-snug w-full" style={{ fontFamily: 'Arial,sans-serif' }}>
       {/* Header */}
       <div style={{ background: accent }} className="px-6 py-4 flex items-start justify-between">
         <div>
@@ -334,12 +352,27 @@ function InvoiceModal({ initial, editId, onClose, onSaved }: {
   const [step, setStep]       = useState<'template'|'form'|'preview'>(initial ? 'form' : 'template');
   const [submitting, setSub]  = useState(false);
   const [copiedLink, setCopied] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<InvoiceValidationErrors>({});
   const printRef = useRef<HTMLDivElement>(null);
   const isEdit   = !!editId;
 
   function sf<K extends keyof InvoiceFormData>(key: K, val: InvoiceFormData[K]) {
     setForm(f => ({ ...f, [key]: val }));
   }
+
+  // Keep shipping in sync with billing whenever "Same as Billing" is checked
+  useEffect(() => {
+    if (!form.shipSameAsBill) return;
+    setForm(prev => ({
+      ...prev,
+      shippingName: prev.customerName,
+      shippingAddress: [prev.customerAddress, prev.customerCity, prev.customerPin].filter(Boolean).join(', '),
+      shippingGstin: prev.customerGstin,
+      shippingState: prev.customerState,
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.shipSameAsBill, form.customerName, form.customerAddress, form.customerCity, form.customerPin, form.customerGstin, form.customerState]);
 
   function updateItem(idx: number, item: LineItem) {
     const items = form.items.map((it,i) => i===idx ? item : it);
@@ -352,17 +385,37 @@ function InvoiceModal({ initial, editId, onClose, onSaved }: {
   }
 
   async function handleSave() {
-    if (!form.customerName || !form.invoiceNumber || !form.dueDate) {
-      alert('Invoice Number, Customer Name and Due Date are required.'); return;
+    setSaveError(null);
+    // Zod validation
+    const parsed = InvoiceFormSchema.safeParse({
+      invoiceNumber: form.invoiceNumber,
+      customerName:  form.customerName,
+      dueDate:       form.dueDate,
+      sellerEmail:   form.sellerEmail   || '',
+      customerEmail: form.customerEmail || '',
+      sellerPhone:   form.sellerPhone   || '',
+      customerPhone: form.customerPhone || '',
+      sellerPin:     form.sellerPin     || '',
+      customerPin:   form.customerPin   || '',
+    });
+    if (!parsed.success) {
+      const errors: InvoiceValidationErrors = {};
+      parsed.error.issues.forEach((e) => {
+        const key = String(e.path[0]) as keyof InvoiceValidationErrors;
+        if (!errors[key]) errors[key] = e.message;
+      });
+      setValidationErrors(errors);
+      if (step !== 'form') setStep('form');
+      return;
     }
+    setValidationErrors({});
     try {
       setSub(true);
-      // Store full form as JSON in notes so PDF download has all data
       const meta = JSON.stringify({
         sellerName: form.sellerName, sellerGstin: form.sellerGstin,
         sellerAddress: [form.sellerAddress, form.sellerCity, form.sellerState, form.sellerPin].filter(Boolean).join(', '),
-        sellerPan: form.sellerPan, sellerPhone: form.sellerPhone,
-        customerGstin: form.customerGstin,
+        sellerPan: form.sellerPan, sellerPhone: form.sellerPhone, sellerEmail: form.sellerEmail,
+        customerGstin: form.customerGstin, customerEmail: form.customerEmail, customerPhone: form.customerPhone,
         customerAddress: [form.customerAddress, form.customerCity, form.customerState, form.customerPin].filter(Boolean).join(', '),
         placeOfSupply: form.placeOfSupply, reverseCharge: form.reverseCharge,
         items: form.items,
@@ -372,13 +425,9 @@ function InvoiceModal({ initial, editId, onClose, onSaved }: {
         accountHolder: form.accountHolder, paymentTerms: form.paymentTerms,
         userNotes: form.notes, termsAndConditions: form.termsAndConditions,
         template: form.template, poNumber: form.poNumber,
-        ewayBill: form.ewayBill || '',
-        challanNo: form.challanNo || '',
-        challanDate: form.challanDate || '',
-        shipSameAsBill: form.shipSameAsBill || false,
-        shippingName: form.shippingName || '',
-        shippingAddress: form.shippingAddress || '',
-        shippingGstin: form.shippingGstin || '',
+        ewayBill: form.ewayBill || '', challanNo: form.challanNo || '', challanDate: form.challanDate || '',
+        shipSameAsBill: form.shipSameAsBill || false, shippingName: form.shippingName || '',
+        shippingAddress: form.shippingAddress || '', shippingGstin: form.shippingGstin || '',
         shippingState: form.shippingState || '',
       });
       const payload = {
@@ -397,7 +446,10 @@ function InvoiceModal({ initial, editId, onClose, onSaved }: {
         await financeCreateInvoice(payload);
       }
       onSaved();
-    } catch { /* handled by interceptor */ } finally { setSub(false); }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to save invoice. Please try again.';
+      setSaveError(msg);
+    } finally { setSub(false); }
   }
 
   function handlePrint() {
@@ -411,19 +463,7 @@ function InvoiceModal({ initial, editId, onClose, onSaved }: {
   }
 
   async function handleDownloadPdf() {
-    if (!editId) {
-      // Not saved yet — use browser print-to-PDF
-      handlePrint();
-      return;
-    }
-    try {
-      const res = await api.get(`/finance/invoices/${editId}/download`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-      const a = document.createElement('a');
-      a.href = url; a.download = `invoice_${form.invoiceNumber}.pdf`;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
-    } catch { alert('Failed to download PDF'); }
+    handlePrint();
   }
 
   function handleCopyLink() {
@@ -506,9 +546,17 @@ function InvoiceModal({ initial, editId, onClose, onSaved }: {
             <section>
               <h4 className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2"><Hash className="w-3.5 h-3.5 text-amber-500"/>Invoice Details</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div><label className={lbl}>Invoice Number *</label><input className={inp} value={form.invoiceNumber} onChange={e=>sf('invoiceNumber',e.target.value)}/></div>
+                <div>
+                  <label className={lbl}>Invoice Number *</label>
+                  <input className={inp+(validationErrors.invoiceNumber?' border-red-400':'')} value={form.invoiceNumber} onChange={e=>{ sf('invoiceNumber',e.target.value); setValidationErrors(v=>({...v,invoiceNumber:undefined})); }}/>
+                  {validationErrors.invoiceNumber && <p className="text-[9px] text-red-500 mt-0.5">{validationErrors.invoiceNumber}</p>}
+                </div>
                 <div><label className={lbl}>Invoice Date *</label><input type="date" className={inp} value={form.invoiceDate} onChange={e=>sf('invoiceDate',e.target.value)}/></div>
-                <div><label className={lbl}>Due Date *</label><input type="date" className={inp} value={form.dueDate} onChange={e=>sf('dueDate',e.target.value)}/></div>
+                <div>
+                  <label className={lbl}>Due Date *</label>
+                  <input type="date" className={inp+(validationErrors.dueDate?' border-red-400':'')} value={form.dueDate} onChange={e=>{ sf('dueDate',e.target.value); setValidationErrors(v=>({...v,dueDate:undefined})); }}/>
+                  {validationErrors.dueDate && <p className="text-[9px] text-red-500 mt-0.5">{validationErrors.dueDate}</p>}
+                </div>
                 <div><label className={lbl}>P.O. / Ref No.</label><input className={inp} value={form.poNumber} onChange={e=>sf('poNumber',e.target.value)} placeholder="Optional"/></div>
                 <div><label className={lbl}>E-Way Bill No.</label><input className={inp} value={form.ewayBill || ''} onChange={e=>sf('ewayBill',e.target.value)} placeholder="Optional"/></div>
                 <div><label className={lbl}>Challan Number</label><input className={inp} value={form.challanNo || ''} onChange={e=>sf('challanNo',e.target.value)} placeholder="Optional"/></div>
@@ -526,9 +574,21 @@ function InvoiceModal({ initial, editId, onClose, onSaved }: {
                 <div className="col-span-2 md:col-span-3"><label className={lbl}>Address</label><input className={inp} value={form.sellerAddress} onChange={e=>sf('sellerAddress',e.target.value)}/></div>
                 <div><label className={lbl}>City</label><input className={inp} value={form.sellerCity} onChange={e=>sf('sellerCity',e.target.value)}/></div>
                 <div><label className={lbl}>State</label><select className={inp} value={form.sellerState} onChange={e=>sf('sellerState',e.target.value)}>{INDIAN_STATES.map(s=><option key={s}>{s}</option>)}</select></div>
-                <div><label className={lbl}>PIN</label><input className={inp} value={form.sellerPin} onChange={e=>sf('sellerPin',e.target.value)} maxLength={6}/></div>
-                <div><label className={lbl}>Phone</label><input className={inp} value={form.sellerPhone} onChange={e=>sf('sellerPhone',e.target.value)}/></div>
-                <div><label className={lbl}>Email</label><input type="email" className={inp} value={form.sellerEmail} onChange={e=>sf('sellerEmail',e.target.value)}/></div>
+                <div>
+                  <label className={lbl}>PIN</label>
+                  <input className={inp+(validationErrors.sellerPin?' border-red-400':'')} value={form.sellerPin} onChange={e=>{ sf('sellerPin',e.target.value); setValidationErrors(v=>({...v,sellerPin:undefined})); }} maxLength={6} placeholder="400001"/>
+                  {validationErrors.sellerPin && <p className="text-[9px] text-red-500 mt-0.5">{validationErrors.sellerPin}</p>}
+                </div>
+                <div>
+                  <label className={lbl}>Phone</label>
+                  <input className={inp+(validationErrors.sellerPhone?' border-red-400':'')} value={form.sellerPhone} onChange={e=>{ sf('sellerPhone',e.target.value); setValidationErrors(v=>({...v,sellerPhone:undefined})); }} placeholder="+91 98765 43210"/>
+                  {validationErrors.sellerPhone && <p className="text-[9px] text-red-500 mt-0.5">{validationErrors.sellerPhone}</p>}
+                </div>
+                <div>
+                  <label className={lbl}>Email</label>
+                  <input type="email" className={inp+(validationErrors.sellerEmail?' border-red-400':'')} value={form.sellerEmail} onChange={e=>{ sf('sellerEmail',e.target.value); setValidationErrors(v=>({...v,sellerEmail:undefined})); }} placeholder="company@example.com"/>
+                  {validationErrors.sellerEmail && <p className="text-[9px] text-red-500 mt-0.5">{validationErrors.sellerEmail}</p>}
+                </div>
               </div>
             </section>
 
@@ -536,14 +596,30 @@ function InvoiceModal({ initial, editId, onClose, onSaved }: {
             <section>
               <h4 className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2"><Package className="w-3.5 h-3.5 text-emerald-500"/>Customer (Bill To)</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div><label className={lbl}>Customer Name *</label><input className={inp} value={form.customerName} onChange={e=>sf('customerName',e.target.value)} placeholder="Customer Pvt Ltd"/></div>
+                <div>
+                  <label className={lbl}>Customer Name *</label>
+                  <input className={inp+(validationErrors.customerName?' border-red-400':'')} value={form.customerName} onChange={e=>{ sf('customerName',e.target.value); setValidationErrors(v=>({...v,customerName:undefined})); }} placeholder="Customer Pvt Ltd"/>
+                  {validationErrors.customerName && <p className="text-[9px] text-red-500 mt-0.5">{validationErrors.customerName}</p>}
+                </div>
                 <div><label className={lbl}>GSTIN</label><input className={inp} value={form.customerGstin} onChange={e=>sf('customerGstin',e.target.value.toUpperCase())} maxLength={15}/></div>
-                <div><label className={lbl}>Phone</label><input className={inp} value={form.customerPhone} onChange={e=>sf('customerPhone',e.target.value)}/></div>
+                <div>
+                  <label className={lbl}>Phone</label>
+                  <input className={inp+(validationErrors.customerPhone?' border-red-400':'')} value={form.customerPhone} onChange={e=>{ sf('customerPhone',e.target.value); setValidationErrors(v=>({...v,customerPhone:undefined})); }} placeholder="+91 98765 43210"/>
+                  {validationErrors.customerPhone && <p className="text-[9px] text-red-500 mt-0.5">{validationErrors.customerPhone}</p>}
+                </div>
                 <div className="col-span-2 md:col-span-3"><label className={lbl}>Address</label><input className={inp} value={form.customerAddress} onChange={e=>sf('customerAddress',e.target.value)}/></div>
                 <div><label className={lbl}>City</label><input className={inp} value={form.customerCity} onChange={e=>sf('customerCity',e.target.value)}/></div>
                 <div><label className={lbl}>State</label><select className={inp} value={form.customerState} onChange={e=>sf('customerState',e.target.value)}>{INDIAN_STATES.map(s=><option key={s}>{s}</option>)}</select></div>
-                <div><label className={lbl}>PIN</label><input className={inp} value={form.customerPin} onChange={e=>sf('customerPin',e.target.value)} maxLength={6}/></div>
-                <div><label className={lbl}>Email</label><input type="email" className={inp} value={form.customerEmail} onChange={e=>sf('customerEmail',e.target.value)}/></div>
+                <div>
+                  <label className={lbl}>PIN</label>
+                  <input className={inp+(validationErrors.customerPin?' border-red-400':'')} value={form.customerPin} onChange={e=>{ sf('customerPin',e.target.value); setValidationErrors(v=>({...v,customerPin:undefined})); }} maxLength={6} placeholder="400001"/>
+                  {validationErrors.customerPin && <p className="text-[9px] text-red-500 mt-0.5">{validationErrors.customerPin}</p>}
+                </div>
+                <div>
+                  <label className={lbl}>Email</label>
+                  <input type="email" className={inp+(validationErrors.customerEmail?' border-red-400':'')} value={form.customerEmail} onChange={e=>{ sf('customerEmail',e.target.value); setValidationErrors(v=>({...v,customerEmail:undefined})); }} placeholder="customer@example.com"/>
+                  {validationErrors.customerEmail && <p className="text-[9px] text-red-500 mt-0.5">{validationErrors.customerEmail}</p>}
+                </div>
                 <div><label className={lbl}>Place of Supply</label><select className={inp} value={form.placeOfSupply} onChange={e=>sf('placeOfSupply',e.target.value)}>{INDIAN_STATES.map(s=><option key={s}>{s}</option>)}</select></div>
                 <div className="flex items-end pb-1">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -563,13 +639,16 @@ function InvoiceModal({ initial, editId, onClose, onSaved }: {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={form.shipSameAsBill || false} onChange={e => {
                     const checked = e.target.checked;
-                    sf('shipSameAsBill', checked);
-                    if (checked) {
-                      sf('shippingName', form.customerName);
-                      sf('shippingAddress', [form.customerAddress, form.customerCity, form.customerPin].filter(Boolean).join(', '));
-                      sf('shippingGstin', form.customerGstin);
-                      sf('shippingState', form.customerState);
-                    }
+                    setForm(prev => ({
+                      ...prev,
+                      shipSameAsBill: checked,
+                      ...(checked ? {
+                        shippingName: prev.customerName,
+                        shippingAddress: [prev.customerAddress, prev.customerCity, prev.customerPin].filter(Boolean).join(', '),
+                        shippingGstin: prev.customerGstin,
+                        shippingState: prev.customerState,
+                      } : {}),
+                    }));
                   }} className="w-4 h-4 rounded border-slate-300 text-blue-600"/>
                   <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Same as Billing Address</span>
                 </label>
@@ -683,6 +762,14 @@ function InvoiceModal({ initial, editId, onClose, onSaved }: {
                 </button>
               </div>
             </div>
+            {/* Save error banner */}
+            {saveError && (
+              <div className="px-6 py-2 bg-red-50 border-b border-red-100 flex items-center gap-2 text-xs text-red-700 font-semibold shrink-0">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0"/>
+                {saveError}
+                <button onClick={()=>setSaveError(null)} className="ml-auto text-red-400 hover:text-red-600"><X className="w-3.5 h-3.5"/></button>
+              </div>
+            )}
             {/* Public link bar */}
             <div className="px-6 py-2 bg-blue-50 dark:bg-blue-950/20 border-b border-blue-100 dark:border-blue-900/30 flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400 shrink-0 flex-wrap">
               <Globe className="w-3.5 h-3.5 shrink-0"/>
@@ -702,6 +789,221 @@ function InvoiceModal({ initial, editId, onClose, onSaved }: {
             </div>
           </div>
         )}
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── RETURN / CREDIT NOTE MODAL ────────────────────────────────────────────────
+
+interface ReturnItem {
+  description: string;
+  qty: number;
+  rate: number;
+  amount: number;
+}
+
+function ReturnModal({ inv, onClose, onCreated }: { inv: Invoice; onClose: () => void; onCreated: () => void }) {
+  const [noteType, setNoteType]   = useState<'Credit Note'|'Debit Note'>('Credit Note');
+  const [reason,   setReason]     = useState('');
+  const [items,    setItems]      = useState<ReturnItem[]>([{ description: '', qty: 1, rate: 0, amount: 0 }]);
+  const [notes,    setNotes]      = useState('');
+  const [saving,   setSaving]     = useState(false);
+  const [err,      setErr]        = useState('');
+  const [done,     setDone]       = useState(false);
+  const [noteNum,  setNoteNum]    = useState('');
+
+  const totalAmount = items.reduce((s, i) => s + i.amount, 0);
+  const maxAmount   = parseFloat(String(inv.total));
+
+  function updateItem(idx: number, field: keyof ReturnItem, val: string | number) {
+    setItems(prev => prev.map((it, i) => {
+      if (i !== idx) return it;
+      const updated = { ...it, [field]: val };
+      if (field === 'qty' || field === 'rate') {
+        updated.amount = +(updated.qty * updated.rate).toFixed(2);
+      }
+      return updated;
+    }));
+  }
+
+  function addItem() {
+    setItems(prev => [...prev, { description: '', qty: 1, rate: 0, amount: 0 }]);
+  }
+
+  function removeItem(idx: number) {
+    if (items.length === 1) return;
+    setItems(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  async function handleSubmit() {
+    setErr('');
+    if (!reason.trim()) { setErr('Please enter a reason for the return.'); return; }
+    if (totalAmount <= 0) { setErr('Total return amount must be greater than zero.'); return; }
+    if (totalAmount > maxAmount) { setErr(`Return amount (₹${totalAmount.toFixed(2)}) cannot exceed invoice total (₹${maxAmount.toFixed(2)}).`); return; }
+    const emptyItem = items.find(i => !i.description.trim());
+    if (emptyItem) { setErr('All return items must have a description.'); return; }
+    try {
+      setSaving(true);
+      const res = await api.post(`/finance/invoices/${inv.id}/credit-notes`, {
+        type: noteType,
+        reason: reason.trim(),
+        items,
+        amount: totalAmount,
+        notes: notes.trim() || null,
+      });
+      setNoteNum(res.data?.data?.note?.note_number || '');
+      setDone(true);
+      onCreated();
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || e?.message || 'Failed to create note.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const inp = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500 bg-white placeholder:text-slate-400 transition';
+
+  if (done) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+        <motion.div initial={{opacity:0,scale:.95}} animate={{opacity:1,scale:1}} onClick={e=>e.stopPropagation()}
+          className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-sm p-8 flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+            <CheckCircle2 className="w-8 h-8 text-emerald-500"/>
+          </div>
+          <div className="text-center">
+            <h3 className="text-sm font-black text-slate-800">{noteType} Issued</h3>
+            <p className="text-xs text-slate-500 mt-1">Note #{noteNum} created for {fmtINR(totalAmount)}</p>
+          </div>
+          <button onClick={onClose} className="w-full py-2.5 bg-emerald-500 text-white text-xs font-bold rounded-xl hover:bg-emerald-600 transition">Done</button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+      <motion.div initial={{opacity:0,scale:.95}} animate={{opacity:1,scale:1}} exit={{opacity:0,scale:.95}}
+        onClick={e=>e.stopPropagation()}
+        className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50 rounded-t-2xl shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center">
+              <RotateCcw className="w-4 h-4 text-white"/>
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-800">Invoice Return</h3>
+              <p className="text-[10px] text-slate-400">#{inv.invoice_number} · {fmtINR(parseFloat(String(inv.total)))}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-400 transition"><X className="w-4 h-4"/></button>
+        </div>
+
+        <div className="flex-1 overflow-auto p-5 space-y-4">
+          {/* Note type */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Note Type</label>
+            <div className="flex gap-2">
+              {(['Credit Note', 'Debit Note'] as const).map(t => (
+                <button key={t} onClick={() => setNoteType(t)}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border-2 transition ${noteType === t ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                  <ArrowLeftRight className="w-3 h-3"/>{t}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1.5">
+              {noteType === 'Credit Note' ? 'You owe the customer money back (goods returned / overcharge).' : 'Customer owes you additional money (short-charged / extra charges).'}
+            </p>
+          </div>
+
+          {/* Reason */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Reason *</label>
+            <input className={inp} placeholder="e.g. Defective item returned, Wrong quantity shipped..." value={reason} onChange={e => setReason(e.target.value)}/>
+          </div>
+
+          {/* Return items */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Return Items</label>
+              <button onClick={addItem} className="text-[10px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                <Plus className="w-3 h-3"/>Add Row
+              </button>
+            </div>
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <table className="w-full text-[10px]">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-bold text-slate-500">Description</th>
+                    <th className="px-2 py-2 text-right font-bold text-slate-500 w-14">Qty</th>
+                    <th className="px-2 py-2 text-right font-bold text-slate-500 w-20">Rate (₹)</th>
+                    <th className="px-2 py-2 text-right font-bold text-slate-500 w-20">Amount</th>
+                    <th className="w-8"/>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {items.map((it, idx) => (
+                    <tr key={idx}>
+                      <td className="px-2 py-1.5">
+                        <input className="w-full border border-slate-200 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-blue-400"
+                          placeholder="Item description" value={it.description}
+                          onChange={e => updateItem(idx, 'description', e.target.value)}/>
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input type="number" min={1} className="w-full border border-slate-200 rounded-lg px-2 py-1 text-[10px] text-right focus:outline-none focus:border-blue-400"
+                          value={it.qty} onChange={e => updateItem(idx, 'qty', Math.max(1, parseInt(e.target.value)||1))}/>
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input type="number" min={0} step={0.01} className="w-full border border-slate-200 rounded-lg px-2 py-1 text-[10px] text-right focus:outline-none focus:border-blue-400"
+                          value={it.rate} onChange={e => updateItem(idx, 'rate', parseFloat(e.target.value)||0)}/>
+                      </td>
+                      <td className="px-2 py-1.5 text-right font-bold text-slate-700">₹{it.amount.toFixed(2)}</td>
+                      <td className="pr-2">
+                        {items.length > 1 && (
+                          <button onClick={() => removeItem(idx)} className="p-1 text-red-400 hover:text-red-600 rounded"><X className="w-3 h-3"/></button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                <span className="text-[10px] text-slate-500 font-semibold">Total Return Amount</span>
+                <span className={`text-xs font-black ${totalAmount > maxAmount ? 'text-red-600' : 'text-slate-800'}`}>{fmtINR(totalAmount)}</span>
+              </div>
+            </div>
+            {totalAmount > maxAmount && (
+              <p className="text-[10px] text-red-500 font-semibold mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3"/>Exceeds invoice total of {fmtINR(maxAmount)}
+              </p>
+            )}
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Additional Notes</label>
+            <textarea rows={2} className={inp + ' resize-none'} placeholder="Optional internal notes..."
+              value={notes} onChange={e => setNotes(e.target.value)}/>
+          </div>
+
+          {err && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-xs text-red-700 font-semibold">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0"/>{err}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl flex items-center justify-between gap-3 shrink-0">
+          <button onClick={onClose} className="text-xs font-bold text-slate-500 hover:text-slate-700 transition">Cancel</button>
+          <button onClick={handleSubmit} disabled={saving || totalAmount <= 0 || totalAmount > maxAmount}
+            className="flex items-center gap-2 px-5 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition shadow">
+            {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin"/> : <RotateCcw className="w-3.5 h-3.5"/>}
+            {saving ? 'Issuing...' : `Issue ${noteType}`}
+          </button>
+        </div>
       </motion.div>
     </div>
   );
@@ -766,6 +1068,7 @@ function ShareModal({ inv, onClose }: { inv: Invoice; onClose: () => void }) {
 function InvoicesContent() {
   const [invoices, setInvoices]       = useState<Invoice[]>([]);
   const [total, setTotal]             = useState(0);
+  const [totalGstDb, setTotalGstDb]   = useState(0);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -774,15 +1077,25 @@ function InvoicesContent() {
   const [showModal, setShowModal]     = useState(false);
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
   const [shareInv, setShareInv]       = useState<Invoice | null>(null);
+  const [returnInv, setReturnInv]     = useState<Invoice | null>(null);
   const searchParams = useSearchParams();
+  const router = useRouter();
 
-  useEffect(() => { if (searchParams.get('action')==='add') setShowModal(true); }, [searchParams]);
+  // Open add modal from URL param, then clear it so refresh won't re-open
+  useEffect(() => {
+    if (searchParams.get('action') === 'add') {
+      setShowModal(true);
+      // Remove ?action=add from URL without reloading
+      router.replace('/finance/invoices', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   const load = useCallback(async () => {
     try {
       setLoading(true); setError('');
       const res = await financeGetInvoices({ status:statusFilter||undefined, search:searchQuery||undefined, page, limit:20 });
       setInvoices(res.invoices); setTotal(res.total);
+      setTotalGstDb(res.totalGst || 0);
     } catch { setError('Failed to load invoices.'); }
     finally { setLoading(false); }
   }, [statusFilter, searchQuery, page]);
@@ -790,16 +1103,11 @@ function InvoicesContent() {
   useEffect(() => { load(); }, [load]);
 
   async function handleDownload(id: string, invoiceNumber: string, viewOnly = false) {
-    try {
-      const res = await api.get(`/finance/invoices/${id}/download`, { responseType:'blob' });
-      const url = window.URL.createObjectURL(new Blob([res.data], { type:'application/pdf' }));
-      if (viewOnly) { window.open(url,'_blank'); }
-      else {
-        const a = document.createElement('a'); a.href=url; a.download=`invoice_${invoiceNumber}.pdf`;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(()=>window.URL.revokeObjectURL(url),1000);
-      }
-    } catch { alert('Failed to process invoice PDF'); }
+    if (viewOnly) {
+      window.open(`/public/invoices/view/${invoiceNumber}`, '_blank');
+    } else {
+      window.open(`/public/invoices/view/${invoiceNumber}?print=true`, '_blank');
+    }
   }
 
   async function handleStatusUpdate(id: string, newStatus: string) {
@@ -821,6 +1129,7 @@ function InvoicesContent() {
   const overdueCount  = invoices.filter(i=>i.status==='Overdue').length;
   const paidTotal     = invoices.filter(i=>i.status==='Paid').reduce((s,i)=>s+parseFloat(String(i.total)),0);
   const pendingTotal  = invoices.filter(i=>['Sent','Overdue'].includes(i.status)).reduce((s,i)=>s+parseFloat(String(i.total)),0);
+  const totalGst      = invoices.reduce((s,i)=>s+parseFloat(String(i.tax || 0)),0);
 
   return (
     <div className="space-y-5">
@@ -849,16 +1158,17 @@ function InvoicesContent() {
       </motion.div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label:'Total Invoices', val:total,              color:'text-blue-600',   bg:'bg-blue-50'   },
-          { label:'Paid Amount',    val:fmtINR(paidTotal),  color:'text-emerald-600',bg:'bg-emerald-50'},
-          { label:'Pending Amount', val:fmtINR(pendingTotal),color:'text-amber-600', bg:'bg-amber-50'  },
-          { label:'Overdue',        val:overdueCount,       color:'text-red-600',    bg:'bg-red-50'    },
+          { label:'Total Invoices', val:total,              color:'text-blue-600',   bg:'bg-blue-50',    icon: FileText },
+          { label:'Paid Amount',    val:fmtINR(paidTotal),  color:'text-emerald-600',bg:'bg-emerald-50', icon: IndianRupee },
+          { label:'GST Amount',     val:fmtINR(totalGstDb), color:'text-violet-600', bg:'bg-violet-50',  icon: Percent },
+          { label:'Pending Amount', val:fmtINR(pendingTotal),color:'text-amber-600', bg:'bg-amber-50',   icon: IndianRupee },
+          { label:'Overdue',        val:overdueCount,       color:'text-red-600',    bg:'bg-red-50',     icon: AlertCircle },
         ].map((s,i)=>(
           <div key={i} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 flex items-center gap-3">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${s.bg} shrink-0`}>
-              <FileText className={`w-4 h-4 ${s.color}`}/>
+              <s.icon className={`w-4 h-4 ${s.color}`}/>
             </div>
             <div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{s.label}</p>
@@ -920,6 +1230,11 @@ function InvoicesContent() {
                         <button onClick={()=>{ setEditInvoice(inv); setShowModal(true); }}
                           className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-500 transition" title="Edit Invoice"><Pencil className="w-4 h-4"/></button>
                       )}
+                      {/* Return / Credit Note (paid only) */}
+                      {inv.status === 'Paid' && (
+                        <button onClick={()=>setReturnInv(inv)}
+                          className="p-1.5 rounded-lg hover:bg-orange-50 text-orange-500 transition" title="Return / Credit Note"><RotateCcw className="w-4 h-4"/></button>
+                      )}
                       {/* Share */}
                       <button onClick={()=>setShareInv(inv)}
                         className="p-1.5 rounded-lg hover:bg-violet-50 text-violet-500 transition" title="Share"><Share2 className="w-4 h-4"/></button>
@@ -965,11 +1280,28 @@ function InvoicesContent() {
               grandTotal:    parseFloat(String(editInvoice.total)),
             } : undefined}
             onClose={()=>{ setShowModal(false); setEditInvoice(null); }}
-            onSaved={()=>{ setShowModal(false); setEditInvoice(null); load(); }}
+            onSaved={()=>{
+              setShowModal(false);
+              setEditInvoice(null);
+              setStatusFilter('');
+              setSearchQuery('');
+              setPage(1);
+              setTimeout(() => load(), 0);
+            }}
           />
         )}
         {shareInv && (
           <ShareModal key={shareInv.id} inv={shareInv} onClose={()=>setShareInv(null)}/>
+        )}
+        {returnInv && (
+          <ReturnModal key={`return-${returnInv.id}`} inv={returnInv}
+            onClose={()=>setReturnInv(null)}
+            onCreated={()=>{
+              setStatusFilter('');
+              setSearchQuery('');
+              setPage(1);
+              setTimeout(() => load(), 0);
+            }}/>
         )}
       </AnimatePresence>
     </div>

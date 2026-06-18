@@ -8,7 +8,7 @@ import {
   LayoutTemplate, Layers, MousePointer2, Settings2,
   ToggleLeft, ToggleRight, Trash2,
   PanelLeftClose, PanelLeftOpen,
-  AlertTriangle, Clock, XCircle, Terminal,
+  AlertTriangle, AlertCircle, Clock, XCircle, Terminal,
   ChevronUp, Activity, ArrowLeft, Users,
 } from 'lucide-react';
 import {
@@ -414,6 +414,24 @@ const CRED_CONFIG: Record<string, { provider: string; title: string; oauthUrl?: 
       { key: 'project_id', label: 'Firebase Project ID', placeholder: 'my-project-id' },
     ],
   },
+  'Shopify': {
+    provider: 'shopify',
+    title: 'Shopify',
+    oauthUrl: 'https://partners.shopify.com/',
+    fields: [
+      { key: 'store_url', label: 'Store URL', placeholder: 'mystore.myshopify.com' },
+      { key: 'access_token', label: 'Admin API Access Token', type: 'password', placeholder: 'shpat_…', hint: 'Create a private app in your Shopify Admin' },
+      { key: 'webhook_secret', label: 'Webhook Secret', type: 'password', placeholder: 'shpss_…' },
+    ],
+  },
+  'Discord': {
+    provider: 'discord',
+    title: 'Discord Webhook',
+    oauthUrl: 'https://discord.com/developers/applications',
+    fields: [
+      { key: 'webhook_url', label: 'Webhook URL', type: 'password', placeholder: 'https://discord.com/api/webhooks/…', hint: 'Create a webhook in Discord channel settings' },
+    ],
+  },
   'AI Provider': {
     provider: 'ai',
     title: 'AI Provider',
@@ -428,6 +446,8 @@ const CRED_CONFIG: Record<string, { provider: string; title: string; oauthUrl?: 
 function resolveCredService(service: string) {
   if (service in CRED_CONFIG) return service;
   if (service === 'Claude' || service === 'OpenAI' || service === 'Gemini') return 'AI Provider';
+  if (service === 'Meta / Facebook' || service === 'Facebook') return 'Meta Graph API';
+  if (service === 'Instagram Graph API' || service === 'Instagram') return 'Instagram Graph API';
   return service;
 }
 
@@ -473,15 +493,21 @@ function CredentialBlock({ service, tk }: { service: string; tk: Tokens }) {
 
 // ─── Credential Setup Modal ───────────────────────────────────────────────────
 
+// Providers that support Meta OAuth login-with-facebook flow
+const META_OAUTH_PROVIDERS = new Set(['meta-ads', 'whatsapp', 'instagram']);
+
 function CredentialSetupModal({ service, tk, onClose, onSaved }: {
   service: string; tk: Tokens;
   onClose: () => void;
   onSaved: (provider: string) => void;
 }) {
   const conf = CRED_CONFIG[service];
+  const isMetaOAuth = conf && META_OAUTH_PROVIDERS.has(conf.provider);
+  const [tab, setTab] = useState<'oauth' | 'manual'>(isMetaOAuth ? 'oauth' : 'manual');
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   if (!conf) {
@@ -495,12 +521,35 @@ function CredentialSetupModal({ service, tk, onClose, onSaved }: {
     );
   }
 
+  // Validate only required fields (non-empty in manual tab)
   function validateFields(): string | null {
     for (const f of conf.fields) {
       const v = (values[f.key] || '').trim();
       if (!v) return `${f.label} is required`;
     }
     return null;
+  }
+
+  async function handleLoginWithMeta() {
+    setOauthLoading(true);
+    setTestResult(null);
+    try {
+      const res = await api.get(`/marketing/integrations/meta/oauth-url?provider=${conf.provider}`);
+      const url = res.data?.data?.url || res.data?.url;
+      if (!url) throw new Error('No OAuth URL returned from server');
+      // Open in new tab — the callback will redirect back to automation page
+      window.open(url, '_blank', 'width=700,height=600,scrollbars=yes');
+      setTestResult({ success: true, message: 'Meta login opened in a new window. Complete login there, then close this modal and refresh.' });
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to get OAuth URL';
+      if (msg.includes('META_APP_ID not configured')) {
+        setTestResult({ success: false, message: 'META_APP_ID is not set in the server .env file. Ask your admin to add it.' });
+      } else {
+        setTestResult({ success: false, message: msg });
+      }
+    } finally {
+      setOauthLoading(false);
+    }
   }
 
   async function handleSave() {
@@ -541,10 +590,11 @@ function CredentialSetupModal({ service, tk, onClose, onSaved }: {
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(8px)' }}>
       <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden" style={{ background: tk.modalBg, border: `1px solid ${tk.modalBorder}` }}>
+        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${tk.divider}` }}>
           <div>
             <h3 className="text-sm font-bold" style={{ color: tk.textPrimary }}>{conf.title}</h3>
-            <p className="text-[10px] mt-0.5" style={{ color: tk.textMuted }}>Credentials are stored securely and never exposed in the UI</p>
+            <p className="text-[10px] mt-0.5" style={{ color: tk.textMuted }}>Credentials stored securely, never exposed in the UI</p>
           </div>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg" style={{ color: tk.textMuted }}
             onMouseEnter={e => (e.currentTarget.style.background = tk.hoverBg)}
@@ -553,31 +603,116 @@ function CredentialSetupModal({ service, tk, onClose, onSaved }: {
           </button>
         </div>
 
+        {/* Tab switcher — only for Meta OAuth providers */}
+        {isMetaOAuth && (
+          <div className="flex px-5 pt-4 gap-2">
+            <button
+              onClick={() => { setTab('oauth'); setTestResult(null); }}
+              className="flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+              style={{
+                background: tab === 'oauth' ? 'rgba(24,119,242,.15)' : 'transparent',
+                color: tab === 'oauth' ? '#60A5FA' : tk.textMuted,
+                border: `1px solid ${tab === 'oauth' ? 'rgba(24,119,242,.35)' : tk.divider}`,
+              }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              Login with Meta
+            </button>
+            <button
+              onClick={() => { setTab('manual'); setTestResult(null); }}
+              className="flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+              style={{
+                background: tab === 'manual' ? tk.hoverBg : 'transparent',
+                color: tab === 'manual' ? tk.textPrimary : tk.textMuted,
+                border: `1px solid ${tab === 'manual' ? tk.ctrlBorder : tk.divider}`,
+              }}>
+              <Settings2 size={11} />
+              Paste API Key
+            </button>
+          </div>
+        )}
+
         <div className="px-5 py-4 space-y-4 max-h-[60vh] overflow-y-auto">
-          {conf.oauthUrl && (
-            <div className="p-3 rounded-xl text-xs leading-relaxed" style={{ background: 'rgba(59,130,246,.08)', border: '1px solid rgba(59,130,246,.2)', color: '#93C5FD' }}>
-              Need credentials? Open the{' '}
-              <a href={conf.oauthUrl} target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:text-blue-300">
-                {service} Developer Console ↗
-              </a>
-              {' '}to create an app and generate API keys.
-            </div>
+          {/* OAuth Tab */}
+          {tab === 'oauth' && isMetaOAuth && (
+            <>
+              {/* What this does */}
+              <div className="p-3 rounded-xl text-xs leading-relaxed space-y-2" style={{ background: 'rgba(24,119,242,.07)', border: '1px solid rgba(24,119,242,.2)', color: '#93C5FD' }}>
+                <p className="font-semibold text-blue-300">
+                  {conf.provider === 'whatsapp' ? '📱 Connect WhatsApp Business via Meta' : '🔵 Connect Meta / Facebook via OAuth'}
+                </p>
+                <p style={{ color: tk.textSecondary }}>
+                  {conf.provider === 'whatsapp'
+                    ? 'This will open a Meta login window. Log in with your Facebook account that owns the WhatsApp Business account, grant the required permissions, and you\'ll be connected automatically.'
+                    : 'This will open a Meta login window. Log in and grant the requested permissions (Ads, Pages, Leads). Your long-lived token is stored securely.'}
+                </p>
+                <ul className="mt-1 space-y-0.5 list-disc list-inside" style={{ color: tk.textMuted }}>
+                  {conf.provider === 'whatsapp'
+                    ? ['whatsapp_business_management', 'whatsapp_business_messaging'].map(s => <li key={s}>{s}</li>)
+                    : ['ads_read', 'ads_management', 'pages_manage_ads', 'leads_retrieval'].map(s => <li key={s}>{s}</li>)}
+                </ul>
+              </div>
+
+              {/* Prerequisite note */}
+              <div className="p-3 rounded-xl text-[10px] leading-relaxed" style={{ background: tk.nodeInfoBg, border: `1px solid ${tk.nodeInfoBorder}`, color: tk.textSecondary }}>
+                <span className="font-semibold" style={{ color: tk.textPrimary }}>Before you connect:</span> Make sure your server has <code className="font-mono px-1 py-0.5 rounded text-orange-400" style={{ background: 'rgba(249,115,22,.1)' }}>META_APP_ID</code> and <code className="font-mono px-1 py-0.5 rounded text-orange-400" style={{ background: 'rgba(249,115,22,.1)' }}>META_APP_SECRET</code> set in <code className="font-mono" style={{ color: tk.textSecondary }}>server/.env</code>. Get them from{' '}
+                <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener noreferrer" className="underline text-blue-400 hover:text-blue-300">developers.facebook.com ↗</a>.
+              </div>
+
+              <button
+                onClick={handleLoginWithMeta}
+                disabled={oauthLoading}
+                className="w-full py-3 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                style={{ background: 'linear-gradient(135deg,#1877F2,#0D5DBF)' }}>
+                {oauthLoading
+                  ? <><Loader2 size={15} className="animate-spin" /> Opening Meta Login…</>
+                  : <><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg> Login with Meta</>}
+              </button>
+
+              <div className="flex items-center gap-2 text-[10px]" style={{ color: tk.textDim }}>
+                <div className="flex-1 h-px" style={{ background: tk.divider }} />
+                or switch to &quot;Paste API Key&quot; tab to enter credentials manually
+                <div className="flex-1 h-px" style={{ background: tk.divider }} />
+              </div>
+            </>
           )}
 
-          {conf.fields.map(f => (
-            <div key={f.key}>
-              <label className="block text-[10px] font-bold uppercase tracking-wide mb-1.5" style={{ color: tk.textSecondary }}>{f.label}</label>
-              <input
-                type={f.type || 'text'}
-                placeholder={f.placeholder}
-                value={values[f.key] || ''}
-                onChange={e => setValues(p => ({ ...p, [f.key]: e.target.value }))}
-                style={{ background: tk.inputBg, borderColor: tk.inputBorder, color: tk.inputText }}
-                className="w-full rounded-lg px-3 py-2 text-sm border focus:outline-none focus:ring-1 focus:ring-orange-500/30 transition-all"
-              />
-              {f.hint && <p className="text-[10px] mt-1" style={{ color: tk.textMuted }}>{f.hint}</p>}
-            </div>
-          ))}
+          {/* Manual Tab */}
+          {tab === 'manual' && (
+            <>
+              {conf.oauthUrl && !isMetaOAuth && (
+                <div className="p-3 rounded-xl text-xs leading-relaxed" style={{ background: 'rgba(59,130,246,.08)', border: '1px solid rgba(59,130,246,.2)', color: '#93C5FD' }}>
+                  Need credentials? Open the{' '}
+                  <a href={conf.oauthUrl} target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:text-blue-300">
+                    {service} Developer Console ↗
+                  </a>
+                  {' '}to create an app and generate API keys.
+                </div>
+              )}
+              {isMetaOAuth && (
+                <div className="p-3 rounded-xl text-xs leading-relaxed" style={{ background: 'rgba(59,130,246,.08)', border: '1px solid rgba(59,130,246,.2)', color: '#93C5FD' }}>
+                  Paste credentials from{' '}
+                  <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:text-blue-300">
+                    developers.facebook.com ↗
+                  </a>
+                  {conf.provider === 'whatsapp' && <>{' '}or from{' '}<a href="https://business.facebook.com/wa/manage/phone-numbers/" target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:text-blue-300">Meta Business Suite → WhatsApp ↗</a></>}.
+                </div>
+              )}
+              {conf.fields.map(f => (
+                <div key={f.key}>
+                  <label className="block text-[10px] font-bold uppercase tracking-wide mb-1.5" style={{ color: tk.textSecondary }}>{f.label}</label>
+                  <input
+                    type={f.type || 'text'}
+                    placeholder={f.placeholder}
+                    value={values[f.key] || ''}
+                    onChange={e => setValues(p => ({ ...p, [f.key]: e.target.value }))}
+                    style={{ background: tk.inputBg, borderColor: tk.inputBorder, color: tk.inputText }}
+                    className="w-full rounded-lg px-3 py-2 text-sm border focus:outline-none focus:ring-1 focus:ring-orange-500/30 transition-all"
+                  />
+                  {f.hint && <p className="text-[10px] mt-1" style={{ color: tk.textMuted }}>{f.hint}</p>}
+                </div>
+              ))}
+            </>
+          )}
 
           {testResult && (
             <div className="p-3 rounded-xl text-xs font-medium" style={{
@@ -597,23 +732,122 @@ function CredentialSetupModal({ service, tk, onClose, onSaved }: {
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
             Cancel
           </button>
-          <button onClick={handleTest} disabled={testing || saving}
-            className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
-            style={{ background: 'rgba(59,130,246,.15)', color: '#93C5FD', border: '1px solid rgba(59,130,246,.25)' }}>
-            {testing ? <Loader2 size={12} className="animate-spin" /> : <Activity size={12} />}
-            Test Connection
-          </button>
-          <button onClick={handleSave} disabled={saving || testing}
-            className="flex-1 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
-            style={{ background: '#F97316' }}>
-            {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-            Save
-          </button>
+          {tab === 'manual' && <>
+            <button onClick={handleTest} disabled={testing || saving}
+              className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+              style={{ background: 'rgba(59,130,246,.15)', color: '#93C5FD', border: '1px solid rgba(59,130,246,.25)' }}>
+              {testing ? <Loader2 size={12} className="animate-spin" /> : <Activity size={12} />}
+              Test Connection
+            </button>
+            <button onClick={handleSave} disabled={saving || testing}
+              className="flex-1 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+              style={{ background: '#F97316' }}>
+              {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+              Save
+            </button>
+          </>}
+          {tab === 'oauth' && (
+            <button onClick={onClose}
+              className="flex-1 py-2 rounded-xl text-xs font-bold text-white transition-all"
+              style={{ background: '#10B981' }}>
+              Done
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
+// ─── Next Step Conditions ─────────────────────────────────────────────────────
+
+type CondOption = { value: string; label: string };
+
+interface NextStepConditionsProps {
+  get: (k: string) => string;
+  onChange: (k: string, v: string) => void;
+  tk: Tokens;
+  successOptions: CondOption[];
+  failureOptions?: CondOption[];
+  showDeliveryStatus?: boolean;
+}
+
+function NextStepConditions({ get, onChange, tk, successOptions, failureOptions, showDeliveryStatus }: NextStepConditionsProps) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tk.divider}` }}>
+      <button
+        onClick={() => setOpen(p => !p)}
+        className="w-full flex items-center justify-between px-3 py-2.5 text-left transition-colors"
+        style={{ background: open ? tk.hoverBg : 'transparent' }}
+        onMouseEnter={e => (e.currentTarget.style.background = tk.hoverBg)}
+        onMouseLeave={e => (e.currentTarget.style.background = open ? tk.hoverBg : 'transparent')}
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: 'rgba(245,158,11,.15)', border: '1px solid rgba(245,158,11,.3)' }}>
+            <ChevronRight size={9} color="#F59E0B" />
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#F59E0B' }}>Next Step Conditions</span>
+        </div>
+        {open ? <ChevronUp size={12} color={tk.textMuted} /> : <ChevronDown size={12} color={tk.textMuted} />}
+      </button>
+      {open && (
+        <div className="px-3 pb-3 pt-1 space-y-3" style={{ borderTop: `1px solid ${tk.divider}` }}>
+          <div>
+            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#10B981' }}>On Success →</label>
+            <SelectS tk={tk} value={get('onSuccess') || 'continue'} onChange={e => onChange('onSuccess', e.target.value)}>
+              {successOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </SelectS>
+          </div>
+          {failureOptions && (
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#EF4444' }}>On Failure →</label>
+              <SelectS tk={tk} value={get('onFailure') || 'stop'} onChange={e => onChange('onFailure', e.target.value)}>
+                {failureOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </SelectS>
+            </div>
+          )}
+          {showDeliveryStatus && (
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: tk.textSecondary }}>Wait for Delivery Status</label>
+              <SelectS tk={tk} value={get('waitDelivery') || 'no'} onChange={e => onChange('waitDelivery', e.target.value)}>
+                <option value="no">Continue immediately</option>
+                <option value="delivered">Wait until delivered</option>
+                <option value="read">Wait until read/opened</option>
+                <option value="replied">Wait until replied</option>
+              </SelectS>
+            </div>
+          )}
+          <div>
+            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: tk.textSecondary }}>Retry on Error</label>
+            <SelectS tk={tk} value={get('retryOnError') || 'none'} onChange={e => onChange('retryOnError', e.target.value)}>
+              <option value="none">No retry</option>
+              <option value="1">Retry once (after 5 min)</option>
+              <option value="2">Retry twice (5 min apart)</option>
+              <option value="3">Retry 3× (exponential)</option>
+            </SelectS>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const COMMON_SUCCESS: CondOption[] = [
+  { value: 'continue', label: 'Continue to next step' },
+  { value: 'stop', label: 'Stop workflow' },
+  { value: 'wait_condition', label: 'Wait for a condition' },
+  { value: 'jump_branch', label: 'Jump to another branch' },
+];
+
+const COMMON_FAILURE: CondOption[] = [
+  { value: 'stop', label: 'Stop workflow' },
+  { value: 'continue', label: 'Continue anyway (ignore error)' },
+  { value: 'notify_team', label: 'Alert team & stop' },
+  { value: 'retry', label: 'Retry (see retry setting)' },
+  { value: 'fallback_sms', label: 'Fallback → Send SMS' },
+  { value: 'fallback_whatsapp', label: 'Fallback → Send WhatsApp' },
+];
 
 function ConfigFields({ label, config, onChange, tk }: {
   label: string; config: Record<string, unknown>;
@@ -621,6 +855,8 @@ function ConfigFields({ label, config, onChange, tk }: {
 }) {
   const get = (k: string) => (config[k] as string) || '';
   const F = ({ l, children }: { l: string; children: React.ReactNode }) => <Field label={l} tk={tk}>{children}</Field>;
+  const NC = (props: Omit<NextStepConditionsProps, 'get' | 'onChange' | 'tk'>) =>
+    <NextStepConditions get={get} onChange={onChange} tk={tk} {...props} />;
 
   const [lists, setLists] = useState<any[]>([]);
   useEffect(() => {
@@ -637,7 +873,25 @@ function ConfigFields({ label, config, onChange, tk }: {
     <F l="Template"><SelectS tk={tk} value={get('template')} onChange={e => onChange('template', e.target.value)}>
       {['Select a template…','Welcome Email','Follow-up','Re-engagement','Promotional'].map(o => <option key={o}>{o}</option>)}
     </SelectS></F>
-    <F l="Email Body (Manual)"><TextareaS tk={tk} rows={6} placeholder="Type custom HTML/text email content here... (supports {{name}}, {{email}}, etc.)" value={get('body')} onChange={e => onChange('body', e.target.value)} /></F>
+    <F l="Email Body (Manual)"><TextareaS tk={tk} rows={5} placeholder="Type custom HTML/text email content here... (supports {{name}}, {{email}}, etc.)" value={get('body')} onChange={e => onChange('body', e.target.value)} /></F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'wait_open', label: 'Wait until email is opened' },
+        { value: 'wait_click', label: 'Wait until link is clicked' },
+        { value: 'wait_reply', label: 'Wait until replied' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={[
+        { value: 'stop', label: 'Stop workflow' },
+        { value: 'continue', label: 'Continue anyway' },
+        { value: 'fallback_sms', label: 'Fallback → Send SMS' },
+        { value: 'fallback_whatsapp', label: 'Fallback → Send WhatsApp' },
+        { value: 'tag_bounced', label: 'Tag as bounced & stop' },
+        { value: 'notify_team', label: 'Alert team & stop' },
+      ]}
+      showDeliveryStatus
+    />
   </>;
 
   if (label === 'Send SMS') return <>
@@ -647,6 +901,23 @@ function ConfigFields({ label, config, onChange, tk }: {
       <TextareaS tk={tk} rows={4} maxLength={160} placeholder="Your message…" value={get('message')} onChange={e => onChange('message', e.target.value)} />
       <p className="text-right text-[10px] mt-0.5" style={{ color: tk.textMuted }}>{get('message').length}/160</p>
     </F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'wait_delivered', label: 'Wait until SMS delivered' },
+        { value: 'wait_replied', label: 'Wait until replied' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={[
+        { value: 'stop', label: 'Stop workflow' },
+        { value: 'continue', label: 'Continue anyway' },
+        { value: 'fallback_email', label: 'Fallback → Send Email' },
+        { value: 'fallback_whatsapp', label: 'Fallback → Send WhatsApp' },
+        { value: 'tag_invalid_phone', label: 'Tag as invalid phone & stop' },
+        { value: 'notify_team', label: 'Alert team & stop' },
+      ]}
+      showDeliveryStatus
+    />
   </>;
 
   if (label === 'Send WhatsApp') return <>
@@ -659,12 +930,77 @@ function ConfigFields({ label, config, onChange, tk }: {
       <TextareaS tk={tk} rows={4} maxLength={1024} placeholder="Hi {{first_name}}, …" value={get('message')} onChange={e => onChange('message', e.target.value)} />
       <p className="text-right text-[10px] mt-0.5" style={{ color: tk.textMuted }}>{get('message').length}/1024</p>
     </F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'wait_delivered', label: 'Wait until delivered (✓✓)' },
+        { value: 'wait_read', label: 'Wait until read (blue ✓✓)' },
+        { value: 'wait_replied', label: 'Wait until replied' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={[
+        { value: 'stop', label: 'Stop workflow' },
+        { value: 'continue', label: 'Continue anyway' },
+        { value: 'fallback_sms', label: 'Fallback → Send SMS' },
+        { value: 'fallback_email', label: 'Fallback → Send Email' },
+        { value: 'tag_wa_failed', label: 'Tag as WA failed & stop' },
+        { value: 'notify_team', label: 'Alert team & stop' },
+      ]}
+      showDeliveryStatus
+    />
   </>;
 
   if (label === 'Send Push') return <>
     <CredentialBlock service="Push Notification" tk={tk} />
     <F l="Title"><InputS tk={tk} placeholder="You have a new message" value={get('title')} onChange={e => onChange('title', e.target.value)} /></F>
     <F l="Body"><TextareaS tk={tk} rows={3} placeholder="Tap to view details…" value={get('body')} onChange={e => onChange('body', e.target.value)} /></F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'wait_tapped', label: 'Wait until notification tapped' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={[
+        { value: 'stop', label: 'Stop workflow' },
+        { value: 'continue', label: 'Continue anyway' },
+        { value: 'fallback_sms', label: 'Fallback → Send SMS' },
+        { value: 'fallback_email', label: 'Fallback → Send Email' },
+      ]}
+    />
+  </>;
+
+  if (label === 'Schedule Email') return <>
+    <CredentialBlock service="Email / SMTP" tk={tk} />
+    <F l="Subject Line"><InputS tk={tk} placeholder="Hello {{first_name}}!" value={get('subject')} onChange={e => onChange('subject', e.target.value)} /></F>
+    <F l="Send At (date/time)"><InputS tk={tk} type="datetime-local" value={get('sendAt')} onChange={e => onChange('sendAt', e.target.value)} /></F>
+    <F l="Timezone"><SelectS tk={tk} value={get('tz')||'Asia/Kolkata'} onChange={e => onChange('tz', e.target.value)}>
+      {['Asia/Kolkata','UTC','America/New_York','Europe/London','Asia/Singapore'].map(o => <option key={o}>{o}</option>)}
+    </SelectS></F>
+    <F l="Email Body"><TextareaS tk={tk} rows={4} placeholder="Hi {{first_name}}, …" value={get('body')} onChange={e => onChange('body', e.target.value)} /></F>
+    <NC
+      successOptions={COMMON_SUCCESS}
+      failureOptions={COMMON_FAILURE}
+    />
+  </>;
+
+  if (label === 'Email Sequence') return <>
+    <F l="Sequence Name"><InputS tk={tk} placeholder="Onboarding Drip" value={get('seqName')} onChange={e => onChange('seqName', e.target.value)} /></F>
+    <F l="Step Count"><InputS tk={tk} type="number" placeholder="5" value={get('stepCount')} onChange={e => onChange('stepCount', e.target.value)} /></F>
+    <F l="Interval Between Steps"><div className="flex gap-2">
+      <InputS tk={tk} type="number" placeholder="1" value={get('stepInterval')} onChange={e => onChange('stepInterval', e.target.value)} />
+      <SelectS tk={tk} value={get('stepUnit')||'days'} onChange={e => onChange('stepUnit', e.target.value)}>
+        {['hours','days','weeks'].map(o => <option key={o}>{o}</option>)}
+      </SelectS>
+    </div></F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue after sequence ends' },
+        { value: 'wait_open', label: 'Continue when any email opened' },
+        { value: 'wait_click', label: 'Continue when any link clicked' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={COMMON_FAILURE}
+    />
   </>;
 
   if (label === 'Webhook') return <>
@@ -672,12 +1008,26 @@ function ConfigFields({ label, config, onChange, tk }: {
       {['POST','GET','PUT','PATCH','DELETE'].map(o => <option key={o}>{o}</option>)}
     </SelectS></F>
     <F l="Webhook URL"><InputS tk={tk} placeholder="https://your-domain.com/webhook" value={get('url')} onChange={e => onChange('url', e.target.value)} /></F>
-    <F l="Headers (JSON)"><TextareaS tk={tk} rows={3} placeholder={'{"Authorization":"Bearer ..."}'} value={get('headers')} onChange={e => onChange('headers', e.target.value)} className="font-mono text-xs" /></F>
+    <F l="Headers (JSON)"><TextareaS tk={tk} rows={3} placeholder={'{"Authorization":"Bearer ..."}'} value={get('headers')} onChange={e => onChange('headers', e.target.value)} /></F>
     <F l="Response Mode"><SelectS tk={tk} value={get('responseMode')||'lastNode'} onChange={e => onChange('responseMode', e.target.value)}>
       <option value="lastNode">When last node finishes</option>
       <option value="immediately">Immediately</option>
       <option value="responseNode">Using respond to webhook node</option>
     </SelectS></F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'wait_2xx', label: 'Only continue on 2xx response' },
+        { value: 'branch_on_status', label: 'Branch on response status' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={[
+        { value: 'stop', label: 'Stop workflow' },
+        { value: 'continue', label: 'Continue anyway' },
+        { value: 'retry', label: 'Retry (see retry setting)' },
+        { value: 'notify_team', label: 'Alert team & stop' },
+      ]}
+    />
   </>;
 
   if (label === 'HTTP Request') return <>
@@ -694,24 +1044,43 @@ function ConfigFields({ label, config, onChange, tk }: {
       <F l="Key Value"><InputS tk={tk} type="password" placeholder="••••••••" value={get('keyValue')} onChange={e => onChange('keyValue', e.target.value)} /></F>
     </>}
     <F l="Body (JSON)"><TextareaS tk={tk} rows={4} placeholder={'{"key":"value"}'} value={get('body')} onChange={e => onChange('body', e.target.value)} /></F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'branch_on_response', label: 'Branch on response value' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={[
+        { value: 'stop', label: 'Stop workflow' },
+        { value: 'continue', label: 'Continue anyway' },
+        { value: 'retry', label: 'Retry (see retry setting)' },
+        { value: 'notify_team', label: 'Alert team & stop' },
+      ]}
+    />
   </>;
 
   if (label === 'If / Else' || label === 'Filter') return <>
     <F l="Field"><SelectS tk={tk} value={get('field')} onChange={e => onChange('field', e.target.value)}>
-      {['','email','phone','tag','deal_value','source','status','ai_score','country'].map(o => <option key={o}>{o}</option>)}
+      {['','email','phone','tag','deal_value','source','status','ai_score','country','sms_delivered','email_opened','wa_read','last_activity'].map(o => <option key={o}>{o}</option>)}
     </SelectS></F>
     <F l="Operator"><SelectS tk={tk} value={get('operator')} onChange={e => onChange('operator', e.target.value)}>
-      {['','equals','not_equals','contains','not_contains','gt','lt','exists','not_exists'].map(o => <option key={o}>{o}</option>)}
+      {['','equals','not_equals','contains','not_contains','gt','lt','gte','lte','exists','not_exists','is_true','is_false'].map(o => <option key={o}>{o}</option>)}
     </SelectS></F>
     <F l="Value"><InputS tk={tk} placeholder="e.g. premium" value={get('value')} onChange={e => onChange('value', e.target.value)} /></F>
+    <div className="p-2.5 rounded-lg text-[10px] leading-relaxed" style={{ background: 'rgba(245,158,11,.06)', border: '1px solid rgba(245,158,11,.2)', color: tk.textSecondary }}>
+      <span className="font-semibold" style={{ color: '#F59E0B' }}>True branch</span> → right handle (amber) &nbsp;|&nbsp; <span className="font-semibold" style={{ color: tk.textSecondary }}>False branch</span> → bottom handle (orange)
+    </div>
   </>;
 
   if (label === 'Switch') return <>
     <F l="Input Field"><InputS tk={tk} placeholder="status" value={get('field')} onChange={e => onChange('field', e.target.value)} /></F>
     <F l="Cases (one per line)"><TextareaS tk={tk} rows={4} placeholder={'hot\nwarm\ncold\ndefault'} value={get('cases')} onChange={e => onChange('cases', e.target.value)} /></F>
+    <div className="p-2.5 rounded-lg text-[10px] leading-relaxed" style={{ background: 'rgba(245,158,11,.06)', border: '1px solid rgba(245,158,11,.2)', color: tk.textSecondary }}>
+      Each case creates a separate output branch. The last case acts as <span className="font-semibold" style={{ color: '#F59E0B' }}>default</span>.
+    </div>
   </>;
 
-  if (label === 'Delay' || label === 'Wait') return (
+  if (label === 'Delay' || label === 'Wait') return <>
     <F l="Duration">
       <div className="flex gap-2">
         <InputS tk={tk} type="number" min={1} placeholder="1" value={get('duration')} onChange={e => onChange('duration', e.target.value)} />
@@ -720,7 +1089,34 @@ function ConfigFields({ label, config, onChange, tk }: {
         </SelectS>
       </div>
     </F>
-  );
+    {label === 'Wait' && <F l="Wait Until Condition"><SelectS tk={tk} value={get('waitCondition')||'time'} onChange={e => onChange('waitCondition', e.target.value)}>
+      <option value="time">Fixed time elapsed</option>
+      <option value="email_opened">Email is opened</option>
+      <option value="sms_delivered">SMS is delivered</option>
+      <option value="wa_read">WhatsApp is read</option>
+      <option value="form_submitted">Form is submitted</option>
+      <option value="tag_added">Tag is added</option>
+      <option value="deal_updated">Deal is updated</option>
+    </SelectS></F>}
+  </>;
+
+  if (label === 'Split / AB') return <>
+    <F l="Split Ratio (A%)"><InputS tk={tk} type="number" min={1} max={99} placeholder="50" value={get('splitRatio')} onChange={e => onChange('splitRatio', e.target.value)} /></F>
+    <F l="Track Metric"><SelectS tk={tk} value={get('trackMetric')||'open_rate'} onChange={e => onChange('trackMetric', e.target.value)}>
+      {['open_rate','click_rate','reply_rate','conversion_rate','sms_delivered'].map(o => <option key={o}>{o}</option>)}
+    </SelectS></F>
+    <div className="p-2.5 rounded-lg text-[10px]" style={{ background: 'rgba(245,158,11,.06)', border: '1px solid rgba(245,158,11,.2)', color: tk.textSecondary }}>
+      Branch A → right handle &nbsp;|&nbsp; Branch B → bottom handle
+    </div>
+  </>;
+
+  if (label === 'Merge') return <>
+    <F l="Merge Strategy"><SelectS tk={tk} value={get('mergeStrategy')||'any'} onChange={e => onChange('mergeStrategy', e.target.value)}>
+      <option value="any">Continue when any branch arrives</option>
+      <option value="all">Wait for all branches</option>
+      <option value="first">First branch only</option>
+    </SelectS></F>
+  </>;
 
   if (label === 'Schedule / Cron') return <>
     <F l="Trigger Interval"><SelectS tk={tk} value={get('interval')||'every_day'} onChange={e => onChange('interval', e.target.value)}>
@@ -736,6 +1132,10 @@ function ConfigFields({ label, config, onChange, tk }: {
     <CredentialBlock service="Slack" tk={tk} />
     <F l="Channel"><InputS tk={tk} placeholder="#general or @username" value={get('channel')} onChange={e => onChange('channel', e.target.value)} /></F>
     <F l="Message"><TextareaS tk={tk} rows={3} placeholder="🎉 New deal won: {{deal_name}}" value={get('message')} onChange={e => onChange('message', e.target.value)} /></F>
+    <NC
+      successOptions={COMMON_SUCCESS}
+      failureOptions={COMMON_FAILURE}
+    />
   </>;
 
   if (label === 'Google Sheets') return <>
@@ -745,6 +1145,14 @@ function ConfigFields({ label, config, onChange, tk }: {
     </SelectS></F>
     <F l="Spreadsheet ID"><InputS tk={tk} placeholder="1BxiMVs0XRA5…" value={get('spreadsheetId')} onChange={e => onChange('spreadsheetId', e.target.value)} /></F>
     <F l="Sheet / Tab Name"><InputS tk={tk} placeholder="Sheet1" value={get('sheet')} onChange={e => onChange('sheet', e.target.value)} /></F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'branch_on_rows', label: 'Branch on rows found/empty' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={COMMON_FAILURE}
+    />
   </>;
 
   if (label === 'Stripe' || label === 'Razorpay') return <>
@@ -753,6 +1161,45 @@ function ConfigFields({ label, config, onChange, tk }: {
       {['payment.captured','payment.failed','subscription.created','subscription.cancelled','refund.created'].map(o => <option key={o}>{o}</option>)}
     </SelectS></F>
     <F l="Webhook Secret"><InputS tk={tk} type="password" placeholder="whsec_••••••••" value={get('webhookSecret')} onChange={e => onChange('webhookSecret', e.target.value)} /></F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'branch_payment', label: 'Branch: captured vs failed' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={COMMON_FAILURE}
+    />
+  </>;
+
+  if (label === 'Shopify') return <>
+    <CredentialBlock service="Shopify" tk={tk} />
+    <F l="Event"><SelectS tk={tk} value={get('shopifyEvent')||'order.created'} onChange={e => onChange('shopifyEvent', e.target.value)}>
+      {['order.created','order.fulfilled','order.cancelled','customer.created','refund.created'].map(o => <option key={o}>{o}</option>)}
+    </SelectS></F>
+    <F l="Store URL"><InputS tk={tk} placeholder="mystore.myshopify.com" value={get('storeUrl')} onChange={e => onChange('storeUrl', e.target.value)} /></F>
+    <F l="Webhook Secret"><InputS tk={tk} type="password" placeholder="shpss_••••••••" value={get('webhookSecret')} onChange={e => onChange('webhookSecret', e.target.value)} /></F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'branch_event', label: 'Branch on event type' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={COMMON_FAILURE}
+    />
+  </>;
+
+  if (label === 'Discord') return <>
+    <CredentialBlock service="Discord" tk={tk} />
+    <F l="Webhook URL"><InputS tk={tk} placeholder="https://discord.com/api/webhooks/…" value={get('discordUrl')} onChange={e => onChange('discordUrl', e.target.value)} /></F>
+    <F l="Message"><TextareaS tk={tk} rows={3} placeholder="{{contact_name}} just signed up!" value={get('message')} onChange={e => onChange('message', e.target.value)} /></F>
+    <F l="Username (bot name)"><InputS tk={tk} placeholder="HubNest Bot" value={get('botName')} onChange={e => onChange('botName', e.target.value)} /></F>
+    <NC successOptions={COMMON_SUCCESS} failureOptions={COMMON_FAILURE} />
+  </>;
+
+  if (label === 'Zapier') return <>
+    <F l="Zap Webhook URL"><InputS tk={tk} placeholder="https://hooks.zapier.com/hooks/catch/…" value={get('zapierUrl')} onChange={e => onChange('zapierUrl', e.target.value)} /></F>
+    <F l="Payload (JSON)"><TextareaS tk={tk} rows={3} placeholder={'{"contact":"{{email}}","event":"signup"}'} value={get('payload')} onChange={e => onChange('payload', e.target.value)} /></F>
+    <NC successOptions={COMMON_SUCCESS} failureOptions={COMMON_FAILURE} />
   </>;
 
   if (['AI Agent','Claude','OpenAI','Gemini'].includes(label)) {
@@ -771,6 +1218,21 @@ function ConfigFields({ label, config, onChange, tk }: {
       <F l="System Prompt"><TextareaS tk={tk} rows={3} placeholder="You are a helpful assistant…" value={get('systemPrompt')} onChange={e => onChange('systemPrompt', e.target.value)} /></F>
       <F l="User Prompt"><TextareaS tk={tk} rows={4} placeholder="Analyze {{message}} and classify the lead intent." value={get('prompt')} onChange={e => onChange('prompt', e.target.value)} /></F>
       <F l="Output Variable"><InputS tk={tk} placeholder="ai_response" value={get('outputVar')} onChange={e => onChange('outputVar', e.target.value)} /></F>
+      <NC
+        successOptions={[
+          { value: 'continue', label: 'Continue to next step' },
+          { value: 'branch_on_score', label: 'Branch on AI score (gt/lt)' },
+          { value: 'branch_on_sentiment', label: 'Branch on sentiment' },
+          { value: 'branch_on_output', label: 'Branch on output value' },
+          { value: 'stop', label: 'Stop workflow' },
+        ]}
+        failureOptions={[
+          { value: 'stop', label: 'Stop workflow' },
+          { value: 'continue', label: 'Continue with empty output' },
+          { value: 'retry', label: 'Retry (see retry setting)' },
+          { value: 'notify_team', label: 'Alert team & stop' },
+        ]}
+      />
     </>;
   }
 
@@ -779,18 +1241,49 @@ function ConfigFields({ label, config, onChange, tk }: {
     return <>
       <F l="Input"><TextareaS tk={tk} rows={4} placeholder={ph[label]} value={get('prompt')} onChange={e => onChange('prompt', e.target.value)} /></F>
       <F l="Output Variable"><InputS tk={tk} placeholder="ai_output" value={get('outputVar')} onChange={e => onChange('outputVar', e.target.value)} /></F>
+      <NC
+        successOptions={[
+          { value: 'continue', label: 'Continue to next step' },
+          { value: 'branch_on_output', label: 'Branch on AI output value' },
+          { value: 'stop', label: 'Stop workflow' },
+        ]}
+        failureOptions={[
+          { value: 'stop', label: 'Stop workflow' },
+          { value: 'continue', label: 'Continue with empty output' },
+          { value: 'retry', label: 'Retry once' },
+        ]}
+      />
     </>;
   }
 
-  if (['Add Tag','Remove Tag','Tag Added','Tag Removed'].includes(label)) return (
+  if (['Add Tag','Remove Tag','Tag Added','Tag Removed'].includes(label)) return <>
     <F l="Tag Name"><InputS tk={tk} placeholder="e.g. hot-lead" value={get('tag')} onChange={e => onChange('tag', e.target.value)} /></F>
-  );
+    <NC
+      successOptions={COMMON_SUCCESS}
+      failureOptions={[
+        { value: 'stop', label: 'Stop workflow' },
+        { value: 'continue', label: 'Continue anyway' },
+      ]}
+    />
+  </>;
 
-  if (label === 'Assign Owner') return (
+  if (label === 'Assign Owner') return <>
     <F l="Assign To"><SelectS tk={tk} value={get('owner')} onChange={e => onChange('owner', e.target.value)}>
       {['Round Robin','Sales Team Lead','Senior Rep','Junior Rep','Auto-assign'].map(o => <option key={o}>{o}</option>)}
     </SelectS></F>
-  );
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'notify_owner', label: 'Notify owner & continue' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={[
+        { value: 'stop', label: 'Stop workflow' },
+        { value: 'continue', label: 'Continue anyway (unassigned)' },
+        { value: 'notify_team', label: 'Alert team & stop' },
+      ]}
+    />
+  </>;
 
   if (label === 'Create Task') return <>
     <F l="Task Title"><InputS tk={tk} placeholder="Follow up with {{first_name}}" value={get('taskTitle')} onChange={e => onChange('taskTitle', e.target.value)} /></F>
@@ -805,6 +1298,17 @@ function ConfigFields({ label, config, onChange, tk }: {
         </SelectS>
       </div>
     </F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'wait_completed', label: 'Wait until task completed' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={[
+        { value: 'stop', label: 'Stop workflow' },
+        { value: 'continue', label: 'Continue anyway' },
+      ]}
+    />
   </>;
 
   if (['Create Deal','Move Pipeline','Update Deal'].includes(label)) return <>
@@ -812,11 +1316,109 @@ function ConfigFields({ label, config, onChange, tk }: {
       {['','Lead','Qualified','Proposal','Negotiation','Won','Lost'].map(o => <option key={o}>{o}</option>)}
     </SelectS></F>
     {label !== 'Move Pipeline' && <F l="Deal Value (₹)"><InputS tk={tk} type="number" placeholder="10000" value={get('value')} onChange={e => onChange('value', e.target.value)} /></F>}
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'branch_won_lost', label: 'Branch: Won vs Lost vs Other' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={[
+        { value: 'stop', label: 'Stop workflow' },
+        { value: 'continue', label: 'Continue anyway' },
+        { value: 'notify_team', label: 'Alert team & stop' },
+      ]}
+    />
   </>;
 
   if (label === 'Set Variable') return <>
     <F l="Variable Name"><InputS tk={tk} placeholder="my_variable" value={get('varName')} onChange={e => onChange('varName', e.target.value)} /></F>
     <F l="Value"><InputS tk={tk} placeholder="{{lead_score}} * 2" value={get('varValue')} onChange={e => onChange('varValue', e.target.value)} /></F>
+    <NC successOptions={COMMON_SUCCESS} />
+  </>;
+
+  if (label === 'Transform Data') return <>
+    <F l="Input Field"><InputS tk={tk} placeholder="{{source_field}}" value={get('inputField')} onChange={e => onChange('inputField', e.target.value)} /></F>
+    <F l="Transform"><SelectS tk={tk} value={get('transform')||'uppercase'} onChange={e => onChange('transform', e.target.value)}>
+      {['uppercase','lowercase','trim','capitalize','replace','extract_regex','json_parse','date_format','number_format'].map(o => <option key={o}>{o}</option>)}
+    </SelectS></F>
+    {get('transform') === 'replace' && <>
+      <F l="Find"><InputS tk={tk} placeholder="old value" value={get('find')} onChange={e => onChange('find', e.target.value)} /></F>
+      <F l="Replace With"><InputS tk={tk} placeholder="new value" value={get('replaceWith')} onChange={e => onChange('replaceWith', e.target.value)} /></F>
+    </>}
+    {get('transform') === 'extract_regex' && <F l="Regex Pattern"><InputS tk={tk} placeholder="(\d+)" value={get('regex')} onChange={e => onChange('regex', e.target.value)} /></F>}
+    <F l="Output Variable"><InputS tk={tk} placeholder="transformed_value" value={get('outputVar')} onChange={e => onChange('outputVar', e.target.value)} /></F>
+    <NC successOptions={COMMON_SUCCESS} failureOptions={[{ value: 'stop', label: 'Stop workflow' }, { value: 'continue', label: 'Continue with original value' }]} />
+  </>;
+
+  if (label === 'Lookup Record') return <>
+    <F l="Lookup In"><SelectS tk={tk} value={get('lookupIn')||'contacts'} onChange={e => onChange('lookupIn', e.target.value)}>
+      {['contacts','leads','deals','tasks'].map(o => <option key={o}>{o}</option>)}
+    </SelectS></F>
+    <F l="Match Field"><InputS tk={tk} placeholder="email" value={get('matchField')} onChange={e => onChange('matchField', e.target.value)} /></F>
+    <F l="Match Value"><InputS tk={tk} placeholder="{{email}}" value={get('matchValue')} onChange={e => onChange('matchValue', e.target.value)} /></F>
+    <F l="Output Variable"><InputS tk={tk} placeholder="found_record" value={get('outputVar')} onChange={e => onChange('outputVar', e.target.value)} /></F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue if found' },
+        { value: 'branch_found', label: 'Branch: found vs not found' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={[
+        { value: 'stop', label: 'Stop if not found' },
+        { value: 'continue', label: 'Continue with empty result' },
+      ]}
+    />
+  </>;
+
+  if (label === 'Format Date') return <>
+    <F l="Input Date"><InputS tk={tk} placeholder="{{created_at}}" value={get('inputDate')} onChange={e => onChange('inputDate', e.target.value)} /></F>
+    <F l="Output Format"><InputS tk={tk} placeholder="DD MMM YYYY" value={get('outputFormat')} onChange={e => onChange('outputFormat', e.target.value)} /></F>
+    <F l="Timezone"><SelectS tk={tk} value={get('tz')||'Asia/Kolkata'} onChange={e => onChange('tz', e.target.value)}>
+      {['Asia/Kolkata','UTC','America/New_York','Europe/London','Asia/Singapore'].map(o => <option key={o}>{o}</option>)}
+    </SelectS></F>
+    <F l="Output Variable"><InputS tk={tk} placeholder="formatted_date" value={get('outputVar')} onChange={e => onChange('outputVar', e.target.value)} /></F>
+    <NC successOptions={COMMON_SUCCESS} />
+  </>;
+
+  if (label === 'Calculate') return <>
+    <F l="Expression"><InputS tk={tk} placeholder="{{deal_value}} * 0.1" value={get('expression')} onChange={e => onChange('expression', e.target.value)} /></F>
+    <F l="Output Variable"><InputS tk={tk} placeholder="calculated_value" value={get('outputVar')} onChange={e => onChange('outputVar', e.target.value)} /></F>
+    <NC successOptions={COMMON_SUCCESS} failureOptions={[{ value: 'stop', label: 'Stop on math error' }, { value: 'default', label: 'Use default value' }]} />
+  </>;
+
+  if (label === 'Parse JSON') return <>
+    <F l="JSON Input"><InputS tk={tk} placeholder="{{webhook_body}}" value={get('jsonInput')} onChange={e => onChange('jsonInput', e.target.value)} /></F>
+    <F l="Extract Path"><InputS tk={tk} placeholder="data.contact.email" value={get('jsonPath')} onChange={e => onChange('jsonPath', e.target.value)} /></F>
+    <F l="Output Variable"><InputS tk={tk} placeholder="extracted_value" value={get('outputVar')} onChange={e => onChange('outputVar', e.target.value)} /></F>
+    <NC successOptions={COMMON_SUCCESS} failureOptions={[{ value: 'stop', label: 'Stop on parse error' }, { value: 'continue', label: 'Continue with null' }]} />
+  </>;
+
+  if (label === 'Internal Alert') return <>
+    <F l="Alert To"><SelectS tk={tk} value={get('alertTo')||'owner'} onChange={e => onChange('alertTo', e.target.value)}>
+      {['owner','sales_team','all_admins','specific_user'].map(o => <option key={o}>{o}</option>)}
+    </SelectS></F>
+    {get('alertTo') === 'specific_user' && <F l="User Email"><InputS tk={tk} placeholder="user@company.com" value={get('alertEmail')} onChange={e => onChange('alertEmail', e.target.value)} /></F>}
+    <F l="Alert Message"><TextareaS tk={tk} rows={3} placeholder="{{contact_name}} needs follow-up — {{reason}}" value={get('alertMessage')} onChange={e => onChange('alertMessage', e.target.value)} /></F>
+    <F l="Priority"><SelectS tk={tk} value={get('alertPriority')||'normal'} onChange={e => onChange('alertPriority', e.target.value)}>
+      {['low','normal','high','urgent'].map(o => <option key={o}>{o}</option>)}
+    </SelectS></F>
+    <NC successOptions={COMMON_SUCCESS} />
+  </>;
+
+  if (label === 'Email Alert') return <>
+    <F l="Alert To (Email)"><InputS tk={tk} placeholder="team@company.com" value={get('alertTo')} onChange={e => onChange('alertTo', e.target.value)} /></F>
+    <F l="Subject"><InputS tk={tk} placeholder="[CRM Alert] {{contact_name}} needs attention" value={get('subject')} onChange={e => onChange('subject', e.target.value)} /></F>
+    <F l="Body"><TextareaS tk={tk} rows={3} placeholder="Details: {{contact_name}}, {{email}}, {{deal_value}}" value={get('body')} onChange={e => onChange('body', e.target.value)} /></F>
+    <NC successOptions={COMMON_SUCCESS} failureOptions={COMMON_FAILURE} />
+  </>;
+
+  if (label === 'Log Event') return <>
+    <F l="Event Name"><InputS tk={tk} placeholder="e.g. workflow_completed" value={get('eventName')} onChange={e => onChange('eventName', e.target.value)} /></F>
+    <F l="Log Message"><TextareaS tk={tk} rows={3} placeholder="Contact {{email}} completed workflow at {{timestamp}}" value={get('logMessage')} onChange={e => onChange('logMessage', e.target.value)} /></F>
+    <F l="Log Level"><SelectS tk={tk} value={get('logLevel')||'info'} onChange={e => onChange('logLevel', e.target.value)}>
+      {['info','success','warning','error'].map(o => <option key={o}>{o}</option>)}
+    </SelectS></F>
+    <NC successOptions={COMMON_SUCCESS} />
   </>;
 
   if (['Airtable','Notion'].includes(label)) return <>
@@ -826,11 +1428,24 @@ function ConfigFields({ label, config, onChange, tk }: {
     </SelectS></F>
     <F l={label === 'Airtable' ? 'Base ID' : 'Database ID'}><InputS tk={tk} placeholder={label === 'Airtable' ? 'appXXXXXX…' : 'xxxxxxxx-…'} value={get('baseId')} onChange={e => onChange('baseId', e.target.value)} /></F>
     <F l={label === 'Airtable' ? 'Table Name' : 'Page Title'}><InputS tk={tk} placeholder={label === 'Airtable' ? 'Contacts' : 'My Page'} value={get('table')} onChange={e => onChange('table', e.target.value)} /></F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'branch_on_rows', label: 'Branch on record found/not found' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={COMMON_FAILURE}
+    />
   </>;
 
   if (label === 'Loop') return <>
     <F l="Loop Over"><InputS tk={tk} placeholder="{{contacts}}" value={get('loopOver')} onChange={e => onChange('loopOver', e.target.value)} /></F>
     <F l="Item Variable"><InputS tk={tk} placeholder="contact" value={get('itemVar')} onChange={e => onChange('itemVar', e.target.value)} /></F>
+    <F l="On Loop Complete"><SelectS tk={tk} value={get('onLoopDone')||'continue'} onChange={e => onChange('onLoopDone', e.target.value)}>
+      <option value="continue">Continue to next step</option>
+      <option value="stop">Stop workflow</option>
+      <option value="notify_team">Notify team</option>
+    </SelectS></F>
   </>;
 
   if (label === 'Meta / Facebook' || label === 'Instagram') {
@@ -880,6 +1495,14 @@ function ConfigFields({ label, config, onChange, tk }: {
       <F l="API Version"><SelectS tk={tk} value={get('apiVersion') || 'v21.0'} onChange={e => onChange('apiVersion', e.target.value)}>
         {['v21.0','v20.0','v19.0','v18.0'].map(o => <option key={o}>{o}</option>)}
       </SelectS></F>
+      <NC
+        successOptions={[
+          { value: 'continue', label: 'Continue to next step' },
+          { value: 'branch_on_response', label: 'Branch on API response' },
+          { value: 'stop', label: 'Stop workflow' },
+        ]}
+        failureOptions={COMMON_FAILURE}
+      />
     </>;
   }
 
@@ -892,6 +1515,15 @@ function ConfigFields({ label, config, onChange, tk }: {
       <option value="custom">Custom Form ID...</option>
     </SelectS></F>
     {get('formId') === 'custom' && <F l="Custom Form ID"><InputS tk={tk} placeholder="Enter form UUID" value={get('customFormId')} onChange={e => onChange('customFormId', e.target.value)} /></F>}
+    <F l="Next Step Condition"><SelectS tk={tk} value={get('nextCondition') || 'always'} onChange={e => onChange('nextCondition', e.target.value)}>
+      <option value="always">Always continue</option>
+      <option value="first_time_only">First submission only</option>
+      <option value="specific_field">Only if field matches…</option>
+    </SelectS></F>
+    {get('nextCondition') === 'specific_field' && <>
+      <F l="Field Name"><InputS tk={tk} placeholder="e.g. interest" value={get('filterField')} onChange={e => onChange('filterField', e.target.value)} /></F>
+      <F l="Expected Value"><InputS tk={tk} placeholder="e.g. enterprise" value={get('filterValue')} onChange={e => onChange('filterValue', e.target.value)} /></F>
+    </>}
   </>;
 
   if (label === 'Appointment Booked') return <>
@@ -902,21 +1534,106 @@ function ConfigFields({ label, config, onChange, tk }: {
       <option value="support">Technical Support</option>
       <option value="consultation">1-on-1 Consultation</option>
     </SelectS></F>
+    <F l="Next Step Condition"><SelectS tk={tk} value={get('nextCondition') || 'always'} onChange={e => onChange('nextCondition', e.target.value)}>
+      <option value="always">Always continue</option>
+      <option value="confirmed_only">Only confirmed bookings</option>
+      <option value="not_cancelled">Skip cancelled</option>
+    </SelectS></F>
   </>;
 
   if (label === 'Pipeline Stage Change') return <>
     <F l="Target Stage"><SelectS tk={tk} value={get('stage')} onChange={e => onChange('stage', e.target.value)}>
       {['Any Stage','Lead','Qualified','Proposal','Negotiation','Won','Lost'].map(o => <option key={o} value={o === 'Any Stage' ? '' : o}>{o}</option>)}
     </SelectS></F>
+    <F l="Next Step Condition"><SelectS tk={tk} value={get('nextCondition') || 'always'} onChange={e => onChange('nextCondition', e.target.value)}>
+      <option value="always">Always continue</option>
+      <option value="forward_only">Only forward movement</option>
+      <option value="to_won">Only when moved to Won</option>
+      <option value="to_lost">Only when moved to Lost</option>
+    </SelectS></F>
   </>;
 
   if (label === 'Page Visited') return <>
     <F l="Page Slug / URL"><InputS tk={tk} placeholder="e.g. /pricing or /landing" value={get('pageUrl')} onChange={e => onChange('pageUrl', e.target.value)} /></F>
+    <F l="Next Step Condition"><SelectS tk={tk} value={get('nextCondition') || 'always'} onChange={e => onChange('nextCondition', e.target.value)}>
+      <option value="always">Always continue</option>
+      <option value="first_time_only">First visit only</option>
+      <option value="within_session">Within same session</option>
+      <option value="repeat_visit">Repeat visits (2+)</option>
+    </SelectS></F>
   </>;
 
-  if (label === 'Email Opened' || label === 'Link Clicked') return <>
+  if (label === 'Email Opened' || label === 'Link Clicked' || label === 'Email Replied') return <>
     <F l="Campaign / Subject"><InputS tk={tk} placeholder="e.g. June Newsletter" value={get('campaignName')} onChange={e => onChange('campaignName', e.target.value)} /></F>
     {label === 'Link Clicked' && <F l="Link URL"><InputS tk={tk} placeholder="https://example.com/promo" value={get('linkUrl')} onChange={e => onChange('linkUrl', e.target.value)} /></F>}
+    <F l="Next Step Condition"><SelectS tk={tk} value={get('nextCondition') || 'always'} onChange={e => onChange('nextCondition', e.target.value)}>
+      <option value="always">Always continue</option>
+      <option value="first_time_only">First time only</option>
+      <option value="within_24h">Within 24 hours</option>
+      <option value="within_7d">Within 7 days</option>
+    </SelectS></F>
+    <F l="On No Interaction (timeout)"><SelectS tk={tk} value={get('onNoInteraction') || 'stop'} onChange={e => onChange('onNoInteraction', e.target.value)}>
+      <option value="stop">Stop workflow</option>
+      <option value="send_reminder">Send a reminder</option>
+      <option value="escalate">Escalate to team</option>
+      <option value="switch_channel">Switch channel (SMS/WhatsApp)</option>
+    </SelectS></F>
+  </>;
+
+  if (label === 'Email Bounced' || label === 'Email Unsubscribed') return <>
+    <div className="p-3 rounded-xl text-xs space-y-1.5 leading-relaxed mb-3" style={{ background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)', color: '#F87171' }}>
+      <p className="font-semibold">⚠️ {label === 'Email Bounced' ? 'Bounce' : 'Unsubscribe'} Trigger</p>
+      <p style={{ color: tk.textSecondary }}>{label === 'Email Bounced' ? 'Fires when an email cannot be delivered. Use this to update contact status or remove from lists.' : 'Fires when a contact opts out. Always add them to a suppression list.'}</p>
+    </div>
+    <F l="Campaign Filter"><InputS tk={tk} placeholder="Leave blank for any campaign" value={get('campaignName')} onChange={e => onChange('campaignName', e.target.value)} /></F>
+    <F l="Action on Trigger"><SelectS tk={tk} value={get('autoAction') || 'none'} onChange={e => onChange('autoAction', e.target.value)}>
+      <option value="none">No auto-action</option>
+      <option value="tag_bounced">Tag as bounced</option>
+      <option value="tag_unsub">Tag as unsubscribed</option>
+      <option value="update_status">Update contact status</option>
+      <option value="remove_from_list">Remove from all lists</option>
+    </SelectS></F>
+    <F l="Next Step"><SelectS tk={tk} value={get('nextStep') || 'stop'} onChange={e => onChange('nextStep', e.target.value)}>
+      <option value="stop">Stop workflow</option>
+      <option value="continue">Continue to next step</option>
+      <option value="try_sms">Try SMS instead</option>
+      <option value="try_whatsapp">Try WhatsApp instead</option>
+      <option value="notify_team">Notify team</option>
+    </SelectS></F>
+  </>;
+
+  if (label === 'Call Missed') return <>
+    <div className="p-3 rounded-xl text-xs space-y-1.5 leading-relaxed mb-3" style={{ background: tk.nodeInfoBg, border: `1px solid ${tk.nodeInfoBorder}`, color: tk.textSecondary }}>
+      <p className="font-semibold" style={{ color: tk.textPrimary }}>📞 Call Missed Trigger</p>
+      <p>Fires whenever a call is logged as missed in the CRM activity feed.</p>
+    </div>
+    <F l="Follow-up Delay"><SelectS tk={tk} value={get('followUpDelay') || '5m'} onChange={e => onChange('followUpDelay', e.target.value)}>
+      <option value="immediately">Immediately</option>
+      <option value="5m">After 5 minutes</option>
+      <option value="1h">After 1 hour</option>
+      <option value="next_day">Next business day</option>
+    </SelectS></F>
+    <F l="Next Step Condition"><SelectS tk={tk} value={get('nextCondition') || 'always'} onChange={e => onChange('nextCondition', e.target.value)}>
+      <option value="always">Always continue</option>
+      <option value="no_callback_yet">Only if callback not made yet</option>
+      <option value="repeat_missed">Repeated miss (2+)</option>
+    </SelectS></F>
+    <F l="Auto Follow-up Action"><SelectS tk={tk} value={get('autoFollowup') || 'sms'} onChange={e => onChange('autoFollowup', e.target.value)}>
+      <option value="none">No auto action</option>
+      <option value="sms">Send SMS automatically</option>
+      <option value="whatsapp">Send WhatsApp automatically</option>
+      <option value="email">Send Email automatically</option>
+      <option value="task">Create follow-up task</option>
+    </SelectS></F>
+  </>;
+
+  if (label === 'Note Added') return <>
+    <F l="Note Contains Keyword"><InputS tk={tk} placeholder="e.g. follow up, urgent (optional)" value={get('keyword')} onChange={e => onChange('keyword', e.target.value)} /></F>
+    <F l="Next Step Condition"><SelectS tk={tk} value={get('nextCondition') || 'always'} onChange={e => onChange('nextCondition', e.target.value)}>
+      <option value="always">Always continue</option>
+      <option value="keyword_match">Only if keyword matches</option>
+      <option value="specific_owner">Only if added by owner</option>
+    </SelectS></F>
   </>;
 
   if (label === 'Lead Created') return <>
@@ -935,20 +1652,43 @@ function ConfigFields({ label, config, onChange, tk }: {
         <option key={list.id} value={list.id}>{list.name}</option>
       ))}
     </SelectS></F>
+    <F l="Next Step Condition"><SelectS tk={tk} value={get('nextCondition') || 'always'} onChange={e => onChange('nextCondition', e.target.value)}>
+      <option value="always">Always continue</option>
+      <option value="has_email">Only if has email</option>
+      <option value="has_phone">Only if has phone</option>
+      <option value="has_both">Only if has email AND phone</option>
+    </SelectS></F>
   </>;
 
-  if (['Deal Won','Deal Lost'].includes(label)) return (
+  if (['Deal Won','Deal Lost'].includes(label)) return <>
     <div className="p-3 rounded-xl text-xs space-y-1.5 leading-relaxed" style={{ background: tk.nodeInfoBg, border: `1px solid ${tk.nodeInfoBorder}`, color: tk.textSecondary }}>
       <p className="font-semibold" style={{ color: tk.textPrimary }}>💡 Automatic System Event</p>
       <p>This trigger fires automatically whenever a <strong>{label.toLowerCase()}</strong> event occurs in the CRM. No additional settings are required.</p>
     </div>
-  );
+    <F l="Next Step Condition"><SelectS tk={tk} value={get('nextCondition') || 'always'} onChange={e => onChange('nextCondition', e.target.value)}>
+      <option value="always">Always continue</option>
+      <option value="high_value">Only high-value deals (gt ₹50k)</option>
+      <option value="specific_stage">Only from specific stage</option>
+    </SelectS></F>
+  </>;
 
   if (label === 'Create Contact') return <>
     <F l="Map First Name"><InputS tk={tk} placeholder="{{first_name}}" value={get('firstName')} onChange={e => onChange('firstName', e.target.value)} /></F>
     <F l="Map Last Name"><InputS tk={tk} placeholder="{{last_name}}" value={get('lastName')} onChange={e => onChange('lastName', e.target.value)} /></F>
     <F l="Map Email"><InputS tk={tk} placeholder="{{email}}" value={get('email')} onChange={e => onChange('email', e.target.value)} /></F>
     <F l="Map Phone"><InputS tk={tk} placeholder="{{phone}}" value={get('phone')} onChange={e => onChange('phone', e.target.value)} /></F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'branch_new_vs_existing', label: 'Branch: new contact vs duplicate' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={[
+        { value: 'stop', label: 'Stop workflow' },
+        { value: 'update_existing', label: 'Update existing contact instead' },
+        { value: 'notify_team', label: 'Alert team & stop' },
+      ]}
+    />
   </>;
 
   if (label === 'Update Contact') return <>
@@ -961,6 +1701,7 @@ function ConfigFields({ label, config, onChange, tk }: {
     </SelectS></F>
     {get('updateField') === 'custom' && <F l="Custom Field Key"><InputS tk={tk} placeholder="e.g. lead_score" value={get('customKey')} onChange={e => onChange('customKey', e.target.value)} /></F>}
     <F l="New Value"><InputS tk={tk} placeholder="e.g. Active or {{score}}" value={get('newValue')} onChange={e => onChange('newValue', e.target.value)} /></F>
+    <NC successOptions={COMMON_SUCCESS} failureOptions={[{ value: 'stop', label: 'Stop workflow' }, { value: 'continue', label: 'Continue anyway' }]} />
   </>;
 
   if (label === 'Delete Contact') return <>
@@ -969,16 +1710,41 @@ function ConfigFields({ label, config, onChange, tk }: {
       <option value="email">By Email Address</option>
     </SelectS></F>
     {get('criteria') === 'email' && <F l="Email to Delete"><InputS tk={tk} placeholder="{{email}}" value={get('deleteEmail')} onChange={e => onChange('deleteEmail', e.target.value)} /></F>}
+    <NC
+      successOptions={[{ value: 'continue', label: 'Continue to next step' }, { value: 'stop', label: 'Stop workflow' }]}
+      failureOptions={[{ value: 'stop', label: 'Stop if not found' }, { value: 'continue', label: 'Continue anyway' }]}
+    />
   </>;
 
   if (label === 'Add Note') return <>
     <F l="Note Content"><TextareaS tk={tk} rows={4} placeholder="Type note details here..." value={get('noteContent')} onChange={e => onChange('noteContent', e.target.value)} /></F>
+    <NC successOptions={COMMON_SUCCESS} />
   </>;
 
   if (label === 'Create Lead') return <>
     <F l="Lead Source"><InputS tk={tk} placeholder="e.g. Website Signup" value={get('source')} onChange={e => onChange('source', e.target.value)} /></F>
     <F l="Initial Status"><SelectS tk={tk} value={get('status') || 'New'} onChange={e => onChange('status', e.target.value)}>
       {['New','Contacted','Qualified','Nurturing','Unqualified'].map(o => <option key={o}>{o}</option>)}
+    </SelectS></F>
+    <NC
+      successOptions={[
+        { value: 'continue', label: 'Continue to next step' },
+        { value: 'assign_owner', label: 'Auto-assign owner & continue' },
+        { value: 'stop', label: 'Stop workflow' },
+      ]}
+      failureOptions={[
+        { value: 'stop', label: 'Stop workflow' },
+        { value: 'continue', label: 'Continue anyway' },
+      ]}
+    />
+  </>;
+
+  if (label === 'Tag Added' && !['Add Tag','Remove Tag','Tag Removed'].includes(label)) return <>
+    <F l="Tag Name"><InputS tk={tk} placeholder="e.g. hot-lead" value={get('tag')} onChange={e => onChange('tag', e.target.value)} /></F>
+    <F l="Next Step Condition"><SelectS tk={tk} value={get('nextCondition') || 'always'} onChange={e => onChange('nextCondition', e.target.value)}>
+      <option value="always">Always continue</option>
+      <option value="first_time_only">First time this tag is added</option>
+      <option value="specific_source">Only if added by automation</option>
     </SelectS></F>
   </>;
 
@@ -1336,10 +2102,36 @@ export default function AutomationPage() {
 
   // Credential modal state — wired to credModalRef so CredentialBlock can trigger it without prop drilling
   const [credService, setCredService] = useState<string | null>(null);
+  // OAuth return banner (shown when Meta redirects back to this page)
+  const [oauthBanner, setOauthBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     credModalRef.current = (svc: string) => setCredService(svc);
     return () => { credModalRef.current = null; };
+  }, []);
+
+  // Handle Meta OAuth callback redirect (?oauth=success&provider=meta-ads&name=...)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const oauthStatus = params.get('oauth');
+    if (!oauthStatus) return;
+    const provider = params.get('provider') || '';
+    const name = params.get('name') || '';
+    const msg = params.get('msg') || '';
+    if (oauthStatus === 'success') {
+      setOauthBanner({ type: 'success', message: `${provider === 'whatsapp' ? 'WhatsApp Business' : 'Meta / Facebook'} connected successfully${name ? ` as ${name}` : ''}!` });
+      // Mark provider as connected in the ref
+      connectedProvidersRef.current = new Set([...connectedProvidersRef.current, provider]);
+    } else {
+      setOauthBanner({ type: 'error', message: `Meta OAuth failed: ${decodeURIComponent(msg)}` });
+    }
+    // Clean up URL without triggering a page reload
+    const clean = window.location.pathname;
+    window.history.replaceState({}, '', clean);
+    // Auto-dismiss after 8s
+    const t = setTimeout(() => setOauthBanner(null), 8000);
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
@@ -1366,6 +2158,8 @@ export default function AutomationPage() {
   const [wfName, setWfName] = useState('Untitled Workflow');
   const [wfStatus, setWfStatus] = useState<'Draft' | 'Active' | 'Paused'>('Draft');
   const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
@@ -1617,6 +2411,7 @@ export default function AutomationPage() {
   async function handleSave(overrideNodes?: Node[], overrideEdges?: Edge[], overrideName?: string) {
     if (!selectedWf) return;
     setIsSaving(true);
+    setSaveError(null);
     const saveNodes = overrideNodes ?? nodesRef.current;
     const saveEdges = overrideEdges ?? edgesRef.current;
     try {
@@ -1626,14 +2421,17 @@ export default function AutomationPage() {
         edges: saveEdges,
         status: wfStatus,
       });
-      // Update the workflow in the list with the latest saved data
       const saved = res.data?.data?.workflow || res.data?.workflow || res.data?.data;
-      if (saved) {
-        setWorkflows(prev => prev.map(w => w.id === selectedWf.id ? { ...w, ...saved, nodes: saveNodes, edges: saveEdges } : w));
-        setSelectedWf(prev => prev ? { ...prev, nodes: saveNodes, edges: saveEdges } : prev);
-      }
+      const updatedWf = saved
+        ? { ...selectedWf, ...saved, nodes: saveNodes, edges: saveEdges }
+        : { ...selectedWf, nodes: saveNodes, edges: saveEdges };
+      setWorkflows(prev => prev.map(w => w.id === selectedWf.id ? updatedWf : w));
+      setSelectedWf(updatedWf);
+      setLastSaved(new Date());
     } catch (err: any) {
-      console.error('Save failed:', err?.response?.data || err?.message);
+      const msg = err?.response?.data?.message || err?.message || 'Save failed';
+      setSaveError(msg);
+      setTimeout(() => setSaveError(null), 5000);
     } finally {
       setIsSaving(false);
     }
@@ -1937,9 +2735,20 @@ export default function AutomationPage() {
             </button>
           )}
 
+          {lastSaved && !isSaving && !saveError && (
+            <span className="text-[10px] flex-shrink-0 flex items-center gap-1" style={{ color: '#10B981' }}>
+              <CheckCircle2 size={11} /> Saved {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+          {saveError && (
+            <span className="text-[10px] flex-shrink-0 flex items-center gap-1 text-red-500">
+              <AlertCircle size={11} /> {saveError}
+            </span>
+          )}
+
           <button onClick={() => handleSave()} disabled={isSaving || !selectedWf}
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex-shrink-0 disabled:opacity-40 text-white"
-            style={{ background: '#F97316' }}>
+            style={{ background: isSaving ? '#F97316aa' : '#F97316' }}>
             {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
             {isSaving ? 'Saving…' : 'Save'}
           </button>
@@ -2257,6 +3066,22 @@ export default function AutomationPage() {
             className="w-full text-left px-3 py-2 text-xs font-semibold rounded-lg transition-colors hover:bg-red-500/10 text-red-500"
           >
             🗑️ Delete Node
+          </button>
+        </div>
+      )}
+
+      {/* OAuth return banner (shown when Meta redirects back) */}
+      {oauthBanner && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-sm font-medium"
+          style={{
+            background: oauthBanner.type === 'success' ? 'rgba(16,185,129,.95)' : 'rgba(239,68,68,.95)',
+            color: 'white', border: `1px solid ${oauthBanner.type === 'success' ? 'rgba(16,185,129,.5)' : 'rgba(239,68,68,.5)'}`,
+            backdropFilter: 'blur(12px)', maxWidth: 420,
+          }}>
+          <span>{oauthBanner.type === 'success' ? '✓' : '✕'}</span>
+          <span className="flex-1">{oauthBanner.message}</span>
+          <button onClick={() => setOauthBanner(null)} className="ml-2 opacity-70 hover:opacity-100 transition-opacity">
+            <X size={14} />
           </button>
         </div>
       )}

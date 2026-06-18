@@ -12,6 +12,7 @@ import {
   Tags, Table, Divide, RefreshCw, Merge,
   Variable, Wand, Search, Calculator, Braces,
   MailWarning, UserX, CreditCard,
+  MailCheck, MailX, MailMinus, PhoneMissed, Phone,
 } from 'lucide-react';
 
 // ── Lucide icon map ───────────────────────────────────────────────────────────
@@ -27,6 +28,7 @@ const LUCIDE: Record<string, LucideIcon> = {
   Tags, Table, Divide, RefreshCw, Merge,
   Variable, Wand, Search, Calculator, Braces,
   MailWarning, UserX, CreditCard,
+  MailReply: MailCheck, MailX, MailMinus, PhoneMissed, Phone,
 };
 
 // ── Brand SVG paths (simple-icons subset) ────────────────────────────────────

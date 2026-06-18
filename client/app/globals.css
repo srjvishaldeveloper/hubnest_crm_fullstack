@@ -670,4 +670,56 @@
   backdrop-filter: blur(8px);
 }
 
+/* ── Keep Light styles inside Dark Mode ──────────────────────────────────── */
+.dark .keep-light {
+  background-color: #ffffff !important;
+  color: #1a1a1a !important;
+}
+
+.dark .keep-light .bg-white {
+  background-color: #ffffff !important;
+}
+
+.dark .keep-light .bg-gray-50 {
+  background-color: #f9fafb !important;
+}
+
+.dark .keep-light .bg-gray-100 {
+  background-color: #f3f4f6 !important;
+}
+
+.dark .keep-light .text-gray-600 {
+  color: #4b5563 !important;
+}
+
+.dark .keep-light .text-gray-500 {
+  color: #6b7280 !important;
+}
+
+.dark .keep-light .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+.dark .keep-light .border-gray-200 {
+  border-color: #e5e7eb !important;
+}
+
+.dark .keep-light .border-gray-300 {
+  border-color: #d1d5db !important;
+}
+
+.dark .keep-light .border-gray-400 {
+  border-color: #9ca3af !important;
+}
+
+.dark .keep-light .text-red-600 {
+  color: #dc2626 !important;
+}
+
+.dark .keep-light td,
+.dark .keep-light th {
+  border-color: #e5e7eb !important;
+}
+
+
 

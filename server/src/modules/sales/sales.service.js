@@ -91,6 +91,18 @@ async function updateLead(tenantId, scopeUserId, id, data) {
   return result.rows[0] || null;
 }
 
+async function deleteLead(tenantId, scopeUserId, id) {
+  let sql = `DELETE FROM leads_marketing WHERE id = $1 AND tenant_id = $2`;
+  const params = [id, tenantId];
+  if (scopeUserId) {
+    params.push(scopeUserId);
+    sql += ` AND assigned_to = $${params.length}`;
+  }
+  sql += ` RETURNING id`;
+  const result = await query(sql, params);
+  return result.rows[0] || null;
+}
+
 async function getLeadActivities(tenantId, scopeUserId, leadId) {
   // Verify ownership first
   if (scopeUserId) {
@@ -355,7 +367,7 @@ async function getDashboardKPIs(tenantId, scopeUserId) {
 }
 
 module.exports = {
-  listLeads, getLeadById, createLead, updateLead, getLeadActivities,
+  listLeads, getLeadById, createLead, updateLead, deleteLead, getLeadActivities,
   listTasks, createTask, updateTask, deleteTask, listTodayTasks,
   listActivities, logActivity, getActivitiesSummary,
   getPerformanceStats, updateProfile, getDashboardKPIs

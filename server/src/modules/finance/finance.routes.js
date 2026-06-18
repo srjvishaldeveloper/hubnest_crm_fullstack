@@ -4,13 +4,18 @@ const ctrl = require('./finance.controller');
 const { authenticate } = require('../../middleware/auth');
 const { authorizeFinance } = require('../../middleware/rbac');
 
-// ── Public (no auth) ──────────────────────────────────────────────────────────
-// Must be declared BEFORE the authenticate middleware
-router.get('/invoices/public/:number', ctrl.getPublicInvoice);
-router.get('/invoices/public/:number/payment-config', ctrl.getPublicInvoicePaymentConfig);
-router.post('/invoices/public/:number/create-order', ctrl.createPublicInvoiceOrder);
-router.post('/invoices/public/:number/create-payment-intent', ctrl.createPublicInvoicePaymentIntent);
-router.post('/invoices/public/:number/payment-verify', ctrl.verifyPublicInvoicePayment);
+// Helper: extract invoice number from wildcard param (supports slashes like TF/2024-25/188)
+function extractInvoiceNumber(req, res, next) {
+  // Express wildcard stores matched path in req.params[0]
+  req.params.number = req.params[0];
+  next();
+}
+
+router.get('/invoices/public/*/payment-config', extractInvoiceNumber, ctrl.getPublicInvoicePaymentConfig);
+router.post('/invoices/public/*/create-order', extractInvoiceNumber, ctrl.createPublicInvoiceOrder);
+router.post('/invoices/public/*/create-payment-intent', extractInvoiceNumber, ctrl.createPublicInvoicePaymentIntent);
+router.post('/invoices/public/*/payment-verify', extractInvoiceNumber, ctrl.verifyPublicInvoicePayment);
+router.get('/invoices/public/*', extractInvoiceNumber, ctrl.getPublicInvoice);
 
 // All other routes require authentication + Finance role
 router.use(authenticate);
@@ -26,6 +31,8 @@ router.get('/analytics', ctrl.getAnalytics);
 // Invoices
 router.get('/invoices', ctrl.listInvoices);
 router.get('/invoices/:id/download', ctrl.downloadInvoice);
+router.get('/invoices/:id/credit-notes', ctrl.listCreditNotes);
+router.post('/invoices/:id/credit-notes', ctrl.createCreditNote);
 router.get('/invoices/:id', ctrl.getInvoice);
 router.post('/invoices', ctrl.createInvoice);
 router.patch('/invoices/:id', ctrl.updateInvoice);

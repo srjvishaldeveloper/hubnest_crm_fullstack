@@ -172,21 +172,36 @@ async function executeWorkflow(req, res) {
   const { nodes: reqNodes, edges: _edges, contact } = req.body || {};
   const tenantId = req.user.tenant_id;
 
-  // Create a run record so execution is tracked
-  const run = await svc.triggerWorkflowRun(tenantId, req.params.id);
+  // Try to create a run record — if lead_id is required by DB, use null-safe approach
+  let run = null;
+  try {
+    run = await svc.triggerWorkflowRun(tenantId, req.params.id, contact?.id || null, null);
+  } catch (_) {
+    // Run tracking is optional — don't fail execution if this fails
+    run = { id: null, status: 'Running', created_at: new Date().toISOString() };
+  }
 
   // Use nodes sent from frontend (current canvas state), fall back to saved workflow
   const workflowNodes = Array.isArray(reqNodes) && reqNodes.length > 0
     ? reqNodes
     : (await svc.getWorkflow(tenantId, req.params.id))?.nodes || [];
 
-  // Execute each node with real service calls
+  // Build adjacency map from edges so we can follow connections
+  const edgeList = Array.isArray(_edges) ? _edges : [];
+  const edgeMap = {};
+  edgeList.forEach(e => {
+    if (!edgeMap[e.source]) edgeMap[e.source] = [];
+    edgeMap[e.source].push(e.target);
+  });
+
+  // Execute each node in order provided (frontend already topologically sorts)
   const results = {};
+  const contactData = contact || {};
   for (const node of workflowNodes) {
     const nodeId = node.id;
     const startMs = Date.now();
     try {
-      const result = await svc.executeNode(tenantId, node, contact || {});
+      const result = await svc.executeNode(tenantId, node, contactData);
       results[nodeId] = { ...result, duration: Date.now() - startMs };
     } catch (err) {
       const label = node.data?.label || node.label || 'Node';
@@ -536,10 +551,79 @@ async function aiProxyHandler(req, res) {
   }
 }
 
+// ─── Meta OAuth flow ──────────────────────────────────────────────────────────
+
+async function getMetaOAuthUrl(req, res) {
+  const env = require('../../config/env');
+  const appId = env.metaAppId;
+  const frontendUrl = env.frontendUrl;
+  if (!appId) {
+    return sendError(res, 'META_APP_ID not configured on server. Add it to your .env file.', 503);
+  }
+  const redirectUri = encodeURIComponent(`${req.protocol}://${req.get('host')}/api/v1/marketing/integrations/meta/callback`);
+  // state encodes tenantId + provider so the callback knows where to save
+  const state = Buffer.from(JSON.stringify({ tenantId: req.user.tenant_id, provider: req.query.provider || 'meta-ads', frontendUrl })).toString('base64url');
+  const scopes = req.query.provider === 'whatsapp'
+    ? 'whatsapp_business_management,whatsapp_business_messaging'
+    : 'ads_read,ads_management,pages_manage_ads,pages_read_engagement,leads_retrieval,page_events';
+  const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&state=${state}&scope=${scopes}&response_type=code`;
+  sendSuccess(res, { url: oauthUrl });
+}
+
+async function handleMetaOAuthCallback(req, res) {
+  const axios = require('axios');
+  const env = require('../../config/env');
+  const { code, state, error: fbError, error_description } = req.query;
+
+  let parsedState = {};
+  try { parsedState = JSON.parse(Buffer.from(state || '', 'base64url').toString()); } catch {}
+  const { tenantId, provider = 'meta-ads', frontendUrl = 'http://localhost:3000' } = parsedState;
+
+  const redirectBase = `${frontendUrl}/marketing/automation`;
+
+  if (fbError || !code) {
+    return res.redirect(`${redirectBase}?oauth=error&provider=${provider}&msg=${encodeURIComponent(error_description || fbError || 'OAuth cancelled')}`);
+  }
+
+  try {
+    const redirectUri = `${req.protocol}://${req.get('host')}/api/v1/marketing/integrations/meta/callback`;
+    // Exchange code for access token
+    const tokenRes = await axios.get('https://graph.facebook.com/v21.0/oauth/access_token', {
+      params: { client_id: env.metaAppId, client_secret: env.metaAppSecret, redirect_uri: redirectUri, code },
+      timeout: 10000,
+    });
+    const shortToken = tokenRes.data.access_token;
+
+    // Exchange for long-lived token (60 days)
+    const longRes = await axios.get('https://graph.facebook.com/v21.0/oauth/access_token', {
+      params: { grant_type: 'fb_exchange_token', client_id: env.metaAppId, client_secret: env.metaAppSecret, fb_exchange_token: shortToken },
+      timeout: 10000,
+    });
+    const longToken = longRes.data.access_token;
+
+    // Get user/account info
+    const meRes = await axios.get('https://graph.facebook.com/v21.0/me', {
+      params: { access_token: longToken, fields: 'id,name' },
+      timeout: 8000,
+    });
+    const { id: fbUserId, name: fbName } = meRes.data;
+
+    // Save to integration settings
+    const creds = { access_token: longToken, fb_user_id: fbUserId, fb_name: fbName, app_id: env.metaAppId };
+    await svc.upsertIntegrationSettings(tenantId, provider, creds, true);
+
+    return res.redirect(`${redirectBase}?oauth=success&provider=${provider}&name=${encodeURIComponent(fbName)}`);
+  } catch (err) {
+    const msg = err?.response?.data?.error?.message || err.message || 'OAuth exchange failed';
+    return res.redirect(`${redirectBase}?oauth=error&provider=${provider}&msg=${encodeURIComponent(msg)}`);
+  }
+}
+
 module.exports = {
   createCampaign, listCampaigns, getCampaign, updateCampaign, deleteCampaign,
   listLeads, updateLead, bulkAssignLeads, listSalesUsers,
   getIntegrationSettings, upsertIntegrationSettings, deleteIntegrationSettings, testIntegration,
+  getMetaOAuthUrl, handleMetaOAuthCallback,
   getDashboardAnalytics, getROIData,
   
   // Lists
