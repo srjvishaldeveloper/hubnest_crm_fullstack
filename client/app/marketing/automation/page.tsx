@@ -85,49 +85,61 @@ interface AutomationNodeData {
 
 function makeTokens(dark: boolean) {
   return {
-    // page backgrounds
-    pageBg:        dark ? '#0F172A' : '#F1F5F9',
-    topBarBg:      dark ? '#0A0F1E' : '#FFFFFF',
-    topBarBorder:  dark ? 'rgba(255,255,255,.06)' : 'rgba(15,23,42,.08)',
-    sidebarBg:     dark ? '#0B1120' : '#FFFFFF',
-    sidebarBorder: dark ? 'rgba(255,255,255,.06)' : 'rgba(15,23,42,.08)',
-    panelBg:       dark ? '#0F172A' : '#FFFFFF',
-    panelBorder:   dark ? 'rgba(255,255,255,.06)' : 'rgba(15,23,42,.08)',
-    canvasBg:      dark ? '#0A1120' : '#F8FAFC',
-    modalBg:       dark ? '#0F172A' : '#FFFFFF',
-    modalBorder:   dark ? 'rgba(255,255,255,.1)' : 'rgba(15,23,42,.1)',
-    // canvas dot color
-    dotColor:      dark ? 'rgba(255,255,255,.07)' : 'rgba(15,23,42,.08)',
-    // node card backgrounds
-    nodeBg:        dark ? 'linear-gradient(135deg,#16213a 0%,#121929 100%)' : 'linear-gradient(135deg,#FFFFFF 0%,#F8FAFC 100%)',
-    nodeSelBg:     dark ? 'linear-gradient(135deg,#1a2235 0%,#151c2e 100%)' : 'linear-gradient(135deg,#EFF6FF 0%,#EEF2FF 100%)',
-    nodeBorder:    dark ? 'rgba(255,255,255,.10)' : 'rgba(15,23,42,.10)',
-    nodeHandleBg:  dark ? '#0F172A' : '#FFFFFF',
-    nodeInfoBg:    dark ? 'rgba(255,255,255,.04)' : 'rgba(15,23,42,.04)',
-    nodeInfoBorder:dark ? 'rgba(255,255,255,.06)' : 'rgba(15,23,42,.06)',
+    // page backgrounds — deep navy/slate for dark, clean white for light
+    pageBg:        dark ? '#080E1A' : '#F0F2F5',
+    topBarBg:      dark ? '#0C1322' : '#FFFFFF',
+    topBarBorder:  dark ? 'rgba(255,255,255,.05)' : 'rgba(15,23,42,.09)',
+    sidebarBg:     dark ? '#0A1020' : '#FFFFFF',
+    sidebarBorder: dark ? 'rgba(255,255,255,.055)' : 'rgba(15,23,42,.09)',
+    panelBg:       dark ? '#0C1322' : '#FFFFFF',
+    panelBorder:   dark ? 'rgba(255,255,255,.055)' : 'rgba(15,23,42,.09)',
+    canvasBg:      dark ? '#060C18' : '#F4F6FA',
+    modalBg:       dark ? '#0E1628' : '#FFFFFF',
+    modalBorder:   dark ? 'rgba(255,255,255,.09)' : 'rgba(15,23,42,.11)',
+    // canvas grid
+    dotColor:      dark ? 'rgba(255,255,255,.055)' : 'rgba(15,23,42,.07)',
+    // node cards — glassmorphic dark, crisp light
+    nodeBg:        dark ? 'linear-gradient(145deg,#111827 0%,#0D1525 100%)' : '#FFFFFF',
+    nodeSelBg:     dark ? 'linear-gradient(145deg,#141e33 0%,#101929 100%)' : 'linear-gradient(145deg,#EFF6FF 0%,#F5F3FF 100%)',
+    nodeBorder:    dark ? 'rgba(255,255,255,.09)' : 'rgba(15,23,42,.12)',
+    nodeHandleBg:  dark ? '#080E1A' : '#FFFFFF',
+    nodeInfoBg:    dark ? 'rgba(255,255,255,.035)' : 'rgba(15,23,42,.035)',
+    nodeInfoBorder:dark ? 'rgba(255,255,255,.055)' : 'rgba(15,23,42,.07)',
     // text
-    textPrimary:   dark ? '#F1F5F9' : '#0F172A',
-    textSecondary: dark ? '#94A3B8' : '#475569',
-    textMuted:     dark ? '#475569' : '#94A3B8',
-    textDim:       dark ? '#334155' : '#CBD5E1',
+    textPrimary:   dark ? '#E2E8F0' : '#0F172A',
+    textSecondary: dark ? '#8899BB' : '#475569',
+    textMuted:     dark ? '#4A5C7A' : '#94A3B8',
+    textDim:       dark ? '#28384F' : '#CBD5E1',
     // controls
-    ctrlBg:        dark ? '#1E293B' : '#FFFFFF',
-    ctrlBorder:    dark ? 'rgba(255,255,255,.08)' : 'rgba(15,23,42,.1)',
-    minimapBg:     dark ? '#0D1A2D' : '#F8FAFC',
-    // input
-    inputBg:       dark ? '#1E293B' : '#F8FAFC',
-    inputBorder:   dark ? '#334155' : '#CBD5E1',
-    inputText:     dark ? '#F1F5F9' : '#0F172A',
-    inputPlaceholder: dark ? '#475569' : '#94A3B8',
-    // hover / item states
-    hoverBg:       dark ? 'rgba(255,255,255,.06)' : 'rgba(15,23,42,.05)',
-    activeItemBg:  dark ? 'rgba(249,115,22,.1)' : 'rgba(249,115,22,.08)',
-    activeItemBorder: dark ? 'rgba(249,115,22,.3)' : 'rgba(249,115,22,.3)',
-    // badge/misc
-    credBg:        dark ? 'rgba(255,255,255,.03)' : 'rgba(15,23,42,.03)',
-    credBorder:    dark ? 'rgba(255,255,255,.08)' : 'rgba(15,23,42,.08)',
-    divider:       dark ? 'rgba(255,255,255,.05)' : 'rgba(15,23,42,.07)',
-    iconBg:        dark ? '#1E293B' : '#F1F5F9',
+    ctrlBg:        dark ? '#111827' : '#FFFFFF',
+    ctrlBorder:    dark ? 'rgba(255,255,255,.07)' : 'rgba(15,23,42,.1)',
+    minimapBg:     dark ? '#080E1A' : '#F4F6FA',
+    // inputs
+    inputBg:       dark ? '#111827' : '#F8FAFC',
+    inputBorder:   dark ? 'rgba(255,255,255,.09)' : '#CBD5E1',
+    inputText:     dark ? '#E2E8F0' : '#0F172A',
+    inputPlaceholder: dark ? '#4A5C7A' : '#94A3B8',
+    // hover / selection states
+    hoverBg:       dark ? 'rgba(255,255,255,.05)' : 'rgba(15,23,42,.045)',
+    activeItemBg:  dark ? 'rgba(249,115,22,.09)' : 'rgba(249,115,22,.07)',
+    activeItemBorder: dark ? 'rgba(249,115,22,.28)' : 'rgba(249,115,22,.28)',
+    // misc
+    credBg:        dark ? 'rgba(255,255,255,.025)' : 'rgba(15,23,42,.025)',
+    credBorder:    dark ? 'rgba(255,255,255,.07)' : 'rgba(15,23,42,.08)',
+    divider:       dark ? 'rgba(255,255,255,.045)' : 'rgba(15,23,42,.065)',
+    iconBg:        dark ? '#111827' : '#F1F5F9',
+    // glass effect for top bar
+    glass:         dark ? 'rgba(12,19,34,.92)' : 'rgba(255,255,255,.96)',
+    glassBorder:   dark ? 'rgba(255,255,255,.06)' : 'rgba(15,23,42,.08)',
+    // accent
+    accent:        '#F97316',
+    accentHover:   '#EA6C0A',
+    accentBg:      dark ? 'rgba(249,115,22,.1)' : 'rgba(249,115,22,.08)',
+    accentBorder:  dark ? 'rgba(249,115,22,.25)' : 'rgba(249,115,22,.22)',
+    success:       '#10B981',
+    successBg:     dark ? 'rgba(16,185,129,.1)' : 'rgba(16,185,129,.08)',
+    danger:        '#EF4444',
+    dangerBg:      dark ? 'rgba(239,68,68,.1)' : 'rgba(239,68,68,.08)',
   } as const;
 }
 
@@ -157,103 +169,136 @@ function CanvasNode(props: NodeProps) {
   const selected = props.selected;
   const color = CATEGORY_COLORS[nodeData?.category] || '#6B7280';
   const kindLabel = CATEGORY_LABEL[nodeData?.category] || 'NODE';
+  const isCondition = nodeType === 'condition' && nodeData?.label !== 'Delay' && nodeData?.label !== 'Wait';
 
   const configSummary = nodeData?.config
-    ? Object.entries(nodeData.config).filter(([k, v]) => v && !k.endsWith('Id')).slice(0, 2)
-        .map(([, v]) => String(v).slice(0, 24)).join(' · ')
+    ? Object.entries(nodeData.config).filter(([k, v]) => v && !k.endsWith('Id') && !k.endsWith('Secret') && !k.endsWith('Token') && !k.endsWith('pass')).slice(0, 2)
+        .map(([, v]) => String(v).slice(0, 28)).join(' · ')
     : null;
   const hasConfig = !!(nodeData?.config && Object.values(nodeData.config).some(Boolean));
-
   const execStatus = execStateRef.current[props.id] || null;
+
+  const borderColor = selected ? color
+    : execStatus === 'success' ? 'rgba(16,185,129,.6)'
+    : execStatus === 'running' ? 'rgba(249,115,22,.7)'
+    : execStatus === 'error' ? 'rgba(239,68,68,.6)'
+    : tk.nodeBorder;
+
+  const shadow = selected
+    ? `0 0 0 2.5px ${color}30, 0 12px 32px rgba(0,0,0,.35), 0 4px 8px rgba(0,0,0,.2)`
+    : execStatus === 'running'
+    ? `0 0 0 2px rgba(249,115,22,.2), 0 8px 24px rgba(0,0,0,.2)`
+    : execStatus === 'success'
+    ? `0 0 0 2px rgba(16,185,129,.15), 0 6px 20px rgba(0,0,0,.15)`
+    : execStatus === 'error'
+    ? `0 0 0 2px rgba(239,68,68,.15), 0 6px 20px rgba(0,0,0,.15)`
+    : '0 4px 20px rgba(0,0,0,.18), 0 1px 4px rgba(0,0,0,.12)';
 
   return (
     <div
       style={{
-        width: 220, borderRadius: 14,
-        border: selected ? `2px solid ${color}` 
-          : execStatus === 'success' ? '1.5px solid rgba(16,185,129,.5)'
-          : execStatus === 'running' ? '1.5px solid rgba(249,115,22,.5)'
-          : `1.5px solid ${tk.nodeBorder}`,
+        width: 226,
+        borderRadius: 12,
+        border: `1.5px solid ${borderColor}`,
         background: selected ? tk.nodeSelBg : tk.nodeBg,
-        boxShadow: selected
-          ? `0 0 0 3px ${color}22, 0 8px 24px rgba(0,0,0,.25)`
-          : execStatus === 'running'
-          ? '0 0 0 2px rgba(249,115,22,.15), 0 4px 16px rgba(0,0,0,.12)'
-          : execStatus === 'success'
-          ? '0 0 0 2px rgba(16,185,129,.12), 0 4px 16px rgba(0,0,0,.12)'
-          : '0 4px 16px rgba(0,0,0,.12)',
-        overflow: 'hidden', transition: 'all .2s',
-        cursor: 'pointer', fontFamily: 'Inter,system-ui,sans-serif',
+        boxShadow: shadow,
+        overflow: 'visible',
+        transition: 'border-color .18s, box-shadow .18s',
+        cursor: 'pointer',
+        fontFamily: 'Inter,system-ui,sans-serif',
         position: 'relative',
       }}
-      className="group"
     >
-      {/* Input handles on Top and Left */}
+      {/* Top color accent bar */}
+      <div style={{ height: 3, background: `linear-gradient(90deg, ${color}, ${color}88)`, borderRadius: '10px 10px 0 0' }} />
+
+      {/* Input handles */}
       <Handle type="target" position={Position.Top} id="target-top"
-        style={{ background: color, width: 12, height: 12, border: `2.5px solid ${tk.nodeHandleBg}`, top: -7, boxShadow: `0 0 6px ${color}80` }} />
+        style={{ background: color, width: 10, height: 10, border: `2px solid ${tk.nodeHandleBg}`, top: -5, borderRadius: '50%', zIndex: 10 }} />
       <Handle type="target" position={Position.Left} id="target-left"
-        style={{ background: color, width: 12, height: 12, border: `2.5px solid ${tk.nodeHandleBg}`, left: -7, boxShadow: `0 0 6px ${color}80` }} />
-      <div style={{ padding: '8px 10px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '.1em', color, background: `${color}1A`, padding: '2px 6px', borderRadius: 4, border: `1px solid ${color}30` }}>
+        style={{ background: color, width: 10, height: 10, border: `2px solid ${tk.nodeHandleBg}`, left: -5, borderRadius: '50%', zIndex: 10 }} />
+
+      {/* Header row */}
+      <div style={{ padding: '9px 11px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{
+          fontSize: 8.5, fontWeight: 800, letterSpacing: '.09em', textTransform: 'uppercase',
+          color, background: `${color}18`, padding: '2px 7px', borderRadius: 5,
+          border: `1px solid ${color}28`, lineHeight: 1.5,
+        }}>
           {kindLabel}
         </span>
-        {hasConfig && (
-          <div style={{ width: 16, height: 16, borderRadius: 4, background: `${color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Settings2 size={9} color={color} />
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {hasConfig && (
+            <div style={{ width: 15, height: 15, borderRadius: 4, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Settings2 size={9} color={color} />
+            </div>
+          )}
+          {execStatus === 'success' && (
+            <div style={{ width: 17, height: 17, borderRadius: '50%', background: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(16,185,129,.5)' }}>
+              <CheckCircle2 size={10} color="white" />
+            </div>
+          )}
+          {execStatus === 'running' && (
+            <div style={{ width: 17, height: 17, borderRadius: '50%', background: '#F97316', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(249,115,22,.5)' }}>
+              <Loader2 size={10} color="white" style={{ animation: 'spin 0.9s linear infinite' }} />
+            </div>
+          )}
+          {execStatus === 'error' && (
+            <div style={{ width: 17, height: 17, borderRadius: '50%', background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(239,68,68,.5)' }}>
+              <XCircle size={10} color="white" />
+            </div>
+          )}
+        </div>
       </div>
-      <div style={{ padding: '6px 10px 4px', display: 'flex', alignItems: 'center', gap: 9 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: `${color}22`, border: `1.5px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: selected ? `0 0 10px ${color}40` : 'none', transition: 'box-shadow .15s' }}>
-          <NodeIcon icon={nodeData?.icon} brand={nodeData?.brand} size={16} color={color} />
+
+      {/* Body */}
+      <div style={{ padding: '7px 11px 4px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 9, flexShrink: 0,
+          background: `linear-gradient(135deg, ${color}28, ${color}14)`,
+          border: `1.5px solid ${color}35`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: selected ? `0 0 12px ${color}30` : 'none',
+          transition: 'box-shadow .2s',
+        }}>
+          <NodeIcon icon={nodeData?.icon} brand={nodeData?.brand} size={17} color={color} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ color: tk.textPrimary, fontSize: 13, fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 }}>
+          <p style={{ color: tk.textPrimary, fontSize: 12.5, fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.35, letterSpacing: '-.01em' }}>
             {nodeData?.label}
+          </p>
+          <p style={{ color, fontSize: 9.5, fontWeight: 600, margin: '1px 0 0', textTransform: 'capitalize', letterSpacing: '.02em' }}>
+            {nodeData?.category?.toLowerCase()}
           </p>
         </div>
       </div>
-      <div style={{ margin: '0 10px 10px', padding: '6px 8px', borderRadius: 8, background: tk.nodeInfoBg, border: `1px solid ${tk.nodeInfoBorder}`, minHeight: 28 }}>
+
+      {/* Config preview */}
+      <div style={{ margin: '3px 11px 11px', padding: '5px 8px', borderRadius: 7, background: tk.nodeInfoBg, border: `1px solid ${tk.nodeInfoBorder}`, minHeight: 24 }}>
         {configSummary
-          ? <p style={{ fontSize: 10, color: tk.textSecondary, margin: 0, lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{configSummary}</p>
-          : <p style={{ fontSize: 10, color: tk.textDim, margin: 0, fontStyle: 'italic' }}>Click to configure…</p>
+          ? <p style={{ fontSize: 9.5, color: tk.textSecondary, margin: 0, lineHeight: 1.45, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{configSummary}</p>
+          : <p style={{ fontSize: 9.5, color: tk.textDim, margin: 0, fontStyle: 'italic' }}>Click to configure…</p>
         }
       </div>
-      {/* Output handles on Bottom and Right */}
+
+      {/* Output handles */}
       <Handle type="source" position={Position.Bottom} id="source-bottom"
-        style={{ background: color, width: 12, height: 12, border: `2.5px solid ${tk.nodeHandleBg}`, bottom: -7, boxShadow: `0 0 6px ${color}80` }} />
-      <Handle type="source" position={Position.Right} id={nodeType === 'condition' && nodeData?.label !== 'Delay' && nodeData?.label !== 'Wait' ? 'false' : 'source-right'}
+        style={{ background: color, width: 10, height: 10, border: `2px solid ${tk.nodeHandleBg}`, bottom: -5, borderRadius: '50%', zIndex: 10 }} />
+      <Handle type="source" position={Position.Right}
+        id={isCondition ? 'false' : 'source-right'}
         style={{
-          background: nodeType === 'condition' && nodeData?.label !== 'Delay' && nodeData?.label !== 'Wait' ? '#F59E0B' : color,
-          width: 12,
-          height: 12,
-          border: `2.5px solid ${tk.nodeHandleBg}`,
-          right: -7,
-          boxShadow: nodeType === 'condition' && nodeData?.label !== 'Delay' && nodeData?.label !== 'Wait' ? '0 0 6px rgba(245,158,11,.5)' : `0 0 6px ${color}80`
+          background: isCondition ? '#F59E0B' : color,
+          width: 10, height: 10,
+          border: `2px solid ${tk.nodeHandleBg}`,
+          right: -5, borderRadius: '50%', zIndex: 10,
         }} />
-      {/* Execution status badge */}
-      {execStatus === 'success' && (
-        <div style={{
-          position: 'absolute', top: -6, right: -6, width: 20, height: 20,
-          borderRadius: '50%', background: '#10B981', display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 2px 8px rgba(16,185,129,.4)',
-          border: `2px solid ${tk.nodeHandleBg}`,
-        }}>
-          <CheckCircle2 size={11} color="white" />
-        </div>
-      )}
-      {execStatus === 'running' && (
-        <div style={{
-          position: 'absolute', top: -6, right: -6, width: 20, height: 20,
-          borderRadius: '50%', background: '#F97316', display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 2px 8px rgba(249,115,22,.4)',
-          border: `2px solid ${tk.nodeHandleBg}`,
-          animation: 'spin 1s linear infinite',
-        }}>
-          <Loader2 size={11} color="white" />
-        </div>
+
+      {/* Condition true/false labels */}
+      {isCondition && (
+        <>
+          <div style={{ position: 'absolute', bottom: -18, left: '50%', transform: 'translateX(-50%)', fontSize: 8, fontWeight: 700, color: '#10B981', letterSpacing: '.05em', whiteSpace: 'nowrap' }}>TRUE</div>
+          <div style={{ position: 'absolute', right: -28, top: '50%', transform: 'translateY(-50%)', fontSize: 8, fontWeight: 700, color: '#F59E0B', letterSpacing: '.05em', whiteSpace: 'nowrap' }}>FALSE</div>
+        </>
       )}
     </div>
   );
@@ -1856,7 +1901,7 @@ function DraggableSidebarNode({ node, color, category, tk }: { node: NodeDef; co
 
 // ─── Left Panel ───────────────────────────────────────────────────────────────
 
-function LeftPanel({ sidebarTab, setSidebarTab, query, setQuery, workflows, selectedId, onSelectWorkflow, onNewWorkflow, loadingWorkflows, onToggleActive, onLoadTemplate, tk }: {
+function LeftPanel({ sidebarTab, setSidebarTab, query, setQuery, workflows, selectedId, onSelectWorkflow, onNewWorkflow, loadingWorkflows, onToggleActive, onSaveWorkflow, onDeleteWorkflow, onLoadTemplate, tk }: {
   sidebarTab: 'nodes' | 'templates' | 'workflows';
   setSidebarTab: (t: 'nodes' | 'templates' | 'workflows') => void;
   query: string; setQuery: (q: string) => void;
@@ -1865,6 +1910,8 @@ function LeftPanel({ sidebarTab, setSidebarTab, query, setQuery, workflows, sele
   onNewWorkflow: () => void;
   loadingWorkflows: boolean;
   onToggleActive: (wf: WorkflowItem, e: React.MouseEvent) => void;
+  onSaveWorkflow: (wf: WorkflowItem, e: React.MouseEvent) => void;
+  onDeleteWorkflow: (wf: WorkflowItem, e: React.MouseEvent) => void;
   onLoadTemplate: (tpl: typeof workflowTemplates[number]) => void;
   tk: Tokens;
 }) {
@@ -1979,7 +2026,7 @@ function LeftPanel({ sidebarTab, setSidebarTab, query, setQuery, workflows, sele
             ) : (
               workflows.map(wf => (
                 <div key={wf.id} onClick={() => onSelectWorkflow(wf)}
-                  className="p-2.5 rounded-xl cursor-pointer transition-all"
+                  className="p-2.5 rounded-xl cursor-pointer transition-all group/wf"
                   style={{ background: selectedId === wf.id ? tk.activeItemBg : 'transparent', border: `1px solid ${selectedId === wf.id ? tk.activeItemBorder : 'transparent'}` }}
                   onMouseEnter={e => { if (selectedId !== wf.id) (e.currentTarget as HTMLElement).style.background = tk.hoverBg; }}
                   onMouseLeave={e => { if (selectedId !== wf.id) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
@@ -1988,8 +2035,58 @@ function LeftPanel({ sidebarTab, setSidebarTab, query, setQuery, workflows, sele
                       <p className="text-xs font-semibold truncate" style={{ color: selectedId === wf.id ? '#F97316' : tk.textPrimary }}>{wf.name}</p>
                       <p className="text-[10px] mt-0.5 truncate" style={{ color: tk.textMuted }}>{getWorkflowTrigger(wf) || 'No trigger'} · {(wf.nodes && Array.isArray(wf.nodes) ? wf.nodes.length : wf.action_count) ?? 0} nodes</p>
                     </div>
-                    <button onClick={e => onToggleActive(wf, e)} className="shrink-0 mt-0.5">
+                    {/* Active/Inactive toggle */}
+                    <button
+                      onClick={e => onToggleActive(wf, e)}
+                      title={isWorkflowActive(wf) ? 'Deactivate' : 'Activate'}
+                      className="shrink-0 mt-0.5">
                       {isWorkflowActive(wf) ? <ToggleRight size={16} color="#10B981" /> : <ToggleLeft size={16} color={tk.textDim} />}
+                    </button>
+                  </div>
+                  {/* Action buttons row */}
+                  <div className="flex items-center gap-1 mt-2 pt-1.5" style={{ borderTop: `1px solid ${tk.divider}` }}>
+                    {/* Status pill */}
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-1"
+                      style={{
+                        background: isWorkflowActive(wf) ? 'rgba(16,185,129,.1)' : 'rgba(100,116,139,.1)',
+                        color: isWorkflowActive(wf) ? '#10B981' : tk.textMuted,
+                        border: `1px solid ${isWorkflowActive(wf) ? 'rgba(16,185,129,.25)' : tk.divider}`,
+                      }}>
+                      {isWorkflowActive(wf) ? 'Active' : 'Inactive'}
+                    </span>
+                    {/* Save button */}
+                    <button
+                      onClick={e => onSaveWorkflow(wf, e)}
+                      title="Save workflow"
+                      className="w-6 h-6 flex items-center justify-center rounded-lg transition-all"
+                      style={{ color: '#F97316', background: 'rgba(249,115,22,.1)', border: '1px solid rgba(249,115,22,.2)' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(249,115,22,.2)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(249,115,22,.1)'; }}>
+                      <Save size={10} />
+                    </button>
+                    {/* Active/Inactive toggle button */}
+                    <button
+                      onClick={e => onToggleActive(wf, e)}
+                      title={isWorkflowActive(wf) ? 'Set Inactive' : 'Set Active'}
+                      className="w-6 h-6 flex items-center justify-center rounded-lg transition-all"
+                      style={{
+                        color: isWorkflowActive(wf) ? '#10B981' : tk.textMuted,
+                        background: isWorkflowActive(wf) ? 'rgba(16,185,129,.1)' : tk.hoverBg,
+                        border: `1px solid ${isWorkflowActive(wf) ? 'rgba(16,185,129,.25)' : tk.divider}`,
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.75'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}>
+                      {isWorkflowActive(wf) ? <Pause size={10} /> : <Play size={10} />}
+                    </button>
+                    {/* Delete button */}
+                    <button
+                      onClick={e => onDeleteWorkflow(wf, e)}
+                      title="Delete workflow"
+                      className="w-6 h-6 flex items-center justify-center rounded-lg transition-all"
+                      style={{ color: '#EF4444', background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.15)' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,.18)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,.08)'; }}>
+                      <Trash2 size={10} />
                     </button>
                   </div>
                   {wf.created_at && <p className="text-[9px] mt-1" style={{ color: tk.textDim }}>{new Date(wf.created_at).toLocaleDateString()}</p>}
@@ -2587,6 +2684,37 @@ export default function AutomationPage() {
     catch { setWorkflows(prev => prev.map(w => w.id === wf.id ? wf : w)); }
   }
 
+  async function saveWorkflow(wf: WorkflowItem, e: React.MouseEvent) {
+    e.stopPropagation();
+    // If this is the currently loaded workflow, save with current canvas state
+    if (selectedWf?.id === wf.id) {
+      handleSave();
+      return;
+    }
+    // Otherwise just patch the name/status to persist it
+    try {
+      await api.patch(`/marketing/workflows/${wf.id}`, { name: wf.name, status: wf.status ?? 'Draft' });
+    } catch { /* silent */ }
+  }
+
+  async function deleteWorkflow(wf: WorkflowItem, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!window.confirm(`Delete "${wf.name}"? This cannot be undone.`)) return;
+    setWorkflows(prev => prev.filter(w => w.id !== wf.id));
+    if (selectedWf?.id === wf.id) {
+      setSelectedWf(null);
+      setNodes([]);
+      setEdges([]);
+      setWfName('Untitled Workflow');
+      setWfStatus('Draft');
+    }
+    try { await api.delete(`/marketing/workflows/${wf.id}`); }
+    catch {
+      // Restore on failure
+      setWorkflows(prev => [...prev, wf].sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()));
+    }
+  }
+
   function commitName() { setWfName(nameDraft.trim() || 'Untitled Workflow'); setEditingName(false); }
 
   const reactFlowInstanceRef = useRef<any>(null);
@@ -2772,6 +2900,7 @@ export default function AutomationPage() {
               workflows={workflows} selectedId={selectedWf?.id ?? null}
               onSelectWorkflow={loadWorkflow} onNewWorkflow={() => setShowNewModal(true)}
               loadingWorkflows={loadingWorkflows} onToggleActive={toggleActive}
+              onSaveWorkflow={saveWorkflow} onDeleteWorkflow={deleteWorkflow}
               onLoadTemplate={handleLoadTemplate}
               tk={tk}
             />

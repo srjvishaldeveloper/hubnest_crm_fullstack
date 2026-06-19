@@ -6,10 +6,3 @@ CREATE TABLE IF NOT EXISTS gst_amount (
     amount NUMERIC(12,2) DEFAULT 0 NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
-
--- Delete all old invoices, credit notes, payments, and invoice payments as requested
-DELETE FROM credit_notes;
-DELETE FROM invoice_payments;
-DELETE FROM payments;
-DELETE FROM invoices;
-DELETE FROM gst_amount;

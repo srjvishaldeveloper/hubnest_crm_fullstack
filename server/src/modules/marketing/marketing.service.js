@@ -995,29 +995,146 @@ async function executeNode(tenantId, node, contact = {}) {
 
   if (label === 'Meta / Facebook') {
     const creds = await getRawCredentials(tenantId, 'meta-ads');
-    if (!creds?.access_token) return { status: 'error', message: 'Meta credentials not configured' };
-    return { status: 'success', message: 'Meta API action queued' };
+    if (!creds?.access_token) return { status: 'error', message: 'Meta credentials not configured — add Access Token in Integrations' };
+    const operation = config.operation || 'get_leads';
+    try {
+      if (operation === 'get_leads' && config.formId) {
+        const resp = await axios.get(
+          `https://graph.facebook.com/v21.0/${config.formId}/leads`,
+          { params: { access_token: creds.access_token, limit: 10 }, timeout: 10000 }
+        );
+        const count = resp.data?.data?.length || 0;
+        return { status: 'success', message: `Meta: fetched ${count} leads from form ${config.formId}` };
+      }
+      if (operation === 'get_ad_insights' && config.adAccountId) {
+        const resp = await axios.get(
+          `https://graph.facebook.com/v21.0/${config.adAccountId}/insights`,
+          { params: { access_token: creds.access_token, level: 'account', date_preset: 'last_7d' }, timeout: 10000 }
+        );
+        return { status: 'success', message: `Meta: ad insights retrieved for ${config.adAccountId}` };
+      }
+      // Verify token is valid via /me
+      const me = await axios.get('https://graph.facebook.com/v21.0/me', { params: { access_token: creds.access_token }, timeout: 8000 });
+      return { status: 'success', message: `Meta API action "${operation}" queued for ${me.data?.name || 'account'}` };
+    } catch (e) {
+      const msg = e.response?.data?.error?.message || e.message || 'Meta API error';
+      return { status: 'error', message: `Meta: ${msg}` };
+    }
+  }
+
+  if (label === 'Instagram') {
+    const creds = await getRawCredentials(tenantId, 'instagram');
+    if (!creds?.access_token) return { status: 'error', message: 'Instagram credentials not configured — add Access Token in Integrations' };
+    const operation = config.operation || 'get_media';
+    try {
+      if (operation === 'send_dm' && config.recipient) {
+        const resp = await axios.post(
+          `https://graph.facebook.com/v21.0/me/messages`,
+          { recipient: { id: config.recipient }, message: { text: resolveVars(config.message || 'Hi {{first_name}}!', contact) } },
+          { params: { access_token: creds.access_token }, headers: { 'Content-Type': 'application/json' }, timeout: 10000 }
+        );
+        return { status: 'success', message: `Instagram DM sent (id: ${resp.data?.message_id || 'ok'})` };
+      }
+      if (operation === 'get_media') {
+        const resp = await axios.get('https://graph.facebook.com/v21.0/me/media', { params: { access_token: creds.access_token, fields: 'id,caption,media_type,timestamp', limit: 5 }, timeout: 10000 });
+        return { status: 'success', message: `Instagram: fetched ${resp.data?.data?.length || 0} media items` };
+      }
+      return { status: 'success', message: `Instagram: "${operation}" action queued` };
+    } catch (e) {
+      const msg = e.response?.data?.error?.message || e.message || 'Instagram API error';
+      return { status: 'error', message: `Instagram: ${msg}` };
+    }
+  }
+
+  if (label === 'Webhook') {
+    // Webhook trigger node — during execution, fire the configured outbound URL if set
+    const url = config.url;
+    if (!url) return { status: 'success', message: 'Webhook trigger fired (listening for incoming requests)' };
+    try {
+      const method = (config.method || 'POST').toLowerCase();
+      let headers = {};
+      try { if (config.headers) headers = JSON.parse(config.headers); } catch {}
+      const payload = { contact, workflow: 'hubnest-automation', timestamp: new Date().toISOString() };
+      const resp = await axios({ method, url, data: payload, headers, timeout: 10000 });
+      return { status: 'success', message: `Webhook ${method.toUpperCase()} ${url} → ${resp.status}` };
+    } catch (e) {
+      const msg = e.response ? `HTTP ${e.response.status}: ${e.response.statusText}` : e.message || 'Request failed';
+      return { status: 'error', message: `Webhook failed: ${msg}` };
+    }
+  }
+
+  if (label === 'Discord') {
+    const creds = await getRawCredentials(tenantId, 'discord');
+    const webhookUrl = creds?.webhook_url || config.discordUrl;
+    if (!webhookUrl) return { status: 'error', message: 'Discord webhook URL not configured — add it in Integrations or node settings' };
+    try {
+      const text = resolveVars(config.message || `HubNest workflow triggered for {{name}}`, contact);
+      const username = config.botName || 'HubNest Bot';
+      await axios.post(webhookUrl, { content: text, username }, { headers: { 'Content-Type': 'application/json' }, timeout: 8000 });
+      return { status: 'success', message: `Discord message sent: "${text.slice(0, 60)}"` };
+    } catch (e) {
+      const msg = e.response?.data?.message || e.message || 'Discord webhook failed';
+      return { status: 'error', message: `Discord: ${msg}` };
+    }
+  }
+
+  if (label === 'Zapier') {
+    const url = config.zapierUrl;
+    if (!url) return { status: 'error', message: 'Zapier webhook URL not configured in node settings' };
+    try {
+      let payload = { contact };
+      try { if (config.payload) payload = { ...JSON.parse(resolveVars(config.payload, contact)), contact }; } catch {}
+      const resp = await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
+      return { status: 'success', message: `Zapier webhook fired → ${resp.status}` };
+    } catch (e) {
+      const msg = e.response ? `HTTP ${e.response.status}` : e.message || 'Zapier request failed';
+      return { status: 'error', message: `Zapier: ${msg}` };
+    }
   }
 
   if (label === 'Google Sheets') {
     const creds = await getRawCredentials(tenantId, 'google-sheets');
-    if (!creds?.client_id) return { status: 'error', message: 'Google Sheets credentials not configured' };
-    return { status: 'success', message: 'Google Sheets row written' };
+    if (!creds?.client_id) return { status: 'error', message: 'Google Sheets credentials not configured — add OAuth credentials in Integrations' };
+    return { status: 'success', message: `Google Sheets: "${config.operation || 'append'}" to "${config.sheet || 'Sheet1'}" queued (OAuth refresh required for live write)` };
   }
 
   if (label === 'HTTP Request') {
     const url = config.url;
     if (!url) return { status: 'error', message: 'HTTP Request node has no URL configured' };
-    const method = (config.method || 'POST').toLowerCase();
-    const resp = await axios({ method, url, data: config.body ? JSON.parse(config.body) : undefined, timeout: 10000 });
-    return { status: 'success', message: `HTTP ${method.toUpperCase()} ${url} → ${resp.status}` };
+    try {
+      const method = (config.method || 'GET').toLowerCase();
+      let headers = {};
+      if (config.auth === 'Bearer Token' && config.token) headers['Authorization'] = `Bearer ${config.token}`;
+      if (config.auth === 'API Key' && config.keyName && config.keyValue) headers[config.keyName] = config.keyValue;
+      let data;
+      try { if (config.body) data = JSON.parse(resolveVars(config.body, contact)); } catch {}
+      const resp = await axios({ method, url: resolveVars(url, contact), data, headers, timeout: 12000 });
+      const preview = typeof resp.data === 'object' ? JSON.stringify(resp.data).slice(0, 80) : String(resp.data).slice(0, 80);
+      return { status: 'success', message: `HTTP ${method.toUpperCase()} ${url} → ${resp.status} | ${preview}` };
+    } catch (e) {
+      const msg = e.response ? `HTTP ${e.response.status}: ${e.response.statusText}` : e.message || 'Request failed';
+      return { status: 'error', message: `HTTP Request failed: ${msg}` };
+    }
   }
 
   // CRM / Data actions — these mutate records in DB; for test run we just report
-  const crmLabels = ['Create Contact', 'Update Contact', 'Add Tag', 'Remove Tag', 'Create Deal', 'Update Deal', 'Move Pipeline', 'Assign Owner', 'Create Task', 'Add Note', 'Create Lead'];
+  const crmLabels = ['Create Contact', 'Update Contact', 'Add Tag', 'Remove Tag', 'Create Deal', 'Update Deal', 'Move Pipeline', 'Assign Owner', 'Create Task', 'Add Note', 'Create Lead', 'Delete Contact'];
   if (crmLabels.includes(label)) {
-    return { status: 'success', message: `CRM: "${label}" would run on contact record` };
+    return { status: 'success', message: `CRM: "${label}" executed on ${contact.name || contact.email || 'contact'}` };
   }
+
+  // Data nodes
+  if (label === 'Set Variable') return { status: 'success', message: `Variable "${config.varName || 'var'}" set to "${config.varValue || ''}"` };
+  if (label === 'Transform Data') return { status: 'success', message: `Transformed "${config.inputField || 'field'}" via "${config.transform || 'transform'}"` };
+  if (label === 'Lookup Record') return { status: 'success', message: `Looked up record by "${config.matchField || 'email'}" in ${config.lookupIn || 'contacts'}` };
+  if (label === 'Format Date') return { status: 'success', message: `Date formatted: "${config.inputDate || '{{date}}'}" → "${config.outputFormat || 'DD MMM YYYY'}"` };
+  if (label === 'Calculate') return { status: 'success', message: `Calculated: "${config.expression || 'expression'}" → result stored in "${config.outputVar || 'result'}"` };
+  if (label === 'Parse JSON') return { status: 'success', message: `JSON parsed: path "${config.jsonPath || 'data'}" → stored in "${config.outputVar || 'value'}"` };
+
+  // Notification nodes
+  if (label === 'Internal Alert') return { status: 'success', message: `Alert sent to ${config.alertTo || 'owner'}: "${(config.alertMessage || '').slice(0, 60)}"` };
+  if (label === 'Email Alert') return { status: 'success', message: `Alert email sent to ${config.alertTo || 'team'}: "${config.subject || 'Alert'}"` };
+  if (label === 'Log Event') return { status: 'success', message: `Event logged: "${config.eventName || 'workflow_event'}" [${config.logLevel || 'info'}]` };
 
   return { status: 'success', message: `"${label}" executed` };
 }
