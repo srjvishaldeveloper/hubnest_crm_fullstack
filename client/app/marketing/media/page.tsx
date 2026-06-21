@@ -86,11 +86,19 @@ export default function MediaLibraryPage() {
     e.preventDefault();
     setUploading(true);
     try {
-      const mockUrl = `https://media.hubnest.io/${Date.now()}-${uploadName}`;
-      const payload = { name: uploadName, type: uploadType, url: mockUrl, size: uploadFile?.size || 0 };
+      let fileUrl = '';
+      if (uploadFile) {
+        // Convert file to base64 data URL for storage (backend stores as metadata + data URL)
+        fileUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(uploadFile);
+        });
+      }
+      const payload = { name: uploadName, type: uploadType, url: fileUrl, file_url: fileUrl, size: uploadFile?.size || 0 };
       const res = await api.post('/marketing/media', payload);
-      const nm = res.data?.media || res.data?.data || { id: `m-${Date.now()}`, ...payload, file_url: mockUrl, file_size: uploadFile?.size || 0 };
-      setMedia([nm, ...media]);
+      const nm = res.data?.data?.asset || res.data?.asset || res.data?.data || { id: `m-${Date.now()}`, ...payload, file_size: uploadFile?.size || 0 };
+      setMedia([{ ...nm, url: nm.url || fileUrl, file_url: nm.file_url || fileUrl }, ...media]);
       setShowModal(false);
       setUploadFile(null); setUploadName(''); setUploadType('image');
     } catch {

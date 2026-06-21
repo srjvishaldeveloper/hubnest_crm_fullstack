@@ -551,6 +551,44 @@ async function aiProxyHandler(req, res) {
   }
 }
 
+// ─── Meta / Instagram / WhatsApp Sync ────────────────────────────────────────
+
+async function syncMetaLeads(req, res) {
+  try {
+    const result = await svc.syncMetaLeads(req.user.tenant_id);
+    sendSuccess(res, result, result.message || `Synced ${result.synced} leads from Meta`);
+  } catch (err) {
+    sendError(res, err.message, err.statusCode || 500);
+  }
+}
+
+async function syncInstagramLeads(req, res) {
+  try {
+    const result = await svc.syncInstagramLeads(req.user.tenant_id);
+    sendSuccess(res, result, result.message || `Synced ${result.synced} Instagram leads`);
+  } catch (err) {
+    sendError(res, err.message, err.statusCode || 500);
+  }
+}
+
+async function getMetaAdInsights(req, res) {
+  try {
+    const result = await svc.getMetaAdInsights(req.user.tenant_id);
+    sendSuccess(res, result, `Fetched insights for ${result.total} campaigns`);
+  } catch (err) {
+    sendError(res, err.message, err.statusCode || 500);
+  }
+}
+
+async function syncWhatsAppContacts(req, res) {
+  try {
+    const result = await svc.syncWhatsAppContacts(req.user.tenant_id);
+    sendSuccess(res, result, result.message || 'WhatsApp account synced');
+  } catch (err) {
+    sendError(res, err.message, err.statusCode || 500);
+  }
+}
+
 // ─── Meta OAuth flow ──────────────────────────────────────────────────────────
 
 async function getMetaOAuthUrl(req, res) {
@@ -561,11 +599,14 @@ async function getMetaOAuthUrl(req, res) {
     return sendError(res, 'META_APP_ID not configured on server. Add it to your .env file.', 503);
   }
   const redirectUri = encodeURIComponent(`${req.protocol}://${req.get('host')}/api/v1/marketing/integrations/meta/callback`);
-  // state encodes tenantId + provider so the callback knows where to save
-  const state = Buffer.from(JSON.stringify({ tenantId: req.user.tenant_id, provider: req.query.provider || 'meta-ads', frontendUrl })).toString('base64url');
-  const scopes = req.query.provider === 'whatsapp'
-    ? 'whatsapp_business_management,whatsapp_business_messaging'
-    : 'ads_read,ads_management,pages_manage_ads,pages_read_engagement,leads_retrieval,page_events';
+  // state encodes tenantId + provider + redirect path so the callback knows where to save and redirect
+  const redirectPath = req.query.redirect || '/admin/integrations';
+  const state = Buffer.from(JSON.stringify({ tenantId: req.user.tenant_id, provider: req.query.provider || 'meta-ads', frontendUrl, redirectPath })).toString('base64url');
+  const scopeMap = {
+    whatsapp: 'whatsapp_business_management,whatsapp_business_messaging',
+    instagram: 'instagram_basic,instagram_manage_comments,instagram_manage_insights,pages_show_list,pages_read_engagement',
+  };
+  const scopes = scopeMap[req.query.provider] || 'ads_read,ads_management,pages_manage_ads,pages_read_engagement,leads_retrieval,page_events';
   const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&state=${state}&scope=${scopes}&response_type=code`;
   sendSuccess(res, { url: oauthUrl });
 }
@@ -577,9 +618,9 @@ async function handleMetaOAuthCallback(req, res) {
 
   let parsedState = {};
   try { parsedState = JSON.parse(Buffer.from(state || '', 'base64url').toString()); } catch {}
-  const { tenantId, provider = 'meta-ads', frontendUrl = 'http://localhost:3000' } = parsedState;
+  const { tenantId, provider = 'meta-ads', frontendUrl = 'http://localhost:3000', redirectPath = '/admin/integrations' } = parsedState;
 
-  const redirectBase = `${frontendUrl}/marketing/automation`;
+  const redirectBase = `${frontendUrl}${redirectPath}`;
 
   if (fbError || !code) {
     return res.redirect(`${redirectBase}?oauth=error&provider=${provider}&msg=${encodeURIComponent(error_description || fbError || 'OAuth cancelled')}`);
@@ -623,6 +664,7 @@ module.exports = {
   createCampaign, listCampaigns, getCampaign, updateCampaign, deleteCampaign,
   listLeads, updateLead, bulkAssignLeads, listSalesUsers,
   getIntegrationSettings, upsertIntegrationSettings, deleteIntegrationSettings, testIntegration,
+  syncMetaLeads, syncInstagramLeads, getMetaAdInsights, syncWhatsAppContacts,
   getMetaOAuthUrl, handleMetaOAuthCallback,
   getDashboardAnalytics, getROIData,
   

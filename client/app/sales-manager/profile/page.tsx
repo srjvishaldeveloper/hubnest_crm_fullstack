@@ -190,10 +190,43 @@ export default function SalesManagerProfilePage() {
     async function load() {
       try {
         const [prof, tgt] = await Promise.all([smGetProfile(), smGetTargets()]);
-        if (prof) { setProfile(prof); setEditForm(prof); }
-        if (tgt) setTargets(tgt);
+        if (prof) {
+          // Normalize backend shape → Profile shape
+          const normalized: Profile = {
+            name: prof.name || '',
+            email: prof.email || '',
+            mobile: prof.mobile || prof.phone || '',
+            employeeId: prof.employeeId || prof.admin_id || '',
+            department: prof.department || 'Sales',
+            location: prof.location || '',
+            address: prof.address || '',
+            emergencyContact: prof.emergencyContact || prof.emergency_contact || '',
+            joinedDate: prof.created_at
+              ? new Date(prof.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+              : '',
+            avatar: (prof.name || '').split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'SM',
+          };
+          setProfile(normalized);
+          setEditForm(normalized);
+        }
+        if (tgt) {
+          // Normalize manager_targets row → Targets shape
+          const normalized: Targets = {
+            revenueTarget: parseFloat(tgt.revenue_target || tgt.revenueTarget || 50),
+            revenueAchieved: parseFloat(tgt.revenue_achieved || tgt.revenueAchieved || 0),
+            leadsTarget: parseInt(tgt.leads_target || tgt.leadsTarget || 200),
+            leadsConverted: parseInt(tgt.leads_converted || tgt.leadsConverted || 0),
+            teamMembers: parseInt(tgt.teamTotal ?? MOCK_TARGETS.teamMembers),
+            activeMembers: parseInt(tgt.teamActive ?? MOCK_TARGETS.activeMembers),
+            totalLeadsHandled: MOCK_TARGETS.totalLeadsHandled,
+            totalConversions: MOCK_TARGETS.totalConversions,
+            monthlyTrend: MOCK_TARGETS.monthlyTrend,
+            topPerformers: MOCK_TARGETS.topPerformers,
+          };
+          setTargets(normalized);
+        }
       } catch {
-        // use mock fallback
+        // use mock fallback silently
       } finally {
         setLoading(false);
       }

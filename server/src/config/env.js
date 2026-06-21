@@ -34,4 +34,5 @@ module.exports = {
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   metaAppId: process.env.META_APP_ID || '',
   metaAppSecret: process.env.META_APP_SECRET || '',
+  superAdminEmail: process.env.SUPER_ADMIN_EMAIL || 'srjchudamanideveloper@gmail.com',
 };

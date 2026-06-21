@@ -781,7 +781,7 @@ async function getIntegrationSettings(tenantId) {
 function maskCredentials(creds) {
   if (!creds || typeof creds !== 'object') return creds;
   const masked = { ...creds };
-  const secretKeys = ['app_secret', 'access_token', 'auth_token', 'api_secret', 'secret_key', 'client_secret', 'webhook_secret', 'service_account_key', 'consumer_secret', 'key_secret', 'bot_token'];
+  const secretKeys = ['app_secret', 'access_token', 'auth_token', 'api_secret', 'secret_key', 'client_secret', 'webhook_secret', 'service_account_key', 'consumer_secret', 'key_secret', 'bot_token', 'pass', 'openai_key', 'anthropic_key'];
   secretKeys.forEach(k => {
     if (masked[k]) masked[k] = '••••••••••••';
   });
@@ -1207,6 +1207,19 @@ async function testIntegration(tenantId, provider) {
     }
   }
 
+  if (provider === 'instagram') {
+    if (!creds.access_token) return { success: false, message: 'Missing Access Token' };
+    try {
+      const resp = await axios.get('https://graph.facebook.com/v21.0/me', {
+        params: { access_token: creds.access_token, fields: 'id,name' },
+        timeout: 8000,
+      });
+      return { success: true, message: `Instagram connected as: ${resp.data?.name || resp.data?.id}` };
+    } catch (e) {
+      return { success: false, message: e.response?.data?.error?.message || 'API call failed' };
+    }
+  }
+
   if (provider === 'google-sheets') {
     if (!creds.client_id) return { success: false, message: 'Missing OAuth Client ID' };
     return { success: true, message: 'Google Sheets credentials saved (OAuth flow required to activate)' };
@@ -1267,12 +1280,250 @@ module.exports = {
   // Campaign Builder
   getCampaignContacts, queueCampaignLogs, updateCampaignLogStatus, getCampaignStats, importContactsToList,
 
+  // Meta / Instagram / WhatsApp Sync
+  syncMetaLeads, syncInstagramLeads, getMetaAdInsights, syncWhatsAppContacts,
+
   // Internal helpers exposed for controller use
   getRawCredentials, listSalesUsers,
 
   // Campaign Template Gallery
   listCampaignTemplates, getCampaignTemplateById,
 };
+
+// ─── Meta Leads Sync ─────────────────────────────────────────────────────────
+
+async function syncInstagramLeads(tenantId) {
+  const axios = require('axios');
+  const creds = await getRawCredentials(tenantId, 'instagram');
+  if (!creds?.access_token) {
+    throw Object.assign(new Error('Instagram integration not connected. Add your Access Token in Integrations.'), { statusCode: 422 });
+  }
+
+  let synced = 0, skipped = 0;
+  try {
+    // Fetch IG business account media with comments (commenters become leads)
+    const igRes = await axios.get('https://graph.facebook.com/v21.0/me/accounts', {
+      params: { access_token: creds.access_token, fields: 'id,name,instagram_business_account{id,name,username}', limit: 20 },
+      timeout: 12000,
+    });
+    const pages = igRes.data?.data || [];
+    for (const page of pages) {
+      const igAccount = page.instagram_business_account;
+      if (!igAccount) continue;
+      try {
+        const mediaRes = await axios.get(`https://graph.facebook.com/v21.0/${igAccount.id}/media`, {
+          params: { access_token: creds.access_token, fields: 'id,caption,timestamp,comments{from,text,timestamp}', limit: 10 },
+          timeout: 10000,
+        });
+        const posts = mediaRes.data?.data || [];
+        for (const post of posts) {
+          const comments = post.comments?.data || [];
+          for (const comment of comments) {
+            const commenter = comment.from || {};
+            if (!commenter.id) continue;
+            const existing = await query(
+              `SELECT id FROM leads_marketing WHERE tenant_id = $1 AND source = 'Instagram' AND notes ILIKE $2 LIMIT 1`,
+              [tenantId, `%ig_id:${commenter.id}%`]
+            );
+            if (existing.rows.length > 0) { skipped++; continue; }
+            await query(
+              `INSERT INTO leads_marketing (tenant_id, name, source, platform, status, notes)
+               VALUES ($1,$2,'Instagram','instagram','New',$3)
+               ON CONFLICT DO NOTHING`,
+              [tenantId, commenter.name || `IG User ${commenter.id}`, `ig_id:${commenter.id} | Post comment: ${(comment.text || '').slice(0, 120)}`]
+            );
+            synced++;
+          }
+        }
+      } catch { /* skip individual account errors */ }
+    }
+  } catch (err) {
+    const msg = err?.response?.data?.error?.message || err.message || 'Instagram API error';
+    throw Object.assign(new Error(`Instagram API: ${msg}`), { statusCode: 502 });
+  }
+
+  return { synced, skipped, message: synced === 0 ? 'No new Instagram commenters found. Make sure your Instagram Business account has recent post comments.' : `Synced ${synced} Instagram leads` };
+}
+
+async function getMetaAdInsights(tenantId) {
+  const axios = require('axios');
+  const creds = await getRawCredentials(tenantId, 'meta-ads');
+  if (!creds?.access_token) {
+    throw Object.assign(new Error('Meta Ads integration not connected.'), { statusCode: 422 });
+  }
+
+  try {
+    // Get ad accounts
+    const accountsRes = await axios.get('https://graph.facebook.com/v21.0/me/adaccounts', {
+      params: { access_token: creds.access_token, fields: 'id,name,account_status,currency,amount_spent', limit: 10 },
+      timeout: 12000,
+    });
+    const adAccounts = accountsRes.data?.data || [];
+    const insights = [];
+
+    for (const account of adAccounts.slice(0, 5)) {
+      try {
+        const insightRes = await axios.get(`https://graph.facebook.com/v21.0/${account.id}/insights`, {
+          params: {
+            access_token: creds.access_token,
+            fields: 'campaign_name,impressions,reach,clicks,spend,ctr,cpc,cpp,actions',
+            date_preset: 'last_30d',
+            level: 'campaign',
+            limit: 20,
+          },
+          timeout: 10000,
+        });
+        const rows = insightRes.data?.data || [];
+        rows.forEach(r => insights.push({ account_name: account.name, account_id: account.id, ...r }));
+      } catch { /* skip individual account */ }
+    }
+
+    return { adAccounts, insights, total: insights.length };
+  } catch (err) {
+    const msg = err?.response?.data?.error?.message || err.message || 'Meta Graph API error';
+    throw Object.assign(new Error(`Meta Ad Insights: ${msg}`), { statusCode: 502 });
+  }
+}
+
+async function syncWhatsAppContacts(tenantId) {
+  const axios = require('axios');
+  const creds = await getRawCredentials(tenantId, 'whatsapp');
+  if (!creds?.access_token || !creds?.phone_number_id) {
+    throw Object.assign(new Error('WhatsApp integration not connected. Add Phone Number ID and Access Token in Integrations.'), { statusCode: 422 });
+  }
+
+  try {
+    // Fetch phone number details to confirm connection
+    const phoneRes = await axios.get(`https://graph.facebook.com/v21.0/${creds.phone_number_id}`, {
+      params: { access_token: creds.access_token, fields: 'id,display_phone_number,verified_name,quality_rating,status' },
+      timeout: 10000,
+    });
+    const phoneInfo = phoneRes.data || {};
+
+    // Fetch recent messages from WABA if waba_id is available
+    let contactsSynced = 0;
+    if (creds.waba_id) {
+      const templatesRes = await axios.get(`https://graph.facebook.com/v21.0/${creds.waba_id}/message_templates`, {
+        params: { access_token: creds.access_token, limit: 20 },
+        timeout: 10000,
+      });
+      const templates = templatesRes.data?.data || [];
+      // Save WABA account info as a lead source note
+      await query(
+        `INSERT INTO leads_marketing (tenant_id, name, source, platform, status, notes)
+         VALUES ($1,$2,'WhatsApp Business','whatsapp','Connected',$3)
+         ON CONFLICT DO NOTHING`,
+        [tenantId, `WABA: ${phoneInfo.verified_name || phoneInfo.display_phone_number || creds.phone_number_id}`,
+          `Phone: ${phoneInfo.display_phone_number || creds.phone_number_id} | Quality: ${phoneInfo.quality_rating || 'N/A'} | Templates: ${templates.length}`]
+      );
+      contactsSynced = 1;
+    }
+
+    return {
+      synced: contactsSynced,
+      phoneInfo: {
+        number: phoneInfo.display_phone_number,
+        name: phoneInfo.verified_name,
+        status: phoneInfo.status,
+        quality: phoneInfo.quality_rating,
+      },
+      message: `WhatsApp Business connected: ${phoneInfo.verified_name || phoneInfo.display_phone_number || 'Account verified'}`,
+    };
+  } catch (err) {
+    const msg = err?.response?.data?.error?.message || err.message || 'WhatsApp API error';
+    throw Object.assign(new Error(`WhatsApp: ${msg}`), { statusCode: 502 });
+  }
+}
+
+async function syncMetaLeads(tenantId) {
+  const axios = require('axios');
+  const creds = await getRawCredentials(tenantId, 'meta-ads');
+  if (!creds?.access_token) {
+    throw Object.assign(new Error('Meta Ads integration not connected. Add your Access Token in Integrations.'), { statusCode: 422 });
+  }
+
+  // Fetch ad account leads via Graph API (all forms under the ad account)
+  let allLeads = [];
+  try {
+    // Get pages the user manages to find lead gen forms
+    const pagesRes = await axios.get('https://graph.facebook.com/v21.0/me/accounts', {
+      params: { access_token: creds.access_token, fields: 'id,name,leadgen_forms{id,name}', limit: 20 },
+      timeout: 12000,
+    });
+
+    const pages = pagesRes.data?.data || [];
+    for (const page of pages) {
+      const forms = page.leadgen_forms?.data || [];
+      for (const form of forms) {
+        try {
+          const leadsRes = await axios.get(`https://graph.facebook.com/v21.0/${form.id}/leads`, {
+            params: {
+              access_token: creds.access_token,
+              fields: 'id,created_time,field_data',
+              limit: 100,
+            },
+            timeout: 10000,
+          });
+          const leads = leadsRes.data?.data || [];
+          leads.forEach(l => {
+            const fields = {};
+            (l.field_data || []).forEach(f => { fields[f.name] = f.values?.[0] || ''; });
+            allLeads.push({
+              meta_lead_id: l.id,
+              name: fields.full_name || fields.first_name || fields.name || 'Meta Lead',
+              email: fields.email || null,
+              phone: fields.phone_number || fields.phone || null,
+              company: fields.company_name || fields.company || null,
+              source: 'Meta Ads',
+              platform: 'meta',
+              form_name: form.name,
+              page_name: page.name,
+              created_time: l.created_time,
+            });
+          });
+        } catch { /* skip individual form errors */ }
+      }
+    }
+  } catch (err) {
+    const msg = err?.response?.data?.error?.message || err.message || 'Meta API error';
+    throw Object.assign(new Error(`Meta API: ${msg}`), { statusCode: 502 });
+  }
+
+  if (allLeads.length === 0) {
+    return { synced: 0, skipped: 0, message: 'No leads found in Meta Lead Ads forms. Ensure your ad account has Lead Ad forms with submissions.' };
+  }
+
+  let synced = 0;
+  let skipped = 0;
+  for (const lead of allLeads) {
+    try {
+      // Upsert lead into leads_marketing by email or phone
+      const existing = lead.email
+        ? await query(`SELECT id FROM leads_marketing WHERE tenant_id = $1 AND email = $2 LIMIT 1`, [tenantId, lead.email])
+        : { rows: [] };
+
+      if (existing.rows.length > 0) {
+        // Update existing lead's source/platform if it was previously something else
+        await query(
+          `UPDATE leads_marketing SET source = 'Meta Ads', platform = 'meta', updated_at = NOW()
+           WHERE id = $1 AND tenant_id = $2`,
+          [existing.rows[0].id, tenantId]
+        );
+        skipped++;
+      } else {
+        await query(
+          `INSERT INTO leads_marketing (tenant_id, name, email, phone, company, source, platform, status)
+           VALUES ($1,$2,$3,$4,$5,'Meta Ads','meta','New')
+           ON CONFLICT DO NOTHING`,
+          [tenantId, lead.name, lead.email, lead.phone, lead.company]
+        );
+        synced++;
+      }
+    } catch { skipped++; }
+  }
+
+  return { synced, skipped, total: allLeads.length };
+}
 
 // ─── Campaign Template Gallery ────────────────────────────────────────────────
 

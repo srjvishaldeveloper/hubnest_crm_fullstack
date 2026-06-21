@@ -96,11 +96,16 @@ router.post('/ai/:serviceName/:endpoint', authorize('campaigns', 'create'), ctrl
 // Integration Settings (Meta / WhatsApp / etc.)
 router.get('/integrations',             authorize('campaigns', 'read'),   ctrl.getIntegrationSettings);
 router.post('/integrations',            authorize('campaigns', 'update'), ctrl.upsertIntegrationSettings);
+
+// Meta OAuth flow + Leads Sync (MUST be before :provider param routes)
+router.get('/integrations/meta/oauth-url',    authorize('campaigns', 'update'), ctrl.getMetaOAuthUrl);
+router.get('/integrations/meta/callback',     ctrl.handleMetaOAuthCallback);   // no auth — redirect from Meta
+router.post('/meta/sync-leads',              authorize('campaigns', 'update'), ctrl.syncMetaLeads);
+router.post('/meta/ad-insights',             authorize('campaigns', 'update'), ctrl.getMetaAdInsights);
+router.post('/instagram/sync-leads',         authorize('campaigns', 'update'), ctrl.syncInstagramLeads);
+router.post('/whatsapp/sync-contacts',       authorize('campaigns', 'update'), ctrl.syncWhatsAppContacts);
+
 router.delete('/integrations/:provider',authorize('campaigns', 'update'), ctrl.deleteIntegrationSettings);
 router.post('/integrations/:provider/test', authorize('campaigns', 'update'), ctrl.testIntegration);
-
-// Meta OAuth flow
-router.get('/integrations/meta/oauth-url',   authorize('campaigns', 'update'), ctrl.getMetaOAuthUrl);
-router.get('/integrations/meta/callback',     ctrl.handleMetaOAuthCallback);   // no auth — redirect from Meta
 
 module.exports = router;

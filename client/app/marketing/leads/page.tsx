@@ -6,7 +6,7 @@ import {
   Search, Filter, Download, Users, TrendingUp, CheckCircle2,
   MoreVertical, Mail, Phone, Star, Sparkles, AlertTriangle,
   ChevronDown, ArrowUpRight, UserPlus, Upload, FileText,
-  BarChart3, ChevronRight, Layers, Loader2, X, Check, Send,
+  BarChart3, ChevronRight, Layers, Loader2, X, Check, Send, Zap,
 } from 'lucide-react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell,
@@ -46,6 +46,8 @@ const aiInsights = [
 function PlatformBadge({ platform }: { platform: string }) {
   const map: Record<string, { label: string; cls: string }> = {
     Facebook: { label: 'FB', cls: 'bg-blue-100 text-blue-700' },
+    meta: { label: '⚡ Meta', cls: 'bg-indigo-100 text-indigo-700' },
+    'Meta Ads': { label: '⚡ Meta', cls: 'bg-indigo-100 text-indigo-700' },
     Google: { label: 'GG', cls: 'bg-red-100 text-red-700' },
     Instagram: { label: 'IG', cls: 'bg-pink-100 text-pink-700' },
     Website: { label: 'WEB', cls: 'bg-slate-100 text-slate-600' },
@@ -116,6 +118,23 @@ export default function LeadsPage() {
   const [assignTarget, setAssignTarget] = useState('');
   const [assigning, setAssigning] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [syncingMeta, setSyncingMeta] = useState(false);
+
+  async function handleSyncMeta() {
+    setSyncingMeta(true);
+    setError('');
+    try {
+      const res = await api.post('/marketing/meta/sync-leads');
+      const { synced, skipped } = res.data?.data || {};
+      setSuccessMsg(`Meta sync complete: ${synced ?? 0} new leads imported${skipped ? `, ${skipped} updated` : ''}`);
+      setTimeout(() => setSuccessMsg(''), 5000);
+      fetchLeads();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Meta sync failed — check Meta integration in Settings > Integrations');
+    } finally {
+      setSyncingMeta(false);
+    }
+  }
 
   async function fetchLeads() {
     setLoading(true);
@@ -261,6 +280,15 @@ export default function LeadsPage() {
           </div>
           <button className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 dark:bg-[#161616] transition">
             <Filter className="w-4 h-4 text-slate-500" />
+          </button>
+          <button
+            onClick={handleSyncMeta}
+            disabled={syncingMeta}
+            title="Pull latest leads from Meta Ads (Facebook/Instagram)"
+            className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition disabled:opacity-50"
+          >
+            <Zap className={`w-3.5 h-3.5 ${syncingMeta ? 'animate-pulse' : ''}`} />
+            {syncingMeta ? 'Syncing...' : 'Sync Meta Leads'}
           </button>
           <button className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 dark:bg-[#161616] text-slate-700 text-xs font-semibold rounded-xl transition">
             <Download className="w-3.5 h-3.5" /> Export

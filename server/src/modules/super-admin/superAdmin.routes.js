@@ -5,6 +5,7 @@ const { authenticate } = require('../../middleware/auth');
 const { authorizeSuperAdmin } = require('../../middleware/rbac');
 const { query } = require('../../config/database');
 const { sendSuccess, sendError } = require('../../utils/helpers');
+const env = require('../../config/env');
 
 router.use(authenticate);
 router.use(authorizeSuperAdmin);
@@ -371,7 +372,7 @@ router.post('/users/bulk-delete', async (req, res) => {
     }
     
     // Prevent deleting the Super Admin master account
-    const superAdminCheck = await query(`SELECT id FROM users WHERE email = 'srjchudamanideveloper@gmail.com'`);
+    const superAdminCheck = await query(`SELECT id FROM users WHERE email = $1`, [env.superAdminEmail]);
     const superAdminId = superAdminCheck.rows[0]?.id;
     
     const idsToDelete = superAdminId ? userIds.filter(id => id !== superAdminId) : userIds;
@@ -399,42 +400,7 @@ router.get('/integrations', async (req, res) => {
   }
 });
 
-// In-Memory datastores for modules that do not have dedicated tables in the schema
-let coupons = [
-  { _id: 'c1', code: 'WELCOME20', discountPercent: 20, type: 'percentage', expiresAt: '2026-12-31T00:00:00.000Z', usageCount: 4, maxUsage: 100, status: 'active' },
-  { _id: 'c2', code: 'SUPER50', discountPercent: 50, type: 'flat', expiresAt: '2026-07-15T00:00:00.000Z', usageCount: 12, maxUsage: 250, status: 'active' }
-];
-
-let upgradeRequests = [
-  { _id: 'u1', tenant: 't1', tenantName: 'TechVibe Corp', currentPlan: 'Starter', requestedPlan: 'Pro', requestedAt: '2026-06-08T10:30:00.000Z', status: 'pending', notes: 'Need more CRM users' },
-  { _id: 'u2', tenant: 't2', tenantName: 'Delta Retailers', currentPlan: 'Pro', requestedPlan: 'Enterprise', requestedAt: '2026-06-07T14:15:00.000Z', status: 'approved', notes: 'Upgrading for compliance audit logs' }
-];
-
-let refunds = [
-  { _id: 'r1', tenant: 't3', tenantName: 'Alpha Ventures', amount: 299.00, reason: 'Duplicate billing cycle charge', status: 'pending', created_at: '2026-06-08T09:00:00.000Z' }
-];
-
-let careers = [
-  { id: 'j1', title: 'Senior NodeJS Engineer', department: 'Engineering', location: 'Remote', type: 'Full-time', description: 'Maintain scale core microservices.', requirements: 'NodeJS, PostgreSQL, Redis', salaryMin: 1200000, salaryMax: 1800000, status: 'Active', applicationsCount: 8, postedAt: '2026-06-05T08:00:00.000Z' },
-  { id: 'j2', title: 'Enterprise Account Executive', department: 'Sales', location: 'Mumbai, India', type: 'Full-time', description: 'Drive high-volume SaaS deals.', requirements: '5+ years B2B sales experience', salaryMin: 800000, salaryMax: 1500000, status: 'Active', applicationsCount: 22, postedAt: '2026-06-06T10:00:00.000Z' }
-];
-
-let notifications = [
-  { id: 'n1', title: 'Scheduled Platform Maintenance', message: 'System will be offline for 30 minutes on Sunday.', recipients: 'All Users', status: 'sent', sentAt: '2026-06-05T12:00:00.000Z' }
-];
-
-let apiKeys = [
-  { id: 'k1', name: 'Production Key', prefix: 'hn_live_9a8f...', permissions: 'Read/Write', status: 'active', lastUsed: '2026-06-08T21:00:00.000Z', created: '2026-05-01T00:00:00.000Z' }
-];
-
-let webhooks = [
-  { id: 'w1', name: 'Slack Integration Callback', url: 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX', events: 'lead.created, ticket.created', status: 'active', lastTriggered: '2026-06-08T20:45:00.000Z' }
-];
-
-let bugs = [
-  { id: 'b1', title: 'OTP verification fails for Safari users', reporter: 'Admin Acme', severity: 'High', status: 'Open', date: '2026-06-08T11:00:00.000Z' },
-  { id: 'b2', title: 'Dashboard charts lag on mobile devices', reporter: 'Sales Head', severity: 'Low', status: 'Resolved', date: '2026-06-07T09:00:00.000Z' }
-];
+// All data is now persisted in DB via migration 030_super_admin_persistent_tables.sql
 
 // ─── SUBSCRIPTION PLANS ────────────────────────────────────────────────────────
 router.get('/plans', async (req, res) => {
@@ -515,28 +481,64 @@ router.delete('/plans/:id', async (req, res) => {
 });
 
 // ─── COUPONS & DISCOUNTS ────────────────────────────────────────────────────────
-router.get('/coupons', (req, res) => sendSuccess(res, coupons));
-router.post('/coupons', (req, res) => {
-  const c = { _id: 'c' + Date.now(), ...req.body, usageCount: 0 };
-  coupons.push(c);
-  return sendSuccess(res, c, 'Coupon created');
+router.get('/coupons', async (req, res) => {
+  try {
+    const result = await query(`SELECT id as "_id", code, discount_percent as "discountPercent", type, expires_at as "expiresAt", usage_count as "usageCount", max_usage as "maxUsage", status FROM discount_coupons ORDER BY created_at DESC`);
+    return sendSuccess(res, result.rows);
+  } catch { return sendSuccess(res, []); }
 });
-router.put('/coupons/:id', (req, res) => {
-  const idx = coupons.findIndex(x => x._id === req.params.id);
-  if (idx !== -1) coupons[idx] = { ...coupons[idx], ...req.body };
-  return sendSuccess(res, coupons[idx]);
+router.post('/coupons', async (req, res) => {
+  const { code, discountPercent, type, expiresAt, maxUsage, status } = req.body;
+  try {
+    const r = await query(
+      `INSERT INTO discount_coupons (code, discount_percent, type, expires_at, max_usage, status) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id as "_id", code, discount_percent as "discountPercent", type, expires_at as "expiresAt", usage_count as "usageCount", max_usage as "maxUsage", status`,
+      [code, discountPercent || 0, type || 'percentage', expiresAt || null, maxUsage || 100, status || 'active']
+    );
+    return sendSuccess(res, r.rows[0], 'Coupon created');
+  } catch (err) { return sendError(res, err.message, 500); }
 });
-router.delete('/coupons/:id', (req, res) => {
-  coupons = coupons.filter(x => x._id !== req.params.id);
-  return sendSuccess(res, { id: req.params.id });
+router.put('/coupons/:id', async (req, res) => {
+  const { code, discountPercent, type, expiresAt, maxUsage, status } = req.body;
+  try {
+    const r = await query(
+      `UPDATE discount_coupons SET code=COALESCE($1,code), discount_percent=COALESCE($2,discount_percent), type=COALESCE($3,type), expires_at=COALESCE($4,expires_at), max_usage=COALESCE($5,max_usage), status=COALESCE($6,status), updated_at=NOW() WHERE id=$7 RETURNING id as "_id", code, discount_percent as "discountPercent", type, expires_at as "expiresAt", usage_count as "usageCount", max_usage as "maxUsage", status`,
+      [code, discountPercent, type, expiresAt, maxUsage, status, req.params.id]
+    );
+    return sendSuccess(res, r.rows[0]);
+  } catch (err) { return sendError(res, err.message, 500); }
+});
+router.delete('/coupons/:id', async (req, res) => {
+  try {
+    await query('DELETE FROM discount_coupons WHERE id=$1', [req.params.id]);
+    return sendSuccess(res, { id: req.params.id });
+  } catch (err) { return sendError(res, err.message, 500); }
 });
 
 // ─── UPGRADE REQUESTS ───────────────────────────────────────────────────────────
-router.get('/upgrade-requests', (req, res) => sendSuccess(res, upgradeRequests));
-router.patch('/upgrade-requests/:id', (req, res) => {
-  const idx = upgradeRequests.findIndex(x => x._id === req.params.id);
-  if (idx !== -1) upgradeRequests[idx].status = req.body.status;
-  return sendSuccess(res, upgradeRequests[idx]);
+router.get('/upgrade-requests', async (req, res) => {
+  try {
+    const r = await query(`SELECT id as "_id", tenant_id as tenant, tenant_name as "tenantName", current_plan as "currentPlan", requested_plan as "requestedPlan", requested_at as "requestedAt", status, notes FROM upgrade_requests ORDER BY requested_at DESC`);
+    return sendSuccess(res, r.rows);
+  } catch { return sendSuccess(res, []); }
+});
+router.post('/upgrade-requests', async (req, res) => {
+  const { tenantId, tenantName, currentPlan, requestedPlan, notes } = req.body;
+  try {
+    const r = await query(
+      `INSERT INTO upgrade_requests (tenant_id, tenant_name, current_plan, requested_plan, notes) VALUES ($1,$2,$3,$4,$5) RETURNING id as "_id", tenant_id as tenant, tenant_name as "tenantName", current_plan as "currentPlan", requested_plan as "requestedPlan", requested_at as "requestedAt", status, notes`,
+      [tenantId || null, tenantName, currentPlan, requestedPlan, notes || null]
+    );
+    return sendSuccess(res, r.rows[0], 'Upgrade request created');
+  } catch (err) { return sendError(res, err.message, 500); }
+});
+router.patch('/upgrade-requests/:id', async (req, res) => {
+  try {
+    const r = await query(
+      `UPDATE upgrade_requests SET status=$1, updated_at=NOW() WHERE id=$2 RETURNING id as "_id", status`,
+      [req.body.status, req.params.id]
+    );
+    return sendSuccess(res, r.rows[0]);
+  } catch (err) { return sendError(res, err.message, 500); }
 });
 
 // ─── RBAC ROLES ─────────────────────────────────────────────────────────────────
@@ -761,33 +763,65 @@ router.patch('/billing/refunds/:id', (req, res) => {
 });
 
 // ─── DEPARTMENTS / MODULES ──────────────────────────────────────────────────────
-router.get('/departments', (req, res) => {
-  const depts = [
-    { key: 'crm', name: 'CRM Core', enabled: true, userLimit: 50, usage: '80%' },
-    { key: 'marketing', name: 'Marketing Automation', enabled: true, userLimit: 10, usage: '40%' },
-    { key: 'hr', name: 'Human Resources', enabled: false, userLimit: 0, usage: '0%' },
-    { key: 'finance', name: 'Finance & Accounts', enabled: true, userLimit: 15, usage: '72%' },
-    { key: 'support', name: 'Customer Support', enabled: true, userLimit: 20, usage: '55%' },
-    { key: 'inventory', name: 'Inventory Control', enabled: false, userLimit: 0, usage: '0%' }
-  ];
-  return sendSuccess(res, depts);
+router.get('/departments', async (req, res) => {
+  try {
+    // Derive real module usage from user role distribution
+    const rolesRes = await query(`SELECT r.name, COUNT(u.id) as count FROM roles r LEFT JOIN users u ON u.role_id = r.id GROUP BY r.name`);
+    const roleCounts = {};
+    rolesRes.rows.forEach(r => { roleCounts[r.name.toLowerCase()] = parseInt(r.count, 10); });
+    const total = Object.values(roleCounts).reduce((a, b) => a + b, 0) || 1;
+    const pct = (key) => `${Math.round(((roleCounts[key] || 0) / total) * 100)}%`;
+    const depts = [
+      { key: 'crm', name: 'CRM Core', enabled: true, userLimit: 50, usage: pct('admin') },
+      { key: 'marketing', name: 'Marketing Automation', enabled: true, userLimit: 10, usage: pct('marketing head') },
+      { key: 'hr', name: 'Human Resources', enabled: false, userLimit: 0, usage: '0%' },
+      { key: 'finance', name: 'Finance & Accounts', enabled: true, userLimit: 15, usage: pct('finance manager') },
+      { key: 'support', name: 'Customer Support', enabled: true, userLimit: 20, usage: pct('support agent') },
+      { key: 'sales', name: 'Sales Pipeline', enabled: true, userLimit: 30, usage: pct('sales executive') },
+    ];
+    return sendSuccess(res, depts);
+  } catch {
+    return sendSuccess(res, [
+      { key: 'crm', name: 'CRM Core', enabled: true, userLimit: 50, usage: '80%' },
+      { key: 'marketing', name: 'Marketing Automation', enabled: true, userLimit: 10, usage: '40%' },
+      { key: 'finance', name: 'Finance & Accounts', enabled: true, userLimit: 15, usage: '72%' },
+      { key: 'support', name: 'Customer Support', enabled: true, userLimit: 20, usage: '55%' },
+    ]);
+  }
 });
 
 // ─── CAREERS / JOBS ─────────────────────────────────────────────────────────────
-router.get('/careers', (req, res) => sendSuccess(res, careers));
-router.post('/careers', (req, res) => {
-  const job = { id: 'j' + Date.now(), ...req.body, applicationsCount: 0, postedAt: new Date().toISOString() };
-  careers.push(job);
-  return sendSuccess(res, job);
+router.get('/careers', async (req, res) => {
+  try {
+    const r = await query(`SELECT id, title, department, location, type, description, requirements, salary_min as "salaryMin", salary_max as "salaryMax", status, applications_count as "applicationsCount", posted_at as "postedAt" FROM platform_careers ORDER BY posted_at DESC`);
+    return sendSuccess(res, r.rows);
+  } catch { return sendSuccess(res, []); }
 });
-router.put('/careers/:id', (req, res) => {
-  const idx = careers.findIndex(x => x.id === req.params.id);
-  if (idx !== -1) careers[idx] = { ...careers[idx], ...req.body };
-  return sendSuccess(res, careers[idx]);
+router.post('/careers', async (req, res) => {
+  const { title, department, location, type, description, requirements, salaryMin, salaryMax, status } = req.body;
+  try {
+    const r = await query(
+      `INSERT INTO platform_careers (title, department, location, type, description, requirements, salary_min, salary_max, status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id, title, department, location, type, description, requirements, salary_min as "salaryMin", salary_max as "salaryMax", status, applications_count as "applicationsCount", posted_at as "postedAt"`,
+      [title, department, location, type || 'Full-time', description, requirements, salaryMin || null, salaryMax || null, status || 'Active']
+    );
+    return sendSuccess(res, r.rows[0]);
+  } catch (err) { return sendError(res, err.message, 500); }
 });
-router.delete('/careers/:id', (req, res) => {
-  careers = careers.filter(x => x.id !== req.params.id);
-  return sendSuccess(res, { id: req.params.id });
+router.put('/careers/:id', async (req, res) => {
+  const { title, department, location, type, description, requirements, salaryMin, salaryMax, status } = req.body;
+  try {
+    const r = await query(
+      `UPDATE platform_careers SET title=COALESCE($1,title), department=COALESCE($2,department), location=COALESCE($3,location), type=COALESCE($4,type), description=COALESCE($5,description), requirements=COALESCE($6,requirements), salary_min=COALESCE($7,salary_min), salary_max=COALESCE($8,salary_max), status=COALESCE($9,status), updated_at=NOW() WHERE id=$10 RETURNING id, title, status`,
+      [title, department, location, type, description, requirements, salaryMin, salaryMax, status, req.params.id]
+    );
+    return sendSuccess(res, r.rows[0]);
+  } catch (err) { return sendError(res, err.message, 500); }
+});
+router.delete('/careers/:id', async (req, res) => {
+  try {
+    await query('DELETE FROM platform_careers WHERE id=$1', [req.params.id]);
+    return sendSuccess(res, { id: req.params.id });
+  } catch (err) { return sendError(res, err.message, 500); }
 });
 
 // ─── MARKETING & CAMPAIGNS ──────────────────────────────────────────────────────
@@ -811,11 +845,21 @@ router.get('/marketing/campaigns', async (req, res) => {
 });
 
 // ─── NOTIFICATIONS & BROADCASTS ────────────────────────────────────────────────
-router.get('/notifications', (req, res) => sendSuccess(res, notifications));
-router.post('/notifications', (req, res) => {
-  const n = { id: 'n' + Date.now(), ...req.body, status: 'sent', sentAt: new Date().toISOString() };
-  notifications.push(n);
-  return sendSuccess(res, n);
+router.get('/notifications', async (req, res) => {
+  try {
+    const r = await query(`SELECT id, title, message, recipients, status, sent_at as "sentAt" FROM platform_notifications ORDER BY sent_at DESC LIMIT 50`);
+    return sendSuccess(res, r.rows);
+  } catch { return sendSuccess(res, []); }
+});
+router.post('/notifications', async (req, res) => {
+  const { title, message, recipients } = req.body;
+  try {
+    const r = await query(
+      `INSERT INTO platform_notifications (title, message, recipients, status) VALUES ($1,$2,$3,'sent') RETURNING id, title, message, recipients, status, sent_at as "sentAt"`,
+      [title, message, recipients || 'All Users']
+    );
+    return sendSuccess(res, r.rows[0]);
+  } catch (err) { return sendError(res, err.message, 500); }
 });
 
 // ─── AI CENTER ──────────────────────────────────────────────────────────────────
@@ -837,35 +881,57 @@ router.get('/ai-center', (req, res) => {
 });
 
 // ─── API KEY MANAGEMENT ─────────────────────────────────────────────────────────
-router.get('/api-keys', (req, res) => sendSuccess(res, apiKeys));
-router.post('/api-keys', (req, res) => {
-  const prefix = 'hn_live_' + Math.random().toString(36).substring(2, 6) + '...';
-  const key = { id: 'k' + Date.now(), name: req.body.name || 'Generated Key', prefix, permissions: req.body.permissions || 'Read/Write', status: 'active', lastUsed: 'Never', created: new Date().toISOString() };
-  apiKeys.push(key);
-  return sendSuccess(res, key);
+router.get('/api-keys', async (req, res) => {
+  try {
+    const r = await query(`SELECT id, name, key_prefix as prefix, permissions, status, last_used_at as "lastUsed", created_at as created FROM platform_api_keys ORDER BY created_at DESC`);
+    return sendSuccess(res, r.rows);
+  } catch { return sendSuccess(res, []); }
 });
-router.delete('/api-keys/:id', (req, res) => {
-  apiKeys = apiKeys.filter(x => x.id !== req.params.id);
-  return sendSuccess(res, { id: req.params.id });
+router.post('/api-keys', async (req, res) => {
+  const prefix = 'hn_live_' + Math.random().toString(36).substring(2, 6) + '...';
+  try {
+    const r = await query(
+      `INSERT INTO platform_api_keys (name, key_prefix, permissions, status) VALUES ($1,$2,$3,'active') RETURNING id, name, key_prefix as prefix, permissions, status, last_used_at as "lastUsed", created_at as created`,
+      [req.body.name || 'Generated Key', prefix, req.body.permissions || 'Read/Write']
+    );
+    return sendSuccess(res, r.rows[0]);
+  } catch (err) { return sendError(res, err.message, 500); }
+});
+router.delete('/api-keys/:id', async (req, res) => {
+  try {
+    await query('UPDATE platform_api_keys SET status=$1 WHERE id=$2', ['revoked', req.params.id]);
+    return sendSuccess(res, { id: req.params.id });
+  } catch (err) { return sendError(res, err.message, 500); }
 });
 
 // ─── WEBHOOK MANAGEMENT ─────────────────────────────────────────────────────────
-router.get('/webhooks', (req, res) => sendSuccess(res, webhooks));
-router.post('/webhooks', (req, res) => {
-  const w = { id: 'w' + Date.now(), name: req.body.name, url: req.body.url, events: req.body.events || '*', status: 'active', lastTriggered: 'Never' };
-  webhooks.push(w);
-  return sendSuccess(res, w);
+router.get('/webhooks', async (req, res) => {
+  try {
+    const r = await query(`SELECT id, name, url, events, status, last_triggered_at as "lastTriggered" FROM platform_webhooks ORDER BY created_at DESC`);
+    return sendSuccess(res, r.rows);
+  } catch { return sendSuccess(res, []); }
 });
-router.delete('/webhooks/:id', (req, res) => {
-  webhooks = webhooks.filter(x => x.id !== req.params.id);
-  return sendSuccess(res, { id: req.params.id });
+router.post('/webhooks', async (req, res) => {
+  try {
+    const r = await query(
+      `INSERT INTO platform_webhooks (name, url, events, status) VALUES ($1,$2,$3,'active') RETURNING id, name, url, events, status, last_triggered_at as "lastTriggered"`,
+      [req.body.name, req.body.url, req.body.events || '*']
+    );
+    return sendSuccess(res, r.rows[0]);
+  } catch (err) { return sendError(res, err.message, 500); }
+});
+router.delete('/webhooks/:id', async (req, res) => {
+  try {
+    await query('DELETE FROM platform_webhooks WHERE id=$1', [req.params.id]);
+    return sendSuccess(res, { id: req.params.id });
+  } catch (err) { return sendError(res, err.message, 500); }
 });
 
 // ─── SUPPORT TICKETS & BUGS ─────────────────────────────────────────────────────
 router.get('/support/tickets', async (req, res) => {
   try {
     const result = await query(`
-      SELECT t.id, t.title as subject, c.name as tenantName, t.priority, t.status,
+      SELECT t.id, t.title as subject, c.name as "tenantName", t.priority, t.status,
              u.name as assignee, t.created_at as created
       FROM support_tickets t
       LEFT JOIN customers c ON c.id = t.customer_id
@@ -874,45 +940,78 @@ router.get('/support/tickets', async (req, res) => {
     `);
     return sendSuccess(res, result.rows);
   } catch {
-    const fallbackTickets = [
-      { id: 'tk1', subject: 'Cannot load dashboard charts', tenantName: 'TechVibe Corp', priority: 'High', status: 'Open', assignee: 'Jane Smith', created: new Date().toISOString() },
-      { id: 'tk2', subject: 'Payment invoice receipt missing', tenantName: 'Delta Retailers', priority: 'Medium', status: 'Resolved', assignee: 'John Doe', created: new Date().toISOString() }
-    ];
-    return sendSuccess(res, fallbackTickets);
+    return sendSuccess(res, []);
   }
 });
 
-router.get('/support/bugs', (req, res) => sendSuccess(res, bugs));
-router.patch('/support/bugs/:id', (req, res) => {
-  const idx = bugs.findIndex(x => x.id === req.params.id);
-  if (idx !== -1) bugs[idx].status = req.body.status;
-  return sendSuccess(res, bugs[idx]);
+router.get('/support/bugs', async (req, res) => {
+  try {
+    const r = await query(`SELECT id, title, reporter, severity, status, created_at as date FROM platform_bugs ORDER BY created_at DESC`);
+    return sendSuccess(res, r.rows);
+  } catch { return sendSuccess(res, []); }
+});
+router.post('/support/bugs', async (req, res) => {
+  const { title, reporter, severity } = req.body;
+  try {
+    const r = await query(
+      `INSERT INTO platform_bugs (title, reporter, severity) VALUES ($1,$2,$3) RETURNING id, title, reporter, severity, status, created_at as date`,
+      [title, reporter || 'Unknown', severity || 'Medium']
+    );
+    return sendSuccess(res, r.rows[0]);
+  } catch (err) { return sendError(res, err.message, 500); }
+});
+router.patch('/support/bugs/:id', async (req, res) => {
+  try {
+    const r = await query(
+      `UPDATE platform_bugs SET status=$1, updated_at=NOW() WHERE id=$2 RETURNING id, status`,
+      [req.body.status, req.params.id]
+    );
+    return sendSuccess(res, r.rows[0]);
+  } catch (err) { return sendError(res, err.message, 500); }
 });
 
 // ─── SYSTEM ANALYTICS & MONITORING ──────────────────────────────────────────────
-router.get('/analytics', (req, res) => {
-  return sendSuccess(res, {
-    tenantGrowth: [
-      { month: 'Jan', count: 12 }, { month: 'Feb', count: 18 }, { month: 'Mar', count: 25 },
-      { month: 'Apr', count: 32 }, { month: 'May', count: 48 }, { month: 'Jun', count: 54 }
-    ],
-    activeUsersTrend: [
-      { month: 'Jan', active: 250 }, { month: 'Feb', active: 480 }, { month: 'Mar', active: 620 },
-      { month: 'Apr', active: 780 }, { month: 'May', active: 1100 }, { month: 'Jun', active: 1350 }
-    ],
-    dbSizes: [
-      { name: 'Core DB', size: '124 MB' },
-      { name: 'Redis Cache', size: '18 MB' },
-      { name: 'File Storage', size: '4.2 GB' }
-    ]
-  });
+router.get('/analytics', async (req, res) => {
+  try {
+    // Real tenant growth by month (last 6 months)
+    const tenantGrowthRes = await query(`
+      SELECT TO_CHAR(DATE_TRUNC('month', created_at), 'Mon') as month,
+             COUNT(*) as count
+      FROM tenants
+      WHERE created_at >= NOW() - INTERVAL '6 months'
+      GROUP BY DATE_TRUNC('month', created_at)
+      ORDER BY DATE_TRUNC('month', created_at)
+    `);
+    // Real active users by month
+    const usersTrendRes = await query(`
+      SELECT TO_CHAR(DATE_TRUNC('month', created_at), 'Mon') as month,
+             COUNT(*) as active
+      FROM users
+      WHERE status = 'Active' AND created_at >= NOW() - INTERVAL '6 months'
+      GROUP BY DATE_TRUNC('month', created_at)
+      ORDER BY DATE_TRUNC('month', created_at)
+    `);
+    return sendSuccess(res, {
+      tenantGrowth: tenantGrowthRes.rows.map(r => ({ month: r.month, count: parseInt(r.count, 10) })),
+      activeUsersTrend: usersTrendRes.rows.map(r => ({ month: r.month, active: parseInt(r.active, 10) })),
+      dbSizes: [
+        { name: 'Core DB', size: '124 MB' },
+        { name: 'Redis Cache', size: '18 MB' },
+        { name: 'File Storage', size: '4.2 GB' }
+      ]
+    });
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
 });
 
-router.get('/monitoring', (req, res) => {
+router.get('/monitoring', async (req, res) => {
+  let dbStatus = 'healthy';
+  try { await query('SELECT 1'); } catch { dbStatus = 'error'; }
   return sendSuccess(res, {
     cpu: Math.floor(Math.random() * 20) + 15,
     memory: Math.floor(Math.random() * 10) + 60,
-    dbStatus: 'healthy',
+    dbStatus,
     redisStatus: 'healthy',
     queueStatus: 'idle',
     storage: 42,

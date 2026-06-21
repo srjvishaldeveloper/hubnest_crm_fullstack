@@ -116,7 +116,9 @@ export default function LeadsPage() {
   const [activeTab, setActiveTab] = useState('All');
   const [search, setSearch] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [syncingMeta, setSyncingMeta] = useState(false);
 
   // Modals
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -207,18 +209,37 @@ export default function LeadsPage() {
       .catch(() => setActivities([]));
   }, [selectedLead?.id]);
 
+  // ── Meta Sync ────────────────────────────────────────────────────────────────
+  const handleSyncMeta = async () => {
+    setSyncingMeta(true);
+    try {
+      const res = await api.post('/marketing/meta/sync-leads');
+      const { synced, skipped } = res.data?.data || {};
+      showToast(`Meta sync: ${synced ?? 0} new leads imported${skipped ? `, ${skipped} already existed` : ''}`, 'success');
+      fetchLeads(true);
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || 'Meta sync failed — check Meta integration settings', 'error');
+    } finally {
+      setSyncingMeta(false);
+    }
+  };
+
   // ── Filtering ────────────────────────────────────────────────────────────────
+  const metaCount = leads.filter(l => l.platform === 'meta' || l.source === 'Meta Ads').length;
+
   const filtered = leads.filter(l => {
     const q = search.toLowerCase();
     const matchSearch = !q || l.name.toLowerCase().includes(q) || (l.phone || '').includes(q) ||
       (l.company || '').toLowerCase().includes(q) || (l.email || '').toLowerCase().includes(q);
     const matchPriority = !priorityFilter || l.priority === priorityFilter;
+    const matchSource = !sourceFilter || l.source === sourceFilter || l.platform === sourceFilter;
 
-    if (activeTab === 'Hot') return matchSearch && matchPriority && l.priority === 'Hot';
-    if (activeTab === 'Follow-up') return matchSearch && matchPriority && l.next_followup && new Date(l.next_followup) <= new Date(Date.now() + 24 * 3600 * 1000);
-    if (activeTab === 'Converted') return matchSearch && matchPriority && l.status === 'Converted';
-    if (activeTab === 'Lost') return matchSearch && matchPriority && l.status === 'Lost';
-    return matchSearch && matchPriority;
+    if (activeTab === 'Meta') return matchSearch && matchPriority && (l.platform === 'meta' || l.source === 'Meta Ads');
+    if (activeTab === 'Hot') return matchSearch && matchPriority && matchSource && l.priority === 'Hot';
+    if (activeTab === 'Follow-up') return matchSearch && matchPriority && matchSource && !!l.next_followup && new Date(l.next_followup) <= new Date(Date.now() + 24 * 3600 * 1000);
+    if (activeTab === 'Converted') return matchSearch && matchPriority && matchSource && l.status === 'Converted';
+    if (activeTab === 'Lost') return matchSearch && matchPriority && matchSource && l.status === 'Lost';
+    return matchSearch && matchPriority && matchSource;
   });
 
   // ── Add Lead ─────────────────────────────────────────────────────────────────
@@ -374,6 +395,15 @@ export default function LeadsPage() {
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
           </button>
+          <button
+            onClick={handleSyncMeta}
+            disabled={syncingMeta}
+            title="Pull latest leads from Meta Ads (Facebook/Instagram)"
+            className="flex items-center gap-1.5 px-3 py-2 border border-blue-200 bg-blue-50 text-blue-700 text-xs font-semibold rounded-xl hover:bg-blue-100 transition disabled:opacity-50"
+          >
+            <Zap className={`w-3.5 h-3.5 ${syncingMeta ? 'animate-pulse' : ''}`} />
+            {syncingMeta ? 'Syncing...' : 'Sync Meta Leads'}
+          </button>
 
           {bulkMode ? (
             <>
@@ -445,6 +475,7 @@ export default function LeadsPage() {
         </div>
 
         {showFilters && (
+          <>
           <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider self-center">Priority:</span>
             {['', 'Hot', 'Warm', 'Cold'].map(p => (
@@ -457,14 +488,27 @@ export default function LeadsPage() {
               </button>
             ))}
           </div>
+          <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider self-center">Source:</span>
+            {['', 'Meta Ads', 'Manual', 'Website', 'Referral', 'CSV Import'].map(s => (
+              <button
+                key={s}
+                onClick={() => setSourceFilter(s)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition ${sourceFilter === s ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                {s || 'All'}
+              </button>
+            ))}
+          </div>
+          </>
         )}
       </div>
 
       {/* ── Tabs ── */}
       <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-2xl p-1 shadow-sm overflow-x-auto">
-        {['All', 'Hot', 'Follow-up', 'Converted', 'Lost'].map(tab => {
+        {['All', 'Meta', 'Hot', 'Follow-up', 'Converted', 'Lost'].map(tab => {
           const counts: Record<string, number> = {
-            All: leads.length, Hot: stats.hot, 'Follow-up': stats.followupDue,
+            All: leads.length, Meta: metaCount, Hot: stats.hot, 'Follow-up': stats.followupDue,
             Converted: stats.converted, Lost: stats.lost
           };
           return (
@@ -472,10 +516,12 @@ export default function LeadsPage() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`flex items-center gap-1.5 flex-1 px-3 py-2.5 text-xs font-semibold rounded-xl transition whitespace-nowrap ${
-                activeTab === tab ? 'bg-[#2563EB] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'
+                activeTab === tab
+                  ? tab === 'Meta' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-[#2563EB] text-white shadow-sm'
+                  : 'text-slate-500 hover:bg-slate-50'
               }`}
             >
-              {tab === 'Hot' ? 'Hot 🔥' : tab}
+              {tab === 'Hot' ? 'Hot 🔥' : tab === 'Meta' ? '⚡ Meta' : tab}
               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${activeTab === tab ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
                 {counts[tab] ?? 0}
               </span>
@@ -544,6 +590,11 @@ export default function LeadsPage() {
                         <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider ${STATUS_COLORS[lead.status] || 'bg-slate-100 text-slate-600'}`}>
                           {lead.status}
                         </span>
+                        {(lead.platform === 'meta' || lead.source === 'Meta Ads') && (
+                          <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 uppercase tracking-wider">
+                            ⚡ Meta
+                          </span>
+                        )}
                       </div>
                       <p className="text-[10px] text-slate-400 font-medium truncate">
                         {lead.company || 'Private'} {lead.phone ? `· ${lead.phone}` : ''} {lead.email ? `· ${lead.email}` : ''}

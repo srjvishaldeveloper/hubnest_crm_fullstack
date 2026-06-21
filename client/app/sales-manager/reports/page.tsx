@@ -315,8 +315,43 @@ startxref
   useEffect(() => {
     setLoading(true);
     smGetReports()
-      .then((data: any) => { if (data) setReportData(data); })
-      .catch(() => { /* keep mock */ })
+      .then((raw: any) => {
+        if (!raw) return;
+        // Normalize backend shape → ReportData shape
+        const pipeline = raw.pipeline || {};
+        const trend = (raw.trendData || []).map((r: any) => ({ month: r.month_label || r.month, value: parseInt(r.leads || r.value || 0) }));
+        const team = (raw.teamPerformance || raw.team || []).map((m: any, i: number) => ({
+          rank: i + 1,
+          name: m.name,
+          avatar: (m.name || '?').split(' ').map((n: string) => n[0]).join('').slice(0, 2),
+          leads: m.leads || 0,
+          converted: m.converted || 0,
+          conversionRate: m.conversionRate || 0,
+          target: m.targetAmount || m.target || 0,
+          achieved: m.achievedAmount || m.achieved || 0,
+          color: ['#2563EB','#7C3AED','#059669','#F59E0B','#EF4444'][i % 5],
+        }));
+        const act = raw.activitySummary || raw.activity || {};
+        const kpis = raw.kpis || raw.kpi || {};
+        const pipelineArr = Object.entries(pipeline).map(([stage, count], i) => ({
+          stage, count: count as number,
+          color: ['bg-blue-500','bg-violet-500','bg-amber-500','bg-emerald-500','bg-red-500'][i % 5],
+          bg: ['bg-blue-50','bg-violet-50','bg-amber-50','bg-emerald-50','bg-red-50'][i % 5],
+        }));
+        setReportData({
+          kpi: { totalLeads: kpis.totalLeads || 0, convertedLeads: kpis.convertedLeads || 0, conversionRate: kpis.conversionRate || 0, revenueAchieved: kpis.revenueAchieved || 0 },
+          leadTrend: trend.length ? trend : MOCK_DATA.leadTrend,
+          pipeline: pipelineArr.length ? pipelineArr : MOCK_DATA.pipeline,
+          activity: { calls: act.Call || 0, emails: act.Email || 0, meetings: act.Meeting || 0 },
+          team: team.length ? team : MOCK_DATA.team,
+          leadFunnel: MOCK_DATA.leadFunnel,
+          statusDistribution: MOCK_DATA.statusDistribution,
+          pipelineStages: pipelineArr.length ? pipelineArr.map(p => ({ stage: p.stage, value: p.count, color: p.color.replace('bg-','text-') })) : MOCK_DATA.pipelineStages,
+          pipelineHealth: kpis.conversionRate || MOCK_DATA.pipelineHealth,
+          insights: raw.insights || MOCK_DATA.insights,
+        });
+      })
+      .catch(() => { /* keep mock on network error */ })
       .finally(() => setLoading(false));
   }, [dateFilter]);
 

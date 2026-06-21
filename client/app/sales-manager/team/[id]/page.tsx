@@ -271,19 +271,57 @@ export default function TeamMemberDetailPage() {
     const fetchMember = async () => {
       setLoading(true);
       try {
-        const data = await smGetMember(id);
-        setMember(data);
-        setTargetForm({
-          revenueTarget: String(data?.performance?.revenueTarget ?? 15),
-          leadsTarget: String(data?.performance?.leadsTarget ?? 40),
-        });
+        const raw = await smGetMember(id);
+        if (!raw) throw new Error('Not found');
+        // Normalize flat backend shape → Member shape
+        const act = raw.activitySummary || {};
+        const tgt = raw.target || {};
+        const leads = (raw.leads || []).map((l: any) => ({
+          id: l.id, name: l.name || 'Unknown', company: l.company || '—',
+          status: l.status || 'New', priority: l.priority || 'Medium',
+          value: l.budget ? `₹${l.budget}` : '—',
+          createdAt: l.created_at ? new Date(l.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—',
+        }));
+        const tasks = (raw.tasks || []).map((t: any) => ({
+          id: t.id, title: t.title || t.task_name || 'Task',
+          status: t.status || 'Pending', priority: t.priority || 'Medium',
+          dueDate: t.scheduled_at || t.due_date ? new Date(t.scheduled_at || t.due_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—',
+          relatedLead: t.lead_name || undefined,
+        }));
+        const activities = (raw.recentActivities || []).map((a: any) => ({
+          id: a.id, type: a.type || 'Activity',
+          description: a.description || a.notes || `${a.type} activity`,
+          timestamp: a.created_at ? new Date(a.created_at).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—',
+          icon: (a.type || '').toLowerCase().includes('call') ? 'phone' : (a.type || '').toLowerCase().includes('email') ? 'mail' : (a.type || '').toLowerCase().includes('meet') ? 'video' : 'note',
+        }));
+        const normalized: Member = {
+          id: raw.id, name: raw.name || 'Member', employeeId: raw.employeeId || raw.admin_id || '—',
+          email: raw.email || '—', phone: raw.phone || raw.mobile,
+          role: raw.role_name || 'Sales Executive',
+          status: raw.status === 'Active' ? 'Active' : raw.status === 'Blocked' ? 'Blocked' : 'Inactive',
+          joinedDate: raw.created_at ? new Date(raw.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—',
+          avatar: (raw.name || '?').split(' ').map((n: string) => n[0]).join('').slice(0, 2),
+          performance: {
+            leadsTotal: raw.leadsTotal || leads.length,
+            converted: raw.leadsConverted || 0,
+            lost: raw.leadsLost || 0,
+            conversionRate: raw.leadsTotal > 0 ? Math.round(((raw.leadsConverted || 0) / raw.leadsTotal) * 100) : 0,
+            pendingTasks: raw.tasksPending || 0,
+            calls: act.Call || 0, emails: act.Email || 0, meetings: act.Meeting || 0,
+            revenueAchieved: parseFloat(tgt.achieved_amount || tgt.revenueAchieved || 0),
+            revenueTarget: parseFloat(tgt.target_amount || tgt.revenueTarget || 15),
+            leadsConverted: raw.leadsConverted || 0,
+            leadsTarget: parseInt(tgt.target_leads || tgt.leadsTarget || 40),
+            aiScore: Math.min(100, Math.round(((raw.leadsConverted || 0) / Math.max(raw.leadsTotal || 1, 1)) * 100 * 1.5 + (act.Call || 0) * 0.1)),
+          },
+          leads, tasks, activities,
+        };
+        setMember(normalized);
+        setTargetForm({ revenueTarget: String(normalized.performance.revenueTarget), leadsTarget: String(normalized.performance.leadsTarget) });
       } catch {
         const mock = generateMockMember(id);
         setMember(mock);
-        setTargetForm({
-          revenueTarget: String(mock.performance.revenueTarget),
-          leadsTarget: String(mock.performance.leadsTarget),
-        });
+        setTargetForm({ revenueTarget: String(mock.performance.revenueTarget), leadsTarget: String(mock.performance.leadsTarget) });
       } finally {
         setLoading(false);
       }
