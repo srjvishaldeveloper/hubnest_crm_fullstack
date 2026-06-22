@@ -1,0 +1,12 @@
+.git
+.gitignore
+.env
+node_modules
+logs
+*.log
+*.md
+.DS_Store
+Thumbs.db
+.vscode
+coverage
+seed

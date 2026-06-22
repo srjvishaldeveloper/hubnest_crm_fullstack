@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 const withMDX = createMDX();
 
 const nextConfig: NextConfig = {
-  /* config options here - trigger dev server rebuild */
+  output: 'standalone',
 };
 
 export default withMDX(nextConfig);

@@ -1,0 +1,111 @@
+# ─── HubNest CRM — Staging Docker Compose ────────────────────────────────────
+# Mirrors production but uses staging env values and runs on different ports
+# to allow both staging and production on the same server if needed.
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: '3.9'
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-crm_db_staging}
+    volumes:
+      - postgres_staging:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [staging_net]
+    logging: *default-logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes: [redis_staging:/data]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [staging_net]
+    logging: *default-logging
+
+  backend:
+    image: ${IMAGE_BACKEND}:${IMAGE_TAG}
+    restart: unless-stopped
+    env_file: server.env
+    environment:
+      NODE_ENV: staging
+      PORT: 5001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-crm_db_staging}
+      REDIS_URL: redis://redis:6379
+      CHATBOT_URL: http://chatbot:8003
+      REPORT_SERVICE_URL: http://reports:8002
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    volumes: [backend_staging_logs:/app/logs]
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:5001/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    ports: ['5001:5001']
+    networks: [staging_net]
+    logging: *default-logging
+
+  frontend:
+    image: ${IMAGE_FRONTEND}:${IMAGE_TAG}
+    restart: unless-stopped
+    env_file: client.env
+    environment:
+      NODE_ENV: staging
+      PORT: 3001
+    depends_on:
+      backend: { condition: service_healthy }
+    ports: ['3001:3001']
+    networks: [staging_net]
+    logging: *default-logging
+
+  chatbot:
+    image: ${IMAGE_CHATBOT}:${IMAGE_TAG}
+    restart: unless-stopped
+    env_file: server.env
+    environment: { PORT: 8003 }
+    networks: [staging_net]
+    logging: *default-logging
+
+  reports:
+    image: ${IMAGE_REPORTS}:${IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      PORT: 8002
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-crm_db_staging}
+      FRONTEND_URL: ${FRONTEND_URL:-http://staging.hubnest.in}
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [staging_net]
+    logging: *default-logging
+
+volumes:
+  postgres_staging:
+  redis_staging:
+  backend_staging_logs:
+
+networks:
+  staging_net:
+    driver: bridge

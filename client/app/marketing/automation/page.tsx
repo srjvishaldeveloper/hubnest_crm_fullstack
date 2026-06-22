@@ -9,7 +9,7 @@ import {
   ToggleLeft, ToggleRight, Trash2,
   PanelLeftClose, PanelLeftOpen,
   AlertTriangle, AlertCircle, Clock, XCircle, Terminal,
-  ChevronUp, Activity, ArrowLeft, Users,
+  ChevronUp, Activity, ArrowLeft, Users, Sun, Moon,
 } from 'lucide-react';
 import {
   ReactFlow, Background, Controls, MiniMap, addEdge,
@@ -2186,13 +2186,15 @@ function NewWorkflowModal({ onClose, onCreated, tk }: { onClose: () => void; onC
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AutomationPage() {
-  const { theme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   const tk = makeTokens(mounted ? isDark : true);
+
+  const toggleTheme = useCallback(() => setTheme(isDark ? 'light' : 'dark'), [isDark, setTheme]);
 
   // Keep tokensRef in sync for the ReactFlow node renderer
   tokensRef.current = tk;
@@ -2879,6 +2881,18 @@ export default function AutomationPage() {
             style={{ background: isSaving ? '#F97316aa' : '#F97316' }}>
             {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
             {isSaving ? 'Saving…' : 'Save'}
+          </button>
+
+          {/* Theme toggle */}
+          <div className="w-px h-4 flex-shrink-0" style={{ background: tk.divider }} />
+          <button
+            onClick={toggleTheme}
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="w-8 h-8 flex items-center justify-center rounded-lg transition-all flex-shrink-0 relative"
+            style={{ color: tk.textSecondary }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = tk.hoverBg; (e.currentTarget as HTMLButtonElement).style.color = '#F97316'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = tk.textSecondary; }}>
+            {isDark ? <Sun size={15} /> : <Moon size={15} />}
           </button>
 
           <button onClick={() => setShowNewModal(true)}

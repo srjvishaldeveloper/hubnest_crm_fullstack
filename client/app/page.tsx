@@ -10,6 +10,7 @@ import StatsBar from '../components/landing/StatsBar';
 import AIInsightsSection from '../components/landing/AIInsightsSection';
 import HowItWorks from '../components/landing/HowItWorks';
 import Testimonials from '../components/landing/Testimonials';
+import FAQSection from '../components/landing/FAQSection';
 import PricingSection from '../components/landing/PricingSection';
 import CTASection from '../components/landing/CTASection';
 import Footer from '../components/landing/Footer';
@@ -72,6 +73,7 @@ export default function LandingPage() {
       <AIInsightsSection />
       <HowItWorks />
       <Testimonials />
+      <FAQSection />
       <PricingSection />
       <CTASection />
       <Footer />
