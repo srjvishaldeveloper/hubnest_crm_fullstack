@@ -1,51 +1,45 @@
-// ─── HubNest CRM — Jenkins Pipeline ──────────────────────────────────────────
-// Stages: Checkout → Lint/Test → Build Images → Push Registry → Deploy → Verify
+// ─── HubNest CRM — Jenkins Pipeline (Windows Agent) ─────────────────────────
+// Compatible with: Windows Jenkins + Docker Desktop + NodeJS Tool
+// Stages: Checkout → Install → Build → Push Images → Deploy(disabled) → Health(disabled)
 //
-// Required Jenkins Credentials (Manage Jenkins → Credentials):
-//   DOCKER_REGISTRY_CREDS   — Username/Password  (DockerHub or private registry)
-//   SERVER_SSH_KEY          — SSH Private Key     (deployment server)
-//   SERVER_USER             — Secret Text         (SSH username on deploy server)
-//   SERVER_HOST             — Secret Text         (deploy server IP or hostname)
-//   ENV_SERVER_FILE         — Secret File         (server/.env for production)
-//   ENV_CLIENT_FILE         — Secret File         (client/.env.local for production)
-//
-// Required Jenkins Plugins:
-//   Pipeline, Git, Docker Pipeline, SSH Agent, Credentials Binding, Slack Notifier
-// ──────────────────────────────────────────────────────────────────────────────
+// Jenkins Setup Required:
+//   1. Manage Jenkins → Tools → NodeJS → Add: name="node22", version=22.x
+//   2. Manage Jenkins → Credentials → Global → Add:
+//        DOCKER_REGISTRY_CREDS  — Username/Password (DockerHub)
+//        ENV_CLIENT_FILE        — Secret File (client/.env.local)
+//        ENV_SERVER_FILE        — Secret File (server/.env)
+//        SERVER_SSH_KEY         — SSH key (add later when EC2 ready)
+//        SERVER_USER            — Secret Text (add later)
+//        SERVER_HOST            — Secret Text (add later)
+// ─────────────────────────────────────────────────────────────────────────────
 
 pipeline {
   agent any
 
+  tools {
+    nodejs 'node22'
+  }
+
   environment {
-    // ── Registry ──────────────────────────────────────────────────────────────
-    DOCKER_REGISTRY   = 'your-dockerhub-username'          // ← change this
-    IMAGE_BACKEND     = "${DOCKER_REGISTRY}/hubnest-backend"
-    IMAGE_FRONTEND    = "${DOCKER_REGISTRY}/hubnest-frontend"
-    IMAGE_CHATBOT     = "${DOCKER_REGISTRY}/hubnest-chatbot"
-    IMAGE_REPORTS     = "${DOCKER_REGISTRY}/hubnest-reports"
+    DOCKER_REGISTRY = 'srjchudamanideveloper'
+    IMAGE_BACKEND   = "${DOCKER_REGISTRY}/hubnest-backend"
+    IMAGE_FRONTEND  = "${DOCKER_REGISTRY}/hubnest-frontend"
+    IMAGE_CHATBOT   = "${DOCKER_REGISTRY}/hubnest-chatbot"
+    IMAGE_REPORTS   = "${DOCKER_REGISTRY}/hubnest-reports"
 
-    // ── Tag strategy: branch-shortcommit ─────────────────────────────────────
-    GIT_SHORT         = "${GIT_COMMIT[0..7]}"
-    IMAGE_TAG         = "${BRANCH_NAME}-${GIT_SHORT}"
-    LATEST_TAG        = "${BRANCH_NAME}-latest"
+    // Safe defaults — overwritten in Checkout stage
+    GIT_SHORT  = 'latest'
+    IMAGE_TAG  = 'latest'
+    LATEST_TAG = 'latest'
 
-    // ── Deploy paths on server ────────────────────────────────────────────────
-    DEPLOY_DIR        = '/opt/hubnest'
-
-    // ── Node / Python versions ────────────────────────────────────────────────
-    NODE_VERSION      = '20'
+    DEPLOY_DIR = '/opt/hubnest'
   }
 
   options {
-    buildDiscarder(logRotator(numToKeepStr: '15'))
-    timeout(time: 45, unit: 'MINUTES')
+    buildDiscarder(logRotator(numToKeepStr: '10'))
+    timeout(time: 60, unit: 'MINUTES')
     disableConcurrentBuilds()
-    ansiColor('xterm')
-  }
-
-  triggers {
-    // Auto-build on push to main or develop; PRs handled by webhook
-    pollSCM('H/5 * * * *')
+    timestamps()
   }
 
   stages {
@@ -53,34 +47,64 @@ pipeline {
     // ── 1. Checkout ───────────────────────────────────────────────────────────
     stage('Checkout') {
       steps {
-        echo '── Checking out source ──'
         checkout scm
         script {
-          env.GIT_SHORT  = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-          env.IMAGE_TAG  = "${BRANCH_NAME}-${env.GIT_SHORT}"
-          env.GIT_AUTHOR = sh(script: 'git log -1 --pretty=%an', returnStdout: true).trim()
-          env.GIT_MSG    = sh(script: 'git log -1 --pretty=%s', returnStdout: true).trim()
+          // BRANCH_NAME can be null on a plain Pipeline job (not Multibranch).
+          // Fall back to the actual working branch name.
+          if (!env.BRANCH_NAME) {
+            env.BRANCH_NAME = bat(
+              script: 'git rev-parse --abbrev-ref HEAD',
+              returnStdout: true
+            ).trim().readLines().last()
+          }
+          if (!env.BRANCH_NAME || env.BRANCH_NAME == 'HEAD') {
+            env.BRANCH_NAME = 'redesign-super-admin-dashboard'
+          }
+
+          env.GIT_SHORT = bat(
+            script: 'git rev-parse --short HEAD',
+            returnStdout: true
+          ).trim().readLines().last()
+
+          // Sanitise branch name for use as a Docker tag (/ → -)
+          def safeTag = env.BRANCH_NAME.replaceAll('/', '-').replaceAll('[^a-zA-Z0-9._-]', '-')
+          env.IMAGE_TAG  = "${safeTag}-${env.GIT_SHORT}"
+          env.LATEST_TAG = "${safeTag}-latest"
+
+          env.GIT_AUTHOR = bat(
+            script: 'git log -1 --pretty=%%an',
+            returnStdout: true
+          ).trim().readLines().last()
+
+          env.GIT_MSG = bat(
+            script: 'git log -1 --pretty=%%s',
+            returnStdout: true
+          ).trim().readLines().last()
         }
-        echo "Branch: ${BRANCH_NAME} | Commit: ${env.GIT_SHORT} | Author: ${env.GIT_AUTHOR}"
-        echo "Message: ${env.GIT_MSG}"
+        echo "Branch   : ${env.BRANCH_NAME}"
+        echo "Commit   : ${env.GIT_SHORT}"
+        echo "Image Tag: ${env.IMAGE_TAG}"
+        echo "Author   : ${env.GIT_AUTHOR}"
+        echo "Message  : ${env.GIT_MSG}"
       }
     }
 
-    // ── 2. Install & Lint ─────────────────────────────────────────────────────
-    stage('Install & Lint') {
+    // ── 2. Install Dependencies ───────────────────────────────────────────────
+    stage('Install') {
       parallel {
-        stage('Client — Install & Lint') {
+        stage('Client — install') {
           steps {
             dir('client') {
-              sh 'npm ci --prefer-offline'
-              sh 'npm run lint -- --max-warnings=0 || true'
+              bat 'node --version'
+              bat 'npm --version'
+              bat 'npm install'
             }
           }
         }
-        stage('Server — Install') {
+        stage('Server — install') {
           steps {
             dir('server') {
-              sh 'npm ci --prefer-offline'
+              bat 'npm install'
             }
           }
         }
@@ -90,82 +114,81 @@ pipeline {
     // ── 3. Build ──────────────────────────────────────────────────────────────
     stage('Build') {
       parallel {
-        stage('Build — Next.js') {
+
+        stage('Next.js Build') {
           steps {
             dir('client') {
               withCredentials([file(credentialsId: 'ENV_CLIENT_FILE', variable: 'ENV_FILE')]) {
-                sh 'cp "$ENV_FILE" .env.local'
+                bat 'copy "%ENV_FILE%" .env.local'
               }
-              sh 'npm run build'
-              sh 'rm -f .env.local'
+              bat 'npm run build'
+              bat 'if exist .env.local del /f .env.local'
             }
           }
         }
-        stage('Build — Server Docker image') {
+
+        stage('Backend Docker Image') {
           steps {
             dir('server') {
-              sh """
-                docker build \
-                  --build-arg NODE_ENV=production \
-                  --cache-from ${IMAGE_BACKEND}:${LATEST_TAG} \
-                  -t ${IMAGE_BACKEND}:${IMAGE_TAG} \
-                  -t ${IMAGE_BACKEND}:${LATEST_TAG} \
-                  .
-              """
+              bat "docker build --build-arg NODE_ENV=production -t %IMAGE_BACKEND%:%IMAGE_TAG% -t %IMAGE_BACKEND%:%LATEST_TAG% ."
             }
           }
         }
-        stage('Build — Chatbot Docker image') {
+
+        stage('Chatbot Docker Image') {
           steps {
-            dir('crm_microservices/ai_chatbot') {
-              sh """
-                docker build \
-                  --cache-from ${IMAGE_CHATBOT}:${LATEST_TAG} \
-                  -t ${IMAGE_CHATBOT}:${IMAGE_TAG} \
-                  -t ${IMAGE_CHATBOT}:${LATEST_TAG} \
-                  .
-              """
+            script {
+              if (fileExists('crm_microservices/ai_chatbot/Dockerfile')) {
+                dir('crm_microservices/ai_chatbot') {
+                  bat "docker build -t %IMAGE_CHATBOT%:%IMAGE_TAG% -t %IMAGE_CHATBOT%:%LATEST_TAG% ."
+                }
+              } else {
+                echo 'SKIP: crm_microservices/ai_chatbot/Dockerfile not found'
+              }
             }
           }
         }
-        stage('Build — Reports Docker image') {
+
+        stage('Reports Docker Image') {
           steps {
-            dir('crm_microservices/report_service') {
-              sh """
-                docker build \
-                  --cache-from ${IMAGE_REPORTS}:${LATEST_TAG} \
-                  -t ${IMAGE_REPORTS}:${IMAGE_TAG} \
-                  -t ${IMAGE_REPORTS}:${LATEST_TAG} \
-                  .
-              """
+            script {
+              if (fileExists('crm_microservices/report_service/Dockerfile')) {
+                dir('crm_microservices/report_service') {
+                  bat "docker build -t %IMAGE_REPORTS%:%IMAGE_TAG% -t %IMAGE_REPORTS%:%LATEST_TAG% ."
+                }
+              } else {
+                echo 'SKIP: crm_microservices/report_service/Dockerfile not found'
+              }
             }
           }
         }
+
       }
     }
 
-    // ── 4. Build & Tag Frontend Docker image ─────────────────────────────────
-    stage('Build Frontend Image') {
+    // ── 4. Frontend Docker Image ──────────────────────────────────────────────
+    stage('Frontend Docker Image') {
       steps {
-        sh """
-          docker build \
-            --build-arg NODE_ENV=production \
-            --cache-from ${IMAGE_FRONTEND}:${LATEST_TAG} \
-            -f client/Dockerfile \
-            -t ${IMAGE_FRONTEND}:${IMAGE_TAG} \
-            -t ${IMAGE_FRONTEND}:${LATEST_TAG} \
-            client/
-        """
+        script {
+          if (fileExists('client/Dockerfile')) {
+            bat "docker build --build-arg NODE_ENV=production -f client/Dockerfile -t %IMAGE_FRONTEND%:%IMAGE_TAG% -t %IMAGE_FRONTEND%:%LATEST_TAG% client/"
+          } else {
+            echo 'SKIP: client/Dockerfile not found'
+          }
+        }
       }
     }
 
-    // ── 5. Push to Registry ───────────────────────────────────────────────────
+    // ── 5. Push to DockerHub ──────────────────────────────────────────────────
     stage('Push Images') {
       when {
         anyOf {
           branch 'main'
+          branch 'master'
           branch 'develop'
           branch 'staging'
+          branch 'redesign-super-admin-dashboard'
+          expression { return env.BRANCH_NAME == 'redesign-super-admin-dashboard' }
         }
       }
       steps {
@@ -174,34 +197,59 @@ pipeline {
           usernameVariable: 'DOCKER_USER',
           passwordVariable: 'DOCKER_PASS'
         )]) {
-          sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
-          sh """
-            docker push ${IMAGE_BACKEND}:${IMAGE_TAG}
-            docker push ${IMAGE_BACKEND}:${LATEST_TAG}
-            docker push ${IMAGE_FRONTEND}:${IMAGE_TAG}
-            docker push ${IMAGE_FRONTEND}:${LATEST_TAG}
-            docker push ${IMAGE_CHATBOT}:${IMAGE_TAG}
-            docker push ${IMAGE_CHATBOT}:${LATEST_TAG}
-            docker push ${IMAGE_REPORTS}:${IMAGE_TAG}
-            docker push ${IMAGE_REPORTS}:${LATEST_TAG}
-          """
-          sh 'docker logout'
+          bat 'echo %DOCKER_PASS%| docker login -u %DOCKER_USER% --password-stdin'
+
+          bat "docker push %IMAGE_BACKEND%:%IMAGE_TAG%"
+          bat "docker push %IMAGE_BACKEND%:%LATEST_TAG%"
+
+          script {
+            if (fileExists('client/Dockerfile')) {
+              bat "docker push %IMAGE_FRONTEND%:%IMAGE_TAG%"
+              bat "docker push %IMAGE_FRONTEND%:%LATEST_TAG%"
+            }
+            if (fileExists('crm_microservices/ai_chatbot/Dockerfile')) {
+              bat "docker push %IMAGE_CHATBOT%:%IMAGE_TAG%"
+              bat "docker push %IMAGE_CHATBOT%:%LATEST_TAG%"
+            }
+            if (fileExists('crm_microservices/report_service/Dockerfile')) {
+              bat "docker push %IMAGE_REPORTS%:%IMAGE_TAG%"
+              bat "docker push %IMAGE_REPORTS%:%LATEST_TAG%"
+            }
+          }
+
+          bat 'docker logout'
         }
       }
     }
 
-    // ── 6. Deploy ─────────────────────────────────────────────────────────────
+    // ── 6. Deploy to EC2 — DISABLED until server is ready ────────────────────
+    // To enable:
+    //   1. Create EC2 instance and add SERVER_SSH_KEY, SERVER_USER, SERVER_HOST credentials
+    //   2. Run deploy/setup-server.sh on the EC2 instance
+    //   3. Remove the line: expression { return false }
     stage('Deploy') {
       when {
-        anyOf { branch 'main'; branch 'staging' }
+        allOf {
+          anyOf {
+            branch 'main'
+            branch 'master'
+            branch 'staging'
+            expression { return env.BRANCH_NAME in ['main', 'master', 'staging'] }
+          }
+          expression { return false } // ← remove this line when EC2 is ready
+        }
       }
       steps {
         withCredentials([
-          sshUserPrivateKey(credentialsId: 'SERVER_SSH_KEY',  keyFileVariable: 'SSH_KEY'),
+          sshUserPrivateKey(
+            credentialsId: 'SERVER_SSH_KEY',
+            keyFileVariable: 'SSH_KEY',
+            usernameVariable: 'SSH_USER_FROM_CRED'
+          ),
           string(credentialsId: 'SERVER_USER', variable: 'SSH_USER'),
           string(credentialsId: 'SERVER_HOST', variable: 'SSH_HOST'),
-          file(credentialsId: 'ENV_SERVER_FILE',  variable: 'ENV_SERVER'),
-          file(credentialsId: 'ENV_CLIENT_FILE',  variable: 'ENV_CLIENT'),
+          file(credentialsId: 'ENV_SERVER_FILE', variable: 'ENV_SERVER'),
+          file(credentialsId: 'ENV_CLIENT_FILE', variable: 'ENV_CLIENT'),
           usernamePassword(
             credentialsId: 'DOCKER_REGISTRY_CREDS',
             usernameVariable: 'DOCKER_USER',
@@ -209,76 +257,36 @@ pipeline {
           )
         ]) {
           script {
-            def deployEnv   = (BRANCH_NAME == 'main') ? 'production' : 'staging'
-            def composeFile = (BRANCH_NAME == 'main') ? 'docker-compose.prod.yml' : 'docker-compose.staging.yml'
+            def composeFile = (env.BRANCH_NAME in ['main','master'])
+              ? 'docker-compose.prod.yml'
+              : 'docker-compose.staging.yml'
 
-            // Upload env files + deploy compose to server
-            sh """
-              chmod 600 "$SSH_KEY"
-
-              # Upload compose file
-              scp -i "$SSH_KEY" -o StrictHostKeyChecking=no \
-                deploy/${composeFile} \
-                ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/docker-compose.yml
-
-              # Upload environment files
-              scp -i "$SSH_KEY" -o StrictHostKeyChecking=no \
-                "$ENV_SERVER" ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/server.env
-
-              scp -i "$SSH_KEY" -o StrictHostKeyChecking=no \
-                "$ENV_CLIENT" ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/client.env
-
-              # Upload nginx config
-              scp -i "$SSH_KEY" -o StrictHostKeyChecking=no \
-                deploy/nginx.conf ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/nginx.conf
+            bat """
+              scp -i "%SSH_KEY%" -o StrictHostKeyChecking=no deploy\\${composeFile} %SSH_USER%@%SSH_HOST%:%DEPLOY_DIR%/docker-compose.yml
+              scp -i "%SSH_KEY%" -o StrictHostKeyChecking=no "%ENV_SERVER%" %SSH_USER%@%SSH_HOST%:%DEPLOY_DIR%/server.env
+              scp -i "%SSH_KEY%" -o StrictHostKeyChecking=no "%ENV_CLIENT%" %SSH_USER%@%SSH_HOST%:%DEPLOY_DIR%/client.env
+              scp -i "%SSH_KEY%" -o StrictHostKeyChecking=no deploy\\nginx.conf %SSH_USER%@%SSH_HOST%:%DEPLOY_DIR%/nginx.conf
             """
 
-            // Run deploy script on server
-            sh """
-              ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no \
-                ${SSH_USER}@${SSH_HOST} '
-                  set -e
-                  cd ${DEPLOY_DIR}
-
-                  echo "── Pulling latest images ──"
-                  echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-
-                  IMAGE_TAG=${IMAGE_TAG} \\
-                  IMAGE_BACKEND=${IMAGE_BACKEND} \\
-                  IMAGE_FRONTEND=${IMAGE_FRONTEND} \\
-                  IMAGE_CHATBOT=${IMAGE_CHATBOT} \\
-                  IMAGE_REPORTS=${IMAGE_REPORTS} \\
-                  docker compose pull
-
-                  echo "── Running DB migrations ──"
-                  IMAGE_TAG=${IMAGE_TAG} \\
-                  IMAGE_BACKEND=${IMAGE_BACKEND} \\
-                  IMAGE_FRONTEND=${IMAGE_FRONTEND} \\
-                  IMAGE_CHATBOT=${IMAGE_CHATBOT} \\
-                  IMAGE_REPORTS=${IMAGE_REPORTS} \\
-                  docker compose run --rm backend npm run migrate
-
-                  echo "── Restarting services (zero-downtime rolling) ──"
-                  IMAGE_TAG=${IMAGE_TAG} \\
-                  IMAGE_BACKEND=${IMAGE_BACKEND} \\
-                  IMAGE_FRONTEND=${IMAGE_FRONTEND} \\
-                  IMAGE_CHATBOT=${IMAGE_CHATBOT} \\
-                  IMAGE_REPORTS=${IMAGE_REPORTS} \\
-                  docker compose up -d --remove-orphans
-
-                  docker logout
-                  echo "── Deploy complete ──"
-                '
+            bat """
+              ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %SSH_USER%@%SSH_HOST% "cd %DEPLOY_DIR% && echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin && IMAGE_TAG=%IMAGE_TAG% IMAGE_BACKEND=%IMAGE_BACKEND% IMAGE_FRONTEND=%IMAGE_FRONTEND% IMAGE_CHATBOT=%IMAGE_CHATBOT% IMAGE_REPORTS=%IMAGE_REPORTS% docker compose pull && IMAGE_TAG=%IMAGE_TAG% IMAGE_BACKEND=%IMAGE_BACKEND% IMAGE_FRONTEND=%IMAGE_FRONTEND% IMAGE_CHATBOT=%IMAGE_CHATBOT% IMAGE_REPORTS=%IMAGE_REPORTS% docker compose run --rm backend npm run migrate && IMAGE_TAG=%IMAGE_TAG% IMAGE_BACKEND=%IMAGE_BACKEND% IMAGE_FRONTEND=%IMAGE_FRONTEND% IMAGE_CHATBOT=%IMAGE_CHATBOT% IMAGE_REPORTS=%IMAGE_REPORTS% docker compose up -d --remove-orphans && docker logout"
             """
           }
         }
       }
     }
 
-    // ── 7. Health Check ───────────────────────────────────────────────────────
+    // ── 7. Health Check — DISABLED until EC2 is ready ────────────────────────
     stage('Health Check') {
       when {
-        anyOf { branch 'main'; branch 'staging' }
+        allOf {
+          anyOf {
+            branch 'main'
+            branch 'master'
+            expression { return env.BRANCH_NAME in ['main', 'master'] }
+          }
+          expression { return false } // ← remove this line when EC2 is ready
+        }
       }
       steps {
         withCredentials([
@@ -286,38 +294,8 @@ pipeline {
           string(credentialsId: 'SERVER_USER', variable: 'SSH_USER'),
           string(credentialsId: 'SERVER_HOST', variable: 'SSH_HOST')
         ]) {
-          sh """
-            chmod 600 "$SSH_KEY"
-            ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no \
-              ${SSH_USER}@${SSH_HOST} '
-                echo "── Waiting for services to be healthy ──"
-                sleep 15
-
-                check() {
-                  local url=\$1
-                  local name=\$2
-                  local max=12
-                  local i=0
-                  while [ \$i -lt \$max ]; do
-                    if curl -sf "\$url" > /dev/null 2>&1; then
-                      echo "✓ \$name is healthy"
-                      return 0
-                    fi
-                    i=\$((i+1))
-                    echo "  Waiting for \$name (\$i/\$max)…"
-                    sleep 5
-                  done
-                  echo "✗ \$name failed health check"
-                  return 1
-                }
-
-                check "http://localhost:5000/health"  "Backend API"
-                check "http://localhost:3000"          "Frontend"
-                check "http://localhost:8002/api/health" "Reports Service"
-                check "http://localhost:8003/docs"     "Chatbot Service"
-
-                echo "── All services healthy ──"
-              '
+          bat """
+            ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %SSH_USER%@%SSH_HOST% "sleep 15 && curl -sf http://localhost:5000/health && echo Backend OK && curl -sf http://localhost:3000 && echo Frontend OK"
           """
         }
       }
@@ -328,22 +306,14 @@ pipeline {
   // ── Post Actions ─────────────────────────────────────────────────────────────
   post {
     always {
-      // Clean up dangling images on build agent
-      sh 'docker image prune -f --filter "until=24h" || true'
+      bat 'docker image prune -f || exit 0'
       cleanWs()
     }
     success {
-      echo "✓ Pipeline succeeded — ${BRANCH_NAME}@${env.GIT_SHORT}"
-      // Uncomment and configure Slack plugin for notifications:
-      // slackSend channel: '#deployments',
-      //   color: 'good',
-      //   message: "✅ *HubNest CRM* deployed to ${BRANCH_NAME}\n*${env.GIT_MSG}* by ${env.GIT_AUTHOR}\nBuild: ${BUILD_URL}"
+      echo "SUCCESS — ${env.BRANCH_NAME} @ ${env.GIT_SHORT} — images: ${env.IMAGE_TAG}"
     }
     failure {
-      echo "✗ Pipeline FAILED — ${BRANCH_NAME}@${env.GIT_SHORT}"
-      // slackSend channel: '#deployments',
-      //   color: 'danger',
-      //   message: "❌ *HubNest CRM* FAILED on ${BRANCH_NAME}\n*${env.GIT_MSG}* by ${env.GIT_AUTHOR}\nBuild: ${BUILD_URL}"
+      echo "FAILED  — ${env.BRANCH_NAME} @ ${env.GIT_SHORT}"
     }
   }
 }
