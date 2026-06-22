@@ -115,7 +115,7 @@ export default function MarketingAudiencePage() {
             <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Age Group Distribution
           </h3>
           <div className="h-72 pt-4">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
               <BarChart data={DEFAULT_AGE_DATA}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} />
                 <XAxis dataKey="name" stroke="#94A3B8" fontSize={11} />
@@ -141,7 +141,7 @@ export default function MarketingAudiencePage() {
           </h3>
           <div className="h-72 pt-4 flex flex-col sm:flex-row items-center justify-around gap-4">
             <div className="w-48 h-48 shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                 <PieChart>
                   <Tooltip
                     contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid #E2E8F0' }}

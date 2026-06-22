@@ -76,7 +76,7 @@ export default function AnalyticsPage() {
             <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">Tenant Growth Trend</h2>
           </div>
           <div className="h-64 pt-2">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
               <AreaChart data={data.tenantGrowth}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                 <XAxis dataKey="month" stroke="#94A3B8" fontSize={12} />
@@ -95,7 +95,7 @@ export default function AnalyticsPage() {
             <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">Active Platform Users</h2>
           </div>
           <div className="h-64 pt-2">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
               <BarChart data={data.activeUsersTrend}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                 <XAxis dataKey="month" stroke="#94A3B8" fontSize={12} />

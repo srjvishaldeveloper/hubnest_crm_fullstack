@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { Suspense, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   DndContext,
@@ -172,7 +172,7 @@ function TopBar({
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
-export default function AutomationBuilderPage() {
+function AutomationBuilderInner() {
   const searchParams = useSearchParams();
   const workflowId = searchParams.get('id');
 
@@ -312,5 +312,17 @@ export default function AutomationBuilderPage() {
         </div>
       </div>
     </DndContext>
+  );
+}
+
+export default function AutomationBuilderPage() {
+  return (
+    <Suspense fallback={
+      <div className="fixed inset-0 flex items-center justify-center" style={{ background: '#0F172A' }}>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" />
+      </div>
+    }>
+      <AutomationBuilderInner />
+    </Suspense>
   );
 }

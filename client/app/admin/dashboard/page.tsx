@@ -125,7 +125,7 @@ export default function AdminDashboard() {
               <div className="p-3 bg-emerald-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">{Math.round(kpiData.totalLeads * 0.42)}</p><p className="text-[10px] text-slate-500">Converted</p></div>
               <div className="p-3 bg-violet-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">42%</p><p className="text-[10px] text-slate-500">Conv. Rate</p></div>
             </div>
-            <div className="h-28" style={{minHeight:112}}><ResponsiveContainer width="100%" height="100%"><AreaChart data={weeklyData}><Area type="monotone" dataKey="converted" stroke="#2563EB" fill="#2563EB" fillOpacity={0.08} strokeWidth={2}/><XAxis dataKey="day" tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/></AreaChart></ResponsiveContainer></div>
+            <div className="h-28" style={{minHeight:112}}><ResponsiveContainer width="100%" height="100%" minHeight={1}><AreaChart data={weeklyData}><Area type="monotone" dataKey="converted" stroke="#2563EB" fill="#2563EB" fillOpacity={0.08} strokeWidth={2}/><XAxis dataKey="day" tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/></AreaChart></ResponsiveContainer></div>
           </div>
           {/* Marketing */}
           <div className="bg-white dark:bg-[#161616] rounded-2xl border border-slate-200/60 dark:border-[#1f1f1f] p-5">
@@ -135,7 +135,7 @@ export default function AdminDashboard() {
               <div className="p-3 bg-blue-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">3.2x</p><p className="text-[10px] text-slate-500">ROI</p></div>
               <div className="p-3 bg-emerald-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">₹2.1L</p><p className="text-[10px] text-slate-500">Spend</p></div>
             </div>
-            <div className="h-28" style={{minHeight:112}}><ResponsiveContainer width="100%" height="100%"><BarChart data={weeklyData}><Bar dataKey="leads" fill="#8B5CF6" radius={[4,4,0,0]} fillOpacity={0.7}/><XAxis dataKey="day" tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/></BarChart></ResponsiveContainer></div>
+            <div className="h-28" style={{minHeight:112}}><ResponsiveContainer width="100%" height="100%" minHeight={1}><BarChart data={weeklyData}><Bar dataKey="leads" fill="#8B5CF6" radius={[4,4,0,0]} fillOpacity={0.7}/><XAxis dataKey="day" tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/></BarChart></ResponsiveContainer></div>
           </div>
           {/* Support */}
           <div className="bg-white dark:bg-[#161616] rounded-2xl border border-slate-200/60 dark:border-[#1f1f1f] p-5">
@@ -170,11 +170,11 @@ export default function AdminDashboard() {
               <div className="p-3 bg-emerald-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">{kpiData.activeUsers}</p><p className="text-[10px] text-slate-500">Active Today</p></div>
               <div className="p-3 bg-violet-50 rounded-xl text-center"><p className="text-lg font-bold text-[#0F172A] dark:text-[#F9FAFB]">94%</p><p className="text-[10px] text-slate-500">Retention</p></div>
             </div>
-            <div className="h-40" style={{minHeight:160}}><ResponsiveContainer width="100%" height="100%"><AreaChart data={loginData}><CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9"/><XAxis dataKey="day" tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/><YAxis tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/><Tooltip contentStyle={{borderRadius:12,border:'1px solid #E2E8F0',fontSize:12}}/><Area type="monotone" dataKey="logins" stroke="#2563EB" fill="#2563EB" fillOpacity={0.1} strokeWidth={2}/></AreaChart></ResponsiveContainer></div>
+            <div className="h-40" style={{minHeight:160}}><ResponsiveContainer width="100%" height="100%" minHeight={1}><AreaChart data={loginData}><CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9"/><XAxis dataKey="day" tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/><YAxis tick={{fontSize:10,fill:'#94A3B8'}} axisLine={false} tickLine={false}/><Tooltip contentStyle={{borderRadius:12,border:'1px solid #E2E8F0',fontSize:12}}/><Area type="monotone" dataKey="logins" stroke="#2563EB" fill="#2563EB" fillOpacity={0.1} strokeWidth={2}/></AreaChart></ResponsiveContainer></div>
           </div>
           <div className="lg:col-span-2 bg-white dark:bg-[#161616] rounded-2xl border border-slate-200/60 dark:border-[#1f1f1f] p-5">
             <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-3">Role Distribution</h3>
-            <div className="h-44" style={{minHeight:176}}><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={72} dataKey="value" paddingAngle={3}>{pieData.map((e,i)=><Cell key={i} fill={e.color}/>)}</Pie><Tooltip contentStyle={{borderRadius:12,border:'1px solid #E2E8F0',fontSize:12}}/></PieChart></ResponsiveContainer></div>
+            <div className="h-44" style={{minHeight:176}}><ResponsiveContainer width="100%" height="100%" minHeight={1}><PieChart><Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={72} dataKey="value" paddingAngle={3}>{pieData.map((e,i)=><Cell key={i} fill={e.color}/>)}</Pie><Tooltip contentStyle={{borderRadius:12,border:'1px solid #E2E8F0',fontSize:12}}/></PieChart></ResponsiveContainer></div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">{pieData.map(d=><div key={d.name} className="flex items-center gap-1.5 text-xs text-slate-600"><span className="w-2 h-2 rounded-full" style={{backgroundColor:d.color}}/>{d.name} ({d.value})</div>)}</div>
           </div>
         </div>

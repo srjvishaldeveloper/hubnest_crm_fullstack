@@ -122,7 +122,7 @@ export default function MarketingABTestingPage() {
         <div className="bg-white dark:bg-[#161616] p-6 rounded-2xl border border-slate-200/60 dark:border-[#1f1f1f] shadow-sm">
           <h3 className="text-sm font-bold text-slate-900 dark:text-[#ededed] mb-4">Conversions by Campaign</h3>
           <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} />

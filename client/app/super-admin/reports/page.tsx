@@ -38,7 +38,7 @@ export default function SuperAdminReportsPage() {
       <div className="bg-card rounded-2xl border border-slate-200/60 p-6 space-y-4">
         <h3 className="text-xs font-bold text-[#0F172A] dark:text-[#F9FAFB] uppercase">Workspace signup & active user growth</h3>
         <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minHeight={1}>
             <AreaChart data={[{ month: 'Jan', signups: 12, users: 120 }, { month: 'Feb', signups: 19, users: 180 }, { month: 'Mar', signups: 26, users: 240 }, { month: 'Apr', signups: 38, users: 310 }]}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />

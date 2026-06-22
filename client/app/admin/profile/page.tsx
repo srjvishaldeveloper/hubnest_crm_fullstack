@@ -163,7 +163,7 @@ export default function AdminProfilePage() {
           <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col items-center">
             <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider self-start mb-4">Approval Activities</h3>
             <div className="w-24 h-24 relative flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                 <PieChart>
                   <Pie
                     data={[

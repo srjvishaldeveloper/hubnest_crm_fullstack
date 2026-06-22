@@ -494,7 +494,7 @@ export default function SalesProfilePage() {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4 lg:col-span-1">
               <h3 className="text-[13px] font-bold text-slate-800">Conversion Distribution</h3>
               <div className="flex flex-col items-center justify-center h-48 relative">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                   <PieChart>
                     <Pie data={leadDistribution} cx="50%" cy="50%" innerRadius={42} outerRadius={64} dataKey="value" paddingAngle={4}>
                       {leadDistribution.map((e, i) => <Cell key={i} fill={e.color} />)}

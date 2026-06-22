@@ -332,7 +332,7 @@ export default function SalesDashboard() {
             <button onClick={() => router.push('/sales/activity')} className="text-xs font-bold text-blue-600 hover:underline">Log →</button>
           </div>
           <div className="h-32" style={{minHeight:128}}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
               <BarChart data={activityBarData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#94A3B8' }} axisLine={false} tickLine={false} />

@@ -127,7 +127,7 @@ const fmt = (n: number) => n >= 1000 ? `₹${(n / 1000).toFixed(1)}L` : `${n}`;
 function ConicPie({ segments }: { segments: { label: string; value: number; color: string }[] }) {
   return (
     <div style={{ width: '100%', height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minHeight={1}>
         <RePieChart>
           <Pie
             data={segments}
@@ -549,7 +549,7 @@ startxref
                       </span>
                     </div>
                     <div style={{ width: '100%', height: 160 }}>
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                         <AreaChart data={reportData.leadTrend} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                           <defs>
                             <linearGradient id="leadTrendGrad" x1="0" y1="0" x2="0" y2="1">
@@ -609,7 +609,7 @@ startxref
                   <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-1">Pipeline Overview</h3>
                   <p className="text-xs text-slate-500 mb-5">Leads per stage</p>
                   <div style={{ width: '100%', height: 240 }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                       <BarChart data={reportData.pipeline} layout="vertical" margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F1F5F9" />
                         <XAxis type="number" stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
@@ -644,7 +644,7 @@ startxref
                     <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-1">Monthly Sales Performance</h3>
                     <p className="text-xs text-slate-500 mb-5">Revenue vs Target</p>
                     <div style={{ width: '100%', height: 210 }}>
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                         <BarChart data={[
                           { m: 'Jan', rev: 38, tgt: 45 },
                           { m: 'Feb', rev: 52, tgt: 45 },
@@ -955,7 +955,7 @@ startxref
                     <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-1">Stage-by-Stage Distribution</h3>
                     <p className="text-xs text-slate-500 mb-6">Leads per pipeline stage</p>
                     <div style={{ width: '100%', height: 210 }}>
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                         <BarChart data={reportData.pipelineStages} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                           <XAxis dataKey="stage" stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
@@ -1034,7 +1034,7 @@ startxref
                   <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-5">Revenue by Executive</h3>
                   <div className="space-y-4">
                   <div style={{ width: '100%', height: 220 }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                       <BarChart
                         data={reportData.team.map((m, idx) => {
                           const revValues = [18.2, 14.7, 10.4, 8.1, 6.6];

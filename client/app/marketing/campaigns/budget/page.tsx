@@ -129,7 +129,7 @@ export default function MarketingBudgetPage() {
           <h3 className="text-sm font-bold text-slate-900 dark:text-[#ededed]">Spend by Campaign</h3>
           {spendChart.length > 0 ? (
             <div className="h-64 pt-2">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                 <BarChart data={spendChart} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
                   <XAxis type="number" stroke="#94a3b8" fontSize={10} tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} />

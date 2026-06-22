@@ -220,7 +220,7 @@ export default function FinanceDashboard() {
             <span className="px-3 py-1 bg-[var(--accent)] text-[var(--muted-foreground)] text-xs font-bold uppercase tracking-wider rounded-lg">6 Months</span>
           </div>
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
               <AreaChart data={cashFlowData}>
                 <defs>
                   <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
@@ -249,7 +249,7 @@ export default function FinanceDashboard() {
             <PieChart className="w-5 h-5 text-indigo-500" /> Expense Breakdown
           </h3>
           <div className="h-52">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
               <RechartsPie>
                 <Pie data={data?.expenseByCategory || []} cx="50%" cy="50%" innerRadius={55} outerRadius={85} dataKey="total" paddingAngle={5} nameKey="category" stroke="none">
                   {(data?.expenseByCategory || []).map((_e, i) => (

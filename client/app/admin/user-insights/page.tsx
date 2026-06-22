@@ -42,7 +42,7 @@ export default function AdminUserInsightsPage() {
           <TrendingUp className="w-4 h-4 text-blue-600" /> Lead Conversions vs Assignments
         </h3>
         <div className="h-80 pt-4">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minHeight={1}>
             <BarChart data={PERFORMANCE_DATA}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" stroke="#64748B" fontSize={11} />

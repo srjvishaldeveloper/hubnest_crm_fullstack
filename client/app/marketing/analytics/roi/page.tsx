@@ -204,7 +204,7 @@ export default function MarketingROIReportPage() {
       <div className="bg-white dark:bg-[#161616] p-6 rounded-2xl border border-slate-200/60 dark:border-[#1f1f1f] shadow-sm space-y-4">
         <h3 className="text-sm font-bold text-slate-900 dark:text-[#ededed]">Profit vs Spend Trend</h3>
         <div className="h-80 pt-4">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minHeight={1}>
             <AreaChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} />
               <XAxis dataKey="name" stroke="#94A3B8" fontSize={11} />

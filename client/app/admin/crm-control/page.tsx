@@ -205,7 +205,7 @@ export default function CRMControlPage() {
             <div className="flex-1 overflow-y-auto mt-4 space-y-4 pr-1.5 scrollbar-thin">
               <div className="flex items-center gap-4 bg-slate-50 dark:bg-[#161616]/50 p-3.5 border border-slate-100 dark:border-[#1f1f1f] rounded-xl">
                 <div className="w-24 h-24 shrink-0 relative flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                     <PieChart>
                       <Pie
                         data={[
@@ -322,7 +322,7 @@ export default function CRMControlPage() {
             </div>
             <div className="flex-1 overflow-y-auto mt-4 space-y-4 pr-1.5 scrollbar-thin">
               <div className="h-28 bg-slate-50 dark:bg-[#161616] rounded-xl border border-slate-100 dark:border-[#1f1f1f] p-2">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                   <AreaChart data={[{ m: 'Jan', val: 8.2 }, { m: 'Feb', val: 12.4 }, { m: 'Mar', val: 18.6 }, { m: 'Apr', val: 24.5 }]}>
                     <defs>
                       <linearGradient id="financeArea" x1="0" y1="0" x2="0" y2="1">
@@ -431,7 +431,7 @@ export default function CRMControlPage() {
                 <div key={idx} className="flex items-center gap-3">
                   <span className="text-[11px] font-bold text-slate-500 w-24 shrink-0">{chart.label}</span>
                   <div className="flex-1 h-9">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                       <ReLineChart data={chart.data}>
                         <Line type="monotone" dataKey="v" stroke={chart.color} strokeWidth={2} dot={false} />
                       </ReLineChart>

@@ -218,7 +218,7 @@ export default function MarketingCampaignDetailPage() {
           <div className="bg-white dark:bg-[#161616] p-6 rounded-2xl border border-slate-200/60 dark:border-[#1f1f1f] shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-slate-900 dark:text-[#ededed]">Clicks vs Conversions</h3>
             <div className="h-72 pt-4">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                 <LineChart data={graphData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} />

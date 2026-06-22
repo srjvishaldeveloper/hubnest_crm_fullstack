@@ -108,7 +108,7 @@ export default function AnalyticsPage() {
         <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
           <h3 className="font-bold text-[var(--foreground)] text-base mb-4">Cash Flow (Inflow vs Outflow)</h3>
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
               <BarChart data={data?.cashFlow || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} axisLine={false} tickLine={false} />
@@ -126,7 +126,7 @@ export default function AnalyticsPage() {
         <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
           <h3 className="font-bold text-[var(--foreground)] text-base mb-4">Profit Trend</h3>
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
               <AreaChart data={data?.profitTrend || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} axisLine={false} tickLine={false} />
@@ -148,7 +148,7 @@ export default function AnalyticsPage() {
           <h3 className="font-bold text-[var(--foreground)] text-base mb-4">Invoice Status Distribution</h3>
           <div className="flex items-center gap-6">
             <div className="h-48 w-48 shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                 <PieChart>
                   <Pie data={data?.invoiceStatus || []} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="count" paddingAngle={3} nameKey="status">
                     {(data?.invoiceStatus || []).map((e, i) => (
@@ -180,7 +180,7 @@ export default function AnalyticsPage() {
         <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
           <h3 className="font-bold text-[var(--foreground)] text-base mb-4">Payment Methods</h3>
           <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
               <BarChart data={data?.paymentMethods || []} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`} />

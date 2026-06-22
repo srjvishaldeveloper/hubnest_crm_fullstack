@@ -267,7 +267,7 @@ export default function ReportsPage() {
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm">
                   <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">Leads Conversion Trend</h3>
                   <div className="h-56">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                       <AreaChart data={leadsTrend}>
                         <defs>
                           <linearGradient id="leadsGrad" x1="0" y1="0" x2="0" y2="1">
@@ -291,7 +291,7 @@ export default function ReportsPage() {
                   <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col items-center">
                     <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider self-start mb-4">Leads by Source</h3>
                     <div className="w-28 h-28 relative flex items-center justify-center">
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                         <PieChart>
                           <Pie
                             data={leadsBySource}
@@ -318,7 +318,7 @@ export default function ReportsPage() {
                   <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm">
                     <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">ROI Pipeline Trend</h3>
                     <div className="h-28">
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                         <ReBarChart data={roiTrend}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                           <XAxis dataKey="month" stroke="#94A3B8" fontSize={10} tickLine={false} />
@@ -337,7 +337,7 @@ export default function ReportsPage() {
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm">
                   <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">Campaign Click Conversion</h3>
                   <div className="h-56">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                       <ReBarChart data={campaignClickConv}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                         <XAxis dataKey="name" stroke="#94A3B8" fontSize={10} tickLine={false} />
@@ -356,7 +356,7 @@ export default function ReportsPage() {
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col items-center">
                   <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider self-start mb-4">Ticket Status</h3>
                   <div className="w-32 h-32 relative flex items-center justify-center">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                       <PieChart>
                         <Pie
                           data={ticketStatus}
@@ -382,7 +382,7 @@ export default function ReportsPage() {
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm">
                   <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">Tickets Inflow Trend</h3>
                   <div className="h-32">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                       <ReLineChart data={ticketsInflow}>
                         <XAxis dataKey="day" stroke="#94A3B8" fontSize={10} tickLine={false} />
                         <Tooltip />
@@ -407,7 +407,7 @@ export default function ReportsPage() {
                 <div className="bg-white p-5 border border-slate-200/60 rounded-2xl shadow-sm">
                   <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">Revenue Trend (Gross ARR)</h3>
                   <div className="h-44">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                       <AreaChart data={revenueTrend}>
                         <XAxis dataKey="m" stroke="#94A3B8" fontSize={9} />
                         <Area type="monotone" dataKey="value" stroke="#10B981" fill="#10B981" fillOpacity={0.05} />
@@ -672,7 +672,7 @@ export default function ReportsPage() {
               <p className="text-[10px] text-slate-500 mt-0.5">Miniature activity line charts</p>
             </div>
             <div className="h-28">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                 <ReLineChart data={[{ x: 1, y: 10 }, { x: 2, y: 25 }, { x: 3, y: 18 }, { x: 4, y: 34 }]}>
                   <Line type="monotone" dataKey="y" stroke="#2563EB" strokeWidth={2} dot={false} />
                 </ReLineChart>
