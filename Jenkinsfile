@@ -21,7 +21,7 @@ pipeline {
   }
 
   environment {
-    DOCKER_REGISTRY = 'srjchudamanideveloper'
+    DOCKER_REGISTRY = 'sandipsharmawagle'
     IMAGE_BACKEND   = "${DOCKER_REGISTRY}/hubnest-backend"
     IMAGE_FRONTEND  = "${DOCKER_REGISTRY}/hubnest-frontend"
     IMAGE_CHATBOT   = "${DOCKER_REGISTRY}/hubnest-chatbot"
@@ -321,8 +321,10 @@ pipeline {
   // ── Post Actions ─────────────────────────────────────────────────────────────
   post {
     always {
-      bat 'docker image prune -f || exit 0'
-      cleanWs()
+      script {
+        try { bat 'docker image prune -f || exit 0' } catch (ignored) {}
+        try { cleanWs() } catch (ignored) {}
+      }
     }
     success {
       echo "SUCCESS — ${env.BRANCH_NAME} @ ${env.GIT_SHORT} — images: ${env.IMAGE_TAG}"
