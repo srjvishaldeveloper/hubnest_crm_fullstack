@@ -9,8 +9,6 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: crm_db
       PGDATA: /var/lib/postgresql/data/pgdata
-    ports:
-      - '5433:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./server/migrations:/docker-entrypoint-initdb.d
@@ -20,6 +18,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - crm_internal
 
   # ── Redis ───────────────────────────────────────────────────────────────────
   redis:
@@ -27,8 +27,6 @@ services:
     container_name: crm_redis
     restart: unless-stopped
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    ports:
-      - '6379:6379'
     volumes:
       - redis_data:/data
     healthcheck:
@@ -37,6 +35,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+    networks:
+      - crm_internal
 
   # ── Backend API ─────────────────────────────────────────────────────────────
   backend:
@@ -46,8 +46,6 @@ services:
     image: crm_backend_image
     container_name: crm_backend
     restart: unless-stopped
-    ports:
-      - '5000:5000'
     env_file:
       - ./server/.env
     environment:
@@ -57,6 +55,7 @@ services:
       REDIS_URL: redis://redis:6379
       CHATBOT_URL: http://ai_chatbot:8003
       REPORT_SERVICE_URL: http://report_service:8002
+      FRONTEND_URL: https://crm.srjhubnest.com
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,6 +73,37 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+    networks:
+      crm_internal: {}
+      shared_proxy:
+        aliases:
+          - crm-backend
+
+  # ── CRM Next.js Frontend ─────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: crm_frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: https://crm.srjhubnest.com/api
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3000/ || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      crm_internal: {}
+      shared_proxy:
+        aliases:
+          - crm-frontend
 
   # ── AI Chatbot Microservice ──────────────────────────────────────────────────
   ai_chatbot:
@@ -83,13 +113,13 @@ services:
     image: crm_chatbot_image
     container_name: crm_chatbot
     restart: unless-stopped
-    ports:
-      - '8003:8003'
     env_file:
       - ./crm_microservices/ai_chatbot/.env
     environment:
       - PORT=8003
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=https://crm.srjhubnest.com
+    networks:
+      - crm_internal
 
   # ── Reports & Analytics Microservice ─────────────────────────────────────────
   report_service:
@@ -99,20 +129,26 @@ services:
     image: crm_report_service_image
     container_name: crm_report_service
     restart: unless-stopped
-    ports:
-      - '8002:8002'
     env_file:
       - ./crm_microservices/report_service/.env
     environment:
       - PORT=8002
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/crm_db
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=https://crm.srjhubnest.com
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - crm_internal
 
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
+
+networks:
+  crm_internal:
+    driver: bridge
+  shared_proxy:
+    external: true
