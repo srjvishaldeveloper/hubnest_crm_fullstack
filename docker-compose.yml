@@ -86,7 +86,7 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: https://crm.srjhubnest.com/api
-        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ""
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: "394098059728-g27c8ckjn8s9t8mjeo3p9tlt5earnikq.apps.googleusercontent.com"
     container_name: crm_frontend
     restart: unless-stopped
     env_file:
