@@ -84,12 +84,16 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://crm.srjhubnest.com/api
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ""
     container_name: crm_frontend
     restart: unless-stopped
+    env_file:
+      - ./client/.env.local
     environment:
       NODE_ENV: production
       PORT: 3000
-      NEXT_PUBLIC_API_URL: https://crm.srjhubnest.com/api
     depends_on:
       backend:
         condition: service_healthy
