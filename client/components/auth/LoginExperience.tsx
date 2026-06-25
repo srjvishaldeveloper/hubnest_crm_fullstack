@@ -3,6 +3,7 @@
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
 import { useState, useRef, KeyboardEvent, ClipboardEvent, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, BarChart3, BriefcaseBusiness, Eye, EyeOff,
@@ -313,15 +314,7 @@ export default function LoginExperience({
           <div className="relative z-10 px-10 xl:px-14 pt-10 pb-0">
             <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
               <Link href="/" className="inline-flex items-center gap-3 group">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30 group-hover:scale-105 transition-transform">
-                  <BriefcaseBusiness className="h-5 w-5" />
-                </div>
-                <div>
-                  <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white">
-                    HubNest <span className="font-light text-slate-400">CRM</span>
-                  </span>
-                  <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold tracking-wide">by SRJ Global Tech</div>
-                </div>
+                <Image src="/images/Logo Image.png" alt="HubNest CRM" width={110} height={40} className="object-contain group-hover:scale-105 transition-transform" />
               </Link>
             </motion.div>
           </div>
@@ -424,16 +417,8 @@ export default function LoginExperience({
               <div className="p-8 sm:p-10">
 
                 {/* Mobile logo */}
-                <div className="lg:hidden mb-7 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-md shadow-orange-500/20">
-                    <BriefcaseBusiness className="h-4.5 w-4.5" />
-                  </div>
-                  <div>
-                    <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
-                      HubNest <span className="font-light text-slate-400">CRM</span>
-                    </span>
-                    <p className="text-[10px] text-slate-400 font-semibold">by SRJ Global Tech</p>
-                  </div>
+                <div className="lg:hidden mb-7">
+                  <Image src="/images/Logo Image.png" alt="HubNest CRM" width={110} height={40} className="object-contain" />
                 </div>
 
                 {/* Header */}
@@ -499,7 +484,7 @@ export default function LoginExperience({
                               type="text"
                               value={form.emailOrAdminId}
                               onChange={(e) => setForm((f) => ({ ...f, emailOrAdminId: e.target.value }))}
-                              placeholder="you@company.com or SUPER001"
+                              placeholder="Email, Employee ID, or Phone"
                               autoComplete="username"
                               className="h-[52px] w-full rounded-xl border-2 border-slate-200 dark:border-[#2a2a2a] bg-slate-50 dark:bg-[#1a1a1a] px-11 text-sm text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-orange-500 focus:bg-white dark:focus:bg-[#111] focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300 dark:hover:border-[#333]"
                               disabled={loading}

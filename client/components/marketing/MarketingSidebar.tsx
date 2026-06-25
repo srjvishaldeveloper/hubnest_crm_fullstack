@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
+import Image from 'next/image';
 import {
   BarChart3,
   Home,
@@ -220,11 +221,8 @@ export default function MarketingSidebar({ open, collapsed, onClose }: Props) {
             collapsed ? 'md:justify-center md:px-0' : ''
           }`}
         >
-          <div className="w-9 h-9 bg-indigo-600 dark:bg-[#2563EB] rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-200 dark:shadow-blue-900/40">
-            <BarChart3 className="w-5 h-5 text-white" />
-          </div>
-          <div className={`${collapsed ? 'md:hidden' : ''} overflow-hidden`}>
-            <p className="text-slate-900 dark:text-white font-bold text-sm tracking-tight">HubNest CRM</p>
+          <Image src="/images/Logo Image.png" alt="HubNest CRM" width={100} height={36} className={`object-contain shrink-0 ${collapsed ? 'md:w-9 md:h-9' : ''}`} />
+          <div className={`${collapsed ? 'md:hidden' : 'hidden'} overflow-hidden`}>
             <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
               Marketing Hub
             </span>

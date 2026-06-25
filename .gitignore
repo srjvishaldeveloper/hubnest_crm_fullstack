@@ -1,3 +1,49 @@
-node-modules
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
+**/node_modules/
+
+# ── Environment files (NEVER commit secrets) ──────────────────────────────────
 .env
-./client/node_modules
+.env.local
+.env.production
+.env.staging
+**/.env
+**/.env.local
+**/.env.production
+**/.env.staging
+
+# ── Next.js ───────────────────────────────────────────────────────────────────
+client/.next/
+client/out/
+
+# ── Build outputs ─────────────────────────────────────────────────────────────
+dist/
+build/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+server/logs/
+
+# ── Python microservices ──────────────────────────────────────────────────────
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/venv/
+**/.venv/
+
+# ── OS & editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ── Docker volumes & runtime ──────────────────────────────────────────────────
+postgres_data/
+redis_data/
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+*.pem
+*.key
+fix_escapes.js
+scratch/

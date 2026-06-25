@@ -35,9 +35,9 @@ const SUPER_ADMIN_ROLE = {
 const SUPER_ADMIN_USER = {
   id:       uuidv4(),
   name:     'Super Admin',
-  email:    'srjchudamanideveloper@gmail.com',
-  adminId:  'SUPER001',
-  password: 'Admin@123',
+  email:    process.env.SUPER_ADMIN_EMAIL,
+  adminId:  process.env.SUPER_ADMIN_ADMIN_ID || 'SUPER001',
+  password: process.env.SUPER_ADMIN_PASSWORD,
 };
 
 async function seed() {
