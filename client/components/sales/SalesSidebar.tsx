@@ -5,9 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '../../store/authStore';
 import {
   Home, Users, CheckSquare, Activity, UserCircle, LogOut, X,
-  Sparkles, BarChart3, GitBranch, Send, Zap
+  Sparkles, BarChart3, GitBranch, Send, Zap, Briefcase
 } from 'lucide-react';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Props {
@@ -78,8 +77,11 @@ export default function SalesSidebar({ open, collapsed, onClose }: Props) {
 
         {/* Logo */}
         <div className={`flex items-center gap-3 px-4 h-[72px] border-b border-slate-100 dark:border-[#333333] shrink-0 ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}>
-          <Image src="/images/Logo Image.png" alt="HubNest CRM" width={100} height={36} className={`object-contain shrink-0 ${collapsed ? 'lg:w-9 lg:h-9' : ''}`} />
-          <div className={`${collapsed ? 'lg:hidden' : 'hidden'} overflow-hidden`}>
+          <div className="w-9 h-9 bg-[#2563EB] rounded-xl flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20">
+            <Briefcase className="w-5 h-5 text-white" />
+          </div>
+          <div className={`${collapsed ? 'lg:hidden' : ''} overflow-hidden`}>
+            <p className="text-[#0F172A] dark:text-white font-bold text-sm tracking-tight whitespace-nowrap">HubNest CRM</p>
             <span className="inline-flex items-center text-[10px] font-extrabold text-[#2563EB] dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-full uppercase tracking-wider mt-0.5">
               Sales Executive
             </span>

@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X } from 'lucide-react';
-import Image from 'next/image';
+import { Menu, X, Zap } from 'lucide-react';
 import ThemeToggle from '../shared/ThemeToggle';
 
 const NAV_LINKS = [
@@ -42,8 +41,13 @@ export default function Navbar() {
           <div className="flex items-center justify-between h-16">
 
             {/* Logo */}
-            <div className="flex items-center shrink-0">
-              <Image src="/images/Logo Image.png" alt="HubNest CRM" width={110} height={40} className="object-contain" />
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="w-7 h-7 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/25">
+                <Zap className="w-3.5 h-3.5 text-slate-900 dark:text-white" />
+              </div>
+              <span className="font-bold text-base text-foreground tracking-tight">
+                HubNest <span className="font-normal text-muted-foreground">CRM</span>
+              </span>
             </div>
 
             {/* Desktop nav */}

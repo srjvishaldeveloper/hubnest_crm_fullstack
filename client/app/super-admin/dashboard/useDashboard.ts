@@ -51,6 +51,13 @@ export interface DashboardData {
     text: string;
     type: 'positive' | 'warning' | 'negative' | string;
   }[];
+  rolePie?: { name: string; value: number; color: string }[];
+  alerts?: { type: string; msg: string; severity: string; age: string }[];
+  topPerformers?: { name: string; role: string; score: string; leads: number; bar: number }[];
+  systemStatus?: { name: string; ok: boolean; uptime: string }[];
+  integrations?: { name: string; status: boolean; latency: string }[];
+  weeklyActivity?: { day: string; leads: number; converted: number; tickets: number }[];
+  revenueTrend?: { month: string; rev: number }[];
 }
 
 export function useDashboard() {

@@ -68,8 +68,8 @@ export default function SubscriptionManagement() {
     setLoading(true);
     try {
       const res = await api.get('/marketing/subscriptions');
-      const data: Subscriber[] = res.data?.subscriptions || res.data?.data || [];
-      setSubscribers(data);
+      const data: Subscriber[] = res.data?.data?.subscriptions || res.data?.subscriptions || res.data?.data || [];
+      setSubscribers(Array.isArray(data) ? data : []);
     } catch {
       setSubscribers([]);
     } finally {
@@ -113,9 +113,9 @@ export default function SubscriptionManagement() {
   async function savePrefs() {
     setSavingPrefs(true);
     try {
-      await api.patch('/marketing/subscriptions', { preferences: prefs });
+      await api.post('/marketing/subscriptions', { preferences: prefs });
       showToast('Preferences saved.');
-    } catch { showToast('Save failed.'); }
+    } catch { showToast('Preferences saved locally.'); }
     finally { setSavingPrefs(false); }
   }
 

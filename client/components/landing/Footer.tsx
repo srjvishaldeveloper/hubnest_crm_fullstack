@@ -1,7 +1,6 @@
 'use client';
 
-import { BookOpen, BriefcaseBusiness, FileText, Layers3, ArrowUpRight, Mail } from 'lucide-react';
-import Image from 'next/image';
+import { BookOpen, BriefcaseBusiness, FileText, Layers3, Briefcase, ArrowUpRight, Mail } from 'lucide-react';
 
 const LINKS = {
   Product: {
@@ -51,8 +50,13 @@ export default function Footer() {
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-5">
           {/* Brand column */}
           <div className="col-span-2 sm:col-span-1">
-            <div className="mb-3">
-              <Image src="/images/Logo Image.png" alt="HubNest CRM" width={110} height={40} className="object-contain" />
+            <div className="mb-3 flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+                <Briefcase className="w-4 h-4 text-slate-900 dark:text-white" />
+              </div>
+              <span className="text-sm font-bold text-slate-900 dark:text-[#ededed] tracking-tight">
+                HubNest <span className="font-normal text-slate-500 dark:text-[#555]">CRM</span>
+              </span>
             </div>
             <p className="max-w-[220px] text-sm leading-relaxed text-slate-500 dark:text-[#555] mb-5">
               Smart CRM for growing businesses.

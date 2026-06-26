@@ -3,13 +3,15 @@ import { api } from './api';
 const BASE = '/finance';
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-export const financeGetDashboard = async () => {
-  const res = await api.get(`${BASE}/dashboard`);
+export const financeGetDashboard = async (timeFilter?: string) => {
+  const params = timeFilter ? { timeFilter } : undefined;
+  const res = await api.get(`${BASE}/dashboard`, { params });
   return res.data.data;
 };
 
-export const financeGetPaymentStats = async () => {
-  const res = await api.get(`${BASE}/payment-stats`);
+export const financeGetPaymentStats = async (timeFilter?: string) => {
+  const params = timeFilter ? { timeFilter } : undefined;
+  const res = await api.get(`${BASE}/payment-stats`, { params });
   return res.data.data;
 };
 
@@ -184,6 +186,21 @@ export const financeGetPayroll = async (params?: {
   limit?: number;
 }) => {
   const res = await api.get(`${BASE}/payroll`, { params });
+  return res.data.data;
+};
+
+export const financeGetPayrollDashboard = async () => {
+  const res = await api.get(`${BASE}/payroll/dashboard`);
+  return res.data.data;
+};
+
+export const financeGetComplianceDashboard = async () => {
+  const res = await api.get(`${BASE}/compliance/dashboard`);
+  return res.data.data;
+};
+
+export const financeGetProfileDashboard = async () => {
+  const res = await api.get(`${BASE}/profile/dashboard`);
   return res.data.data;
 };
 

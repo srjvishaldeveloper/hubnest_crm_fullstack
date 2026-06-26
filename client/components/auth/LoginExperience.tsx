@@ -3,12 +3,12 @@
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
 import { useState, useRef, KeyboardEvent, ClipboardEvent, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, BarChart3, BriefcaseBusiness, Eye, EyeOff,
   Lock, Mail, Phone, ShieldCheck, Sparkles, TrendingUp, Users,
-  Zap, Target, Bell, CheckCircle2, Star,
+  Zap, Target, Bell, CheckCircle2, Star, KeyRound, Shield,
+  UserCog, AlertTriangle, Fingerprint, RefreshCw,
 } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import ThemeToggle from '../shared/ThemeToggle';
@@ -132,12 +132,47 @@ function DashboardPreview() {
   );
 }
 
+/* ── Security & RBAC info strip ─────────────────────────────────────────────── */
+function SecurityStrip() {
+  const items = [
+    { icon: Shield,      text: 'RBAC Access',      sub: 'Role-based control',   color: 'text-blue-600',    bg: 'bg-blue-50 dark:bg-blue-500/10',    border: 'border-blue-100 dark:border-blue-500/20' },
+    { icon: Fingerprint, text: 'MFA Enabled',       sub: 'OTP + 2FA verified',  color: 'text-orange-600',  bg: 'bg-orange-50 dark:bg-orange-500/10', border: 'border-orange-100 dark:border-orange-500/20' },
+    { icon: ShieldCheck, text: 'AES-256 Secure',    sub: 'Bank-grade encryption',color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-500/10',border: 'border-emerald-100 dark:border-emerald-500/20' },
+    { icon: UserCog,     text: 'Role Dashboards',   sub: 'Per-role access',      color: 'text-violet-600',  bg: 'bg-violet-50 dark:bg-violet-500/10', border: 'border-violet-100 dark:border-violet-500/20' },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-2.5 mt-5">
+      {items.map((i) => (
+        <div key={i.text} className={`flex items-center gap-2.5 rounded-xl border ${i.border} bg-white/70 dark:bg-[#111]/60 px-3 py-2.5 shadow-sm backdrop-blur-sm hover:shadow-md transition-shadow`}>
+          <div className={`w-8 h-8 rounded-xl ${i.bg} flex items-center justify-center shrink-0 shadow-sm`}>
+            <i.icon className={`h-3.5 w-3.5 ${i.color}`} />
+          </div>
+          <div>
+            <span className={`text-[10px] font-black ${i.color} block leading-tight tracking-wide uppercase`}>{i.text}</span>
+            <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 leading-tight">{i.sub}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ── Feature pills ──────────────────────────────────────────────────────────── */
 const FEATURES = [
   { icon: Target,       text: 'Smart Lead Management',   color: 'text-orange-500',  bg: 'bg-orange-50 dark:bg-orange-500/10' },
   { icon: Zap,          text: 'AI-Powered Automation',   color: 'text-violet-500',  bg: 'bg-violet-50 dark:bg-violet-500/10' },
   { icon: BarChart3,    text: 'Real-time Analytics',     color: 'text-blue-500',    bg: 'bg-blue-50 dark:bg-blue-500/10' },
   { icon: CheckCircle2, text: 'Multi-channel Campaigns', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+];
+
+/* ── Department roles info ───────────────────────────────────────────────────── */
+const ROLE_INFO = [
+  { role: 'Admin',            color: '#DC2626', bg: 'rgba(220,38,38,0.08)' },
+  { role: 'Sales Manager',    color: '#2563EB', bg: 'rgba(37,99,235,0.08)' },
+  { role: 'Sales Executive',  color: '#0891B2', bg: 'rgba(8,145,178,0.08)' },
+  { role: 'Marketing Head',   color: '#D97706', bg: 'rgba(217,119,6,0.08)' },
+  { role: 'Finance Manager',  color: '#059669', bg: 'rgba(5,150,105,0.08)' },
+  { role: 'Support Agent',    color: '#EA580C', bg: 'rgba(234,88,12,0.08)' },
 ];
 
 /* ── OTP Input ──────────────────────────────────────────────────────────────── */
@@ -250,6 +285,12 @@ function PhoneLoginPanel({ onSendPhoneOtp, onLoginWithPhone, phoneError, phoneLo
             className="h-[52px] w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-sm font-bold shadow-lg shadow-orange-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-orange-500/30 disabled:opacity-60 disabled:hover:translate-y-0">
             {phoneLoading ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Sending...</> : <>Send OTP <ArrowRight className="h-4 w-4" /></>}
           </button>
+          {/* Forgot Password for phone mode too */}
+          <div className="text-center pt-1">
+            <Link href="/auth/forgot-password" className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-500 hover:text-orange-600 dark:text-orange-400 transition">
+              <KeyRound className="h-3 w-3" /> Forgot password? Reset via email
+            </Link>
+          </div>
         </motion.form>
       ) : (
         <motion.form key="otp-step" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.22 }} onSubmit={handleVerifyOtp} noValidate>
@@ -270,8 +311,8 @@ function PhoneLoginPanel({ onSendPhoneOtp, onLoginWithPhone, phoneError, phoneLo
               <ArrowLeft className="h-3.5 w-3.5" /> Change number
             </button>
             <button type="button" disabled={countdown > 0 || phoneLoading} onClick={handleResend}
-              className="text-orange-500 hover:text-orange-600 dark:text-orange-400 font-semibold disabled:text-slate-400 disabled:cursor-not-allowed transition">
-              {countdown > 0 ? `Resend in ${countdown}s` : 'Resend OTP'}
+              className="text-orange-500 hover:text-orange-600 dark:text-orange-400 font-semibold disabled:text-slate-400 disabled:cursor-not-allowed transition inline-flex items-center gap-1">
+              {countdown > 0 ? <><RefreshCw className="h-3 w-3" /> {countdown}s</> : 'Resend OTP'}
             </button>
           </div>
         </motion.form>
@@ -286,6 +327,7 @@ export default function LoginExperience({
   onSendPhoneOtp, onLoginWithPhone, phoneError, phoneLoading, onGoogleLogin, googleError,
 }: LoginExperienceProps) {
   const [mode, setMode] = useState<LoginMode>('email');
+  const [showRoleInfo, setShowRoleInfo] = useState(false);
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-[#080808] text-slate-900 dark:text-[#ededed] transition-colors duration-200 relative overflow-hidden">
@@ -314,7 +356,15 @@ export default function LoginExperience({
           <div className="relative z-10 px-10 xl:px-14 pt-10 pb-0">
             <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
               <Link href="/" className="inline-flex items-center gap-3 group">
-                <Image src="/images/Logo Image.png" alt="HubNest CRM" width={110} height={40} className="object-contain group-hover:scale-105 transition-transform" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30 group-hover:scale-105 transition-transform">
+                  <BriefcaseBusiness className="h-5 w-5" />
+                </div>
+                <div>
+                  <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white">
+                    HubNest <span className="font-light text-slate-400">CRM</span>
+                  </span>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold tracking-wide">by SRJ Global Tech</div>
+                </div>
               </Link>
             </motion.div>
           </div>
@@ -326,7 +376,7 @@ export default function LoginExperience({
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.5 }}
               className="mb-7 inline-flex items-center gap-2 self-start rounded-full border border-orange-200/60 dark:border-orange-500/20 bg-orange-50/80 dark:bg-orange-500/5 px-4 py-1.5 text-xs font-bold text-orange-600 dark:text-orange-400 backdrop-blur-sm">
               <ShieldCheck className="h-3.5 w-3.5" />
-              Trusted by 500+ Businesses
+              Trusted by 500+ Businesses · RBAC Secured
             </motion.div>
 
             {/* Hero headline */}
@@ -340,7 +390,6 @@ export default function LoginExperience({
                   <span className="bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 bg-clip-text text-transparent">
                     Smarter
                   </span>
-                  {/* Underline accent */}
                   <span className="absolute -bottom-1 left-0 right-0 h-[3px] rounded-full bg-gradient-to-r from-orange-500 to-amber-500 opacity-40" />
                 </span>
               </motion.h1>
@@ -354,7 +403,7 @@ export default function LoginExperience({
               {/* Feature grid */}
               <motion.div
                 variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-                className="grid grid-cols-2 gap-3 max-w-[380px] mb-12">
+                className="grid grid-cols-2 gap-3 max-w-[380px] mb-8">
                 {FEATURES.map((f) => (
                   <div key={f.text} className="flex items-center gap-2.5 rounded-xl border border-slate-100 dark:border-[#1f1f1f] bg-white/70 dark:bg-[#111]/60 px-3.5 py-3 backdrop-blur-sm shadow-sm">
                     <div className={`w-7 h-7 rounded-lg ${f.bg} flex items-center justify-center shrink-0`}>
@@ -364,10 +413,17 @@ export default function LoginExperience({
                   </div>
                 ))}
               </motion.div>
+
+              {/* Security strip */}
+              <motion.div variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}>
+                <SecurityStrip />
+              </motion.div>
             </motion.div>
 
             {/* Dashboard preview */}
-            <DashboardPreview />
+            <div className="mt-10">
+              <DashboardPreview />
+            </div>
           </div>
 
           {/* ─── BOTTOM: Stats bar ───────────────────────────────────────── */}
@@ -381,7 +437,6 @@ export default function LoginExperience({
                   <p className="text-xs text-slate-400 dark:text-slate-500 font-semibold mt-0.5">{label}</p>
                 </div>
               ))}
-              {/* Star rating */}
               <div className="ml-auto flex flex-col items-end gap-1">
                 <div className="flex items-center gap-0.5">
                   {Array(5).fill(0).map((_, i) => (
@@ -397,7 +452,7 @@ export default function LoginExperience({
         {/* ═══════════════════════════════════════════════════════════════════
             RIGHT SIDE — Login Form
         ═══════════════════════════════════════════════════════════════════ */}
-        <section className="flex min-h-screen items-center justify-center px-6 py-10 sm:px-10 relative">
+        <section className="flex min-h-screen items-center justify-center px-6 py-10 sm:px-10 relative overflow-y-auto">
 
           {/* Ambient glow behind the card */}
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-orange-500/[0.04] dark:bg-orange-500/[0.03] blur-3xl pointer-events-none" />
@@ -417,12 +472,33 @@ export default function LoginExperience({
               <div className="p-8 sm:p-10">
 
                 {/* Mobile logo */}
-                <div className="lg:hidden mb-7">
-                  <Image src="/images/Logo Image.png" alt="HubNest CRM" width={110} height={40} className="object-contain" />
+                <div className="lg:hidden mb-5 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-md shadow-orange-500/20">
+                    <BriefcaseBusiness className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
+                      HubNest <span className="font-light text-slate-400">CRM</span>
+                    </span>
+                    <p className="text-[10px] text-slate-400 font-semibold">by SRJ Global Tech</p>
+                  </div>
+                </div>
+
+                {/* Security badge row — mobile only */}
+                <div className="lg:hidden mb-5 flex items-center gap-1.5 flex-wrap">
+                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-3 py-1.5 text-[10px] font-black text-emerald-700 dark:text-emerald-400 shadow-sm">
+                    <Shield className="h-3 w-3" /> RBAC Access
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 px-3 py-1.5 text-[10px] font-black text-blue-700 dark:text-blue-400 shadow-sm">
+                    <Fingerprint className="h-3 w-3" /> MFA Enabled
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 px-3 py-1.5 text-[10px] font-black text-orange-700 dark:text-orange-400 shadow-sm">
+                    <ShieldCheck className="h-3 w-3" /> AES-256 Secure
+                  </span>
                 </div>
 
                 {/* Header */}
-                <div className="mb-7 flex justify-between items-start">
+                <div className="mb-6 flex justify-between items-start">
                   <div>
                     <h2 className="text-[1.6rem] font-black tracking-tight text-slate-900 dark:text-white leading-tight">
                       Welcome back
@@ -435,7 +511,7 @@ export default function LoginExperience({
                 </div>
 
                 {/* Mode tabs */}
-                <div className="mb-7 flex rounded-2xl border border-slate-200 dark:border-[#242424] bg-slate-50 dark:bg-[#161616] p-1 gap-1">
+                <div className="mb-6 flex rounded-2xl border border-slate-200 dark:border-[#242424] bg-slate-50 dark:bg-[#161616] p-1 gap-1">
                   {([['email', Mail, 'Email', 'Login'], ['phone', Phone, 'Phone', 'OTP']] as const).map(([m, Icon, line1, line2]) => (
                     <button key={m} type="button" onClick={() => setMode(m)}
                       className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold transition-all duration-200 ${
@@ -457,12 +533,13 @@ export default function LoginExperience({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -6, scale: 0.98 }}
                       transition={{ duration: 0.2 }}
-                      className="mb-6 rounded-xl border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-950/20 px-4 py-3 text-sm text-red-700 dark:text-red-400 flex items-start gap-2.5"
+                      className="mb-5 rounded-xl border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-950/20 px-4 py-3 text-sm text-red-700 dark:text-red-400 flex items-start gap-2.5"
                     >
-                      <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
-                      <span className="font-medium">{mode === 'email' ? error : phoneError}</span>
+                      <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                      <div>
+                        <span className="font-bold block mb-0.5">Login Failed</span>
+                        <span className="font-medium text-xs">{mode === 'email' ? error : phoneError}</span>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -476,7 +553,7 @@ export default function LoginExperience({
                         {/* Email / ID field */}
                         <div className="space-y-1.5">
                           <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300">
-                            Email, User ID, or Phone
+                            Email, Employee ID, or Phone
                           </label>
                           <div className="relative group">
                             <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none transition-colors group-focus-within:text-orange-500" />
@@ -484,20 +561,22 @@ export default function LoginExperience({
                               type="text"
                               value={form.emailOrAdminId}
                               onChange={(e) => setForm((f) => ({ ...f, emailOrAdminId: e.target.value }))}
-                              placeholder="Email, Employee ID, or Phone"
+                              placeholder="you@company.com or EMP001"
                               autoComplete="username"
                               className="h-[52px] w-full rounded-xl border-2 border-slate-200 dark:border-[#2a2a2a] bg-slate-50 dark:bg-[#1a1a1a] px-11 text-sm text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-orange-500 focus:bg-white dark:focus:bg-[#111] focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300 dark:hover:border-[#333]"
                               disabled={loading}
                             />
                           </div>
+                          <p className="text-[11px] text-slate-400 dark:text-slate-500">Works for all departments — Admin, Sales, Finance, Support, Marketing</p>
                         </div>
 
                         {/* Password field */}
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between">
                             <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300">Password</label>
-                            <Link href="/auth/forgot-password" className="text-[12px] font-bold text-orange-500 hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 transition">
-                              Forgot password?
+                            <Link href="/auth/forgot-password"
+                              className="inline-flex items-center gap-1 text-[12px] font-bold text-orange-500 hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 transition rounded-lg px-2 py-0.5 hover:bg-orange-50 dark:hover:bg-orange-500/10">
+                              <KeyRound className="h-3 w-3" /> Forgot password?
                             </Link>
                           </div>
                           <div className="relative group">
@@ -527,6 +606,16 @@ export default function LoginExperience({
                             <>Sign In <ArrowRight className="h-4 w-4" /></>
                           )}
                         </button>
+
+                        {/* Forgot password standalone CTA — premium */}
+                        <div className="pt-1">
+                          <Link href="/auth/forgot-password"
+                            className="group w-full flex items-center justify-center gap-2 rounded-xl border border-orange-200/60 dark:border-orange-500/20 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/10 px-4 py-2.5 text-[11px] font-bold text-orange-600 dark:text-orange-400 hover:from-orange-100 hover:to-amber-100 dark:hover:from-orange-950/30 dark:hover:to-amber-950/20 hover:border-orange-300 dark:hover:border-orange-500/40 transition-all shadow-sm hover:shadow-md">
+                            <KeyRound className="h-3.5 w-3.5 shrink-0 group-hover:rotate-12 transition-transform" />
+                            Reset password for any department
+                            <ArrowRight className="h-3 w-3 ml-auto opacity-50 group-hover:translate-x-0.5 transition-transform" />
+                          </Link>
+                        </div>
                       </form>
                     </motion.div>
                   ) : (
@@ -539,7 +628,7 @@ export default function LoginExperience({
                 {/* ── Google OAuth ─────────────────────────────────────── */}
                 {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
                   <>
-                    <div className="my-6 flex items-center gap-3">
+                    <div className="my-5 flex items-center gap-3">
                       <div className="h-px flex-1 bg-slate-100 dark:bg-[#1f1f1f]" />
                       <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold whitespace-nowrap px-1">or continue with</span>
                       <div className="h-px flex-1 bg-slate-100 dark:bg-[#1f1f1f]" />
@@ -566,8 +655,53 @@ export default function LoginExperience({
                   </>
                 )}
 
+                {/* ── RBAC Role Info Accordion ─────────────────────────── */}
+                <div className="mt-5 rounded-xl border border-slate-100 dark:border-[#1f1f1f] overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowRoleInfo(v => !v)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-[#161616] hover:bg-slate-100 dark:hover:bg-[#1e1e1e] transition"
+                  >
+                    <div className="flex items-center gap-2">
+                      <UserCog className="h-3.5 w-3.5 text-slate-400" />
+                      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">All Departments Supported</span>
+                    </div>
+                    <motion.div animate={{ rotate: showRoleInfo ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                      <ArrowRight className="h-3.5 w-3.5 text-slate-400 rotate-90" />
+                    </motion.div>
+                  </button>
+                  <AnimatePresence>
+                    {showRoleInfo && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-4 py-3 grid grid-cols-2 gap-1.5 bg-white dark:bg-[#0d0d0d]">
+                          {ROLE_INFO.map((r) => (
+                            <div key={r.role}
+                              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5"
+                              style={{ background: r.bg }}>
+                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: r.color }} />
+                              <span className="text-[10px] font-bold" style={{ color: r.color }}>{r.role}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="px-4 py-2 bg-amber-50 dark:bg-amber-500/5 border-t border-amber-100 dark:border-amber-500/20">
+                          <p className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold flex items-center gap-1">
+                            <ShieldCheck className="h-3 w-3 shrink-0" />
+                            Each role gets a dedicated dashboard with RBAC-controlled permissions
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
                 {/* ── Footer link ──────────────────────────────────────── */}
-                <div className="mt-7 pt-6 border-t border-slate-100 dark:border-[#1a1a1a] text-center">
+                <div className="mt-5 pt-5 border-t border-slate-100 dark:border-[#1a1a1a] text-center">
                   <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-slate-400 dark:text-slate-500 hover:text-orange-500 dark:hover:text-orange-400 transition font-semibold">
                     <ArrowLeft className="h-3.5 w-3.5" /> Back to home
                   </Link>
@@ -575,10 +709,15 @@ export default function LoginExperience({
               </div>
             </div>
 
-            {/* Copyright */}
-            <p className="mt-5 text-center text-[11px] text-slate-400 dark:text-slate-600 font-medium">
-              &copy; {new Date().getFullYear()} HubNest CRM &middot; SRJ Global Tech &middot; All rights reserved
-            </p>
+            {/* Copyright + security note */}
+            <div className="mt-4 text-center space-y-1">
+              <p className="text-[11px] text-slate-400 dark:text-slate-600 font-medium">
+                &copy; {new Date().getFullYear()} HubNest CRM &middot; SRJ Global Tech &middot; All rights reserved
+              </p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-600 inline-flex items-center gap-1 justify-center">
+                <Lock className="h-2.5 w-2.5" /> Secured with AES-256 encryption · Role-based access control · OTP verified
+              </p>
+            </div>
           </motion.div>
         </section>
 

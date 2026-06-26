@@ -700,6 +700,7 @@ async function getProfile(req, res) {
     const userId = req.user.id;
     const result = await query(
       `SELECT u.id, u.name, u.email, u.admin_id, u.status, u.phone, u.photo_url, u.language,
+              u.address, u.bio, u.date_of_birth, u.emergency_contact,
               r.name AS role, t.name AS company
        FROM users u
        JOIN roles r ON r.id = u.role_id
@@ -718,19 +719,23 @@ async function getProfile(req, res) {
 }
 
 async function updateProfile(req, res) {
-  const { name, phone, photo_url, language } = req.body;
+  const { name, phone, photo_url, language, address, bio, date_of_birth, emergency_contact } = req.body;
   const userId = req.user.id;
   try {
     const result = await query(
-      `UPDATE users 
-       SET name = COALESCE($1, name),
-           phone = COALESCE($2, phone),
-           photo_url = COALESCE($3, photo_url),
-           language = COALESCE($4, language),
-           updated_at = NOW()
-       WHERE id = $5
-       RETURNING id, name, email, admin_id, phone, photo_url, language`,
-      [name, phone, photo_url, language, userId]
+      `UPDATE users
+       SET name               = COALESCE($1, name),
+           phone              = COALESCE($2, phone),
+           photo_url          = COALESCE($3, photo_url),
+           language           = COALESCE($4, language),
+           address            = COALESCE($5, address),
+           bio                = COALESCE($6, bio),
+           date_of_birth      = COALESCE($7::DATE, date_of_birth),
+           emergency_contact  = COALESCE($8, emergency_contact),
+           updated_at         = NOW()
+       WHERE id = $9
+       RETURNING id, name, email, admin_id, phone, photo_url, language, address, bio, date_of_birth, emergency_contact`,
+      [name, phone, photo_url, language, address, bio, date_of_birth || null, emergency_contact, userId]
     );
     if (result.rows.length === 0) {
       return sendError(res, 'User not found', 404);
@@ -900,6 +905,85 @@ async function revokeSession(req, res) {
   }
 }
 
+async function uploadAvatar(req, res) {
+  const userId = req.user.id;
+  const { photo_url } = req.body;
+  if (!photo_url) return sendError(res, 'photo_url is required', 400);
+  // Accept base64 data URLs or external URLs
+  const MAX = 5 * 1024 * 1024; // 5 MB base64 limit
+  if (photo_url.startsWith('data:') && photo_url.length > MAX * 1.4) {
+    return sendError(res, 'Image too large. Maximum 5 MB.', 400);
+  }
+  try {
+    const result = await query(
+      `UPDATE users SET photo_url = $1, updated_at = NOW() WHERE id = $2
+       RETURNING id, name, email, phone, photo_url, language`,
+      [photo_url, userId]
+    );
+    if (!result.rows[0]) return sendError(res, 'User not found', 404);
+    return sendSuccess(res, { user: result.rows[0] }, 'Avatar updated successfully');
+  } catch (err) {
+    logger.error('Failed to upload avatar', { message: err.message });
+    return sendError(res, err.message, 500);
+  }
+}
+
+async function getDocuments(req, res) {
+  const userId = req.user.id;
+  const tenantId = req.user.tenant_id;
+  try {
+    const result = await query(
+      `SELECT id, name, type, file_url, file_size, mime_type, status, created_at AS upload_date
+       FROM user_documents WHERE user_id = $1 AND tenant_id = $2
+       ORDER BY created_at DESC`,
+      [userId, tenantId]
+    );
+    return sendSuccess(res, { documents: result.rows }, 'Documents retrieved');
+  } catch (err) {
+    logger.error('Failed to get documents', { message: err.message });
+    return sendError(res, err.message, 500);
+  }
+}
+
+async function uploadDocument(req, res) {
+  const userId = req.user.id;
+  const tenantId = req.user.tenant_id;
+  const { name, type, file_url, file_size, mime_type } = req.body;
+  if (!name || !file_url) return sendError(res, 'name and file_url are required', 400);
+  const MAX = 10 * 1024 * 1024;
+  if (file_url.startsWith('data:') && file_url.length > MAX * 1.4) {
+    return sendError(res, 'File too large. Maximum 10 MB.', 400);
+  }
+  try {
+    const result = await query(
+      `INSERT INTO user_documents (user_id, tenant_id, name, type, file_url, file_size, mime_type)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, name, type, file_url, file_size, mime_type, status, created_at AS upload_date`,
+      [userId, tenantId, name, type || 'Other', file_url, file_size || '0 KB', mime_type || null]
+    );
+    return sendSuccess(res, { document: result.rows[0] }, 'Document uploaded successfully');
+  } catch (err) {
+    logger.error('Failed to upload document', { message: err.message });
+    return sendError(res, err.message, 500);
+  }
+}
+
+async function deleteDocument(req, res) {
+  const userId = req.user.id;
+  const { id } = req.params;
+  try {
+    const result = await query(
+      `DELETE FROM user_documents WHERE id = $1 AND user_id = $2 RETURNING id`,
+      [id, userId]
+    );
+    if (!result.rows[0]) return sendError(res, 'Document not found', 404);
+    return sendSuccess(res, null, 'Document deleted');
+  } catch (err) {
+    logger.error('Failed to delete document', { message: err.message });
+    return sendError(res, err.message, 500);
+  }
+}
+
 async function updateUser(req, res) {
   const { id } = req.params;
   const tenantId = req.user.tenant_id;
@@ -954,6 +1038,10 @@ module.exports = {
   checkEmail,
   getProfile,
   updateProfile,
+  uploadAvatar,
+  getDocuments,
+  uploadDocument,
+  deleteDocument,
   changePassword,
   getActiveSessions,
   logoutOtherDevices,

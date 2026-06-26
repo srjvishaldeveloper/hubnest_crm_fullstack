@@ -41,8 +41,8 @@ async function getLeadActivity(req, res) {
 
 async function listTasks(req, res) {
   const { status, priority, type } = req.query;
-  const tasks = await svc.listTasks(req.user.tenant_id, req.salesScope, { status, priority, type });
-  sendSuccess(res, { tasks });
+  const data = await svc.listTasks(req.user.tenant_id, req.salesScope, { status, priority, type });
+  sendSuccess(res, data);
 }
 
 async function createTask(req, res) {
@@ -81,8 +81,8 @@ async function logActivity(req, res) {
 }
 
 async function getActivitiesSummary(req, res) {
-  const summary = await svc.getActivitiesSummary(req.user.tenant_id, req.salesScope);
-  sendSuccess(res, { summary });
+  const data = await svc.getActivitiesSummary(req.user.tenant_id, req.salesScope);
+  sendSuccess(res, data);
 }
 
 // ─── PROFILE & PERFORMANCE ───────────────────────────────────────────────────

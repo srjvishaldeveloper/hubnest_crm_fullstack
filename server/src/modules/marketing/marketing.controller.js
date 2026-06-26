@@ -660,7 +660,51 @@ async function handleMetaOAuthCallback(req, res) {
   }
 }
 
+
+async function getDashboard(req, res) {
+  try {
+    const data = await svc.getDashboard(req.user.tenant_id);
+    return sendSuccess(res, data, 'Marketing dashboard retrieved');
+  } catch(err) {
+    return sendError(res, err.message, 500);
+  }
+}
+
+async function getRoi(req, res) {
+  try {
+    const period = req.query.period || 'monthly';
+    const data = await svc.getRoi(req.user.tenant_id, period);
+    return sendSuccess(res, data, 'Marketing ROI retrieved');
+  } catch(err) {
+    return sendError(res, err.message, 500);
+  }
+}
+
+async function recordAnalytics(req, res) {
+  try {
+    const { campaign_id, date, impressions, clicks, leads, cost, revenue } = req.body;
+    if (!campaign_id) return sendError(res, 'campaign_id is required', 400);
+    const row = await svc.recordCampaignAnalytics(req.user.tenant_id, campaign_id, { date, impressions, clicks, leads, cost, revenue });
+    return sendSuccess(res, { analytics: row }, 'Analytics recorded', 201);
+  } catch(err) {
+    return sendError(res, err.message, 500);
+  }
+}
+
+async function getAnalytics(req, res) {
+  try {
+    const { campaign_id, period } = req.query;
+    const data = await svc.getCampaignAnalytics(req.user.tenant_id, campaign_id || null, period || 'monthly');
+    return sendSuccess(res, data, 'Campaign analytics retrieved');
+  } catch(err) {
+    return sendError(res, err.message, 500);
+  }
+}
+
 module.exports = {
+  getDashboard,
+  getRoi,
+  recordAnalytics, getAnalytics,
   createCampaign, listCampaigns, getCampaign, updateCampaign, deleteCampaign,
   listLeads, updateLead, bulkAssignLeads, listSalesUsers,
   getIntegrationSettings, upsertIntegrationSettings, deleteIntegrationSettings, testIntegration,

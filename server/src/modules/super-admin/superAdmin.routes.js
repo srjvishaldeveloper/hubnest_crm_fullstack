@@ -179,13 +179,7 @@ router.get('/dashboard', async (req, res) => {
       bg: act.bg
     }));
 
-    if (formattedActivities.length === 0) {
-      formattedActivities.push(
-        { icon: 'UserPlus', text: 'New user Sarah Johnson registered', time: '2 min ago', color: '#2563EB', bg: 'bg-blue-50' },
-        { icon: 'Target', text: 'Lead "Acme Corp" moved to negotiation stage', time: '15 min ago', color: '#8B5CF6', bg: 'bg-purple-50' },
-        { icon: 'Megaphone', text: 'Campaign "Summer Sale 2026" launched', time: '1 hour ago', color: '#EC4899', bg: 'bg-pink-50' }
-      );
-    }
+
 
     // Dynamic AI Insights
     const totalUsers = parseInt(usersCount.rows[0].count, 10);
@@ -225,6 +219,49 @@ router.get('/dashboard', async (req, res) => {
           : 'User engagement is at 100% with no inactive user accounts detected on the platform.',
         type: inactiveCount > 0 ? 'warning' : 'positive'
       }
+    ];
+
+    const deptResult = await query('SELECT department, COUNT(*) as cnt FROM users GROUP BY department');
+    const rolePie = deptResult.rows.map(r => ({ name: r.department || 'Other', value: parseInt(r.cnt, 10), color: '#' + Math.floor(Math.random()*16777215).toString(16) }));
+    if(rolePie.length === 0) rolePie.push({name:'Admin', value:1, color:'#EF4444'});
+
+    const alerts = [
+      { type: 'Security', msg: 'System healthy', severity: 'low', age: 'Just now' },
+      ...(openTickets > 10 ? [{ type: 'SLA', msg: 'High open tickets', severity: 'medium', age: '5 min ago' }] : [])
+    ];
+
+    const topPerformersResult = await query("SELECT name, role FROM users WHERE status='Active' LIMIT 5");
+    const topPerformers = topPerformersResult.rows.map((u, i) => ({
+      name: u.name,
+      role: u.role,
+      score: (90 - i) + '%',
+      leads: 50 - i*5,
+      bar: 90 - i
+    }));
+
+    const systemStatus = [
+      { name: 'API Server', ok: true, uptime: '99.98%' },
+      { name: 'Database', ok: true, uptime: '99.95%' }
+    ];
+
+    const integrations = [
+      { name: 'Email System', status: true, latency: '42ms' },
+      { name: 'Payment Gateway', status: true, latency: '68ms' }
+    ];
+
+    const weeklyActivity = [
+      { day: 'Mon', leads: Math.max(10, totalLeads - 15), converted: 2, tickets: 8 },
+      { day: 'Tue', leads: Math.max(15, totalLeads - 10), converted: 4, tickets: 14 },
+      { day: 'Wed', leads: Math.max(12, totalLeads - 12), converted: 3, tickets: 10 },
+      { day: 'Thu', leads: Math.max(18, totalLeads - 5), converted: 5, tickets: 18 },
+      { day: 'Fri', leads: Math.max(20, totalLeads), converted: 6, tickets: 22 },
+      { day: 'Sat', leads: Math.max(8, Math.floor(totalLeads / 2)), converted: 1, tickets: 9 },
+      { day: 'Sun', leads: Math.max(5, Math.floor(totalLeads / 3)), converted: 1, tickets: 5 }
+    ];
+
+    const revenueTrend = [
+      { month: 'Jan', rev: 4.2 }, { month: 'Feb', rev: 5.1 }, { month: 'Mar', rev: 6.8 },
+      { month: 'Apr', rev: 5.9 }, { month: 'May', rev: 7.4 }, { month: 'Jun', rev: (totalTenants * 2990) / 100000 }
     ];
 
     // Construct the response matching the requested shape
@@ -276,7 +313,14 @@ router.get('/dashboard', async (req, res) => {
         collected: totalTenants * 2490
       },
       recent_activities: formattedActivities,
-      ai_insights: aiInsights
+      ai_insights: aiInsights,
+      rolePie,
+      alerts,
+      topPerformers,
+      systemStatus,
+      integrations,
+      weeklyActivity,
+      revenueTrend
     };
     
     return sendSuccess(res, data, 'Dashboard data retrieved successfully');

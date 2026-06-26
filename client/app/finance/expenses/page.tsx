@@ -10,7 +10,7 @@ import {
 import {
   Receipt, Search, Plus, RefreshCw, X, CheckCircle2, XCircle,
   AlertCircle, Trash2, Pencil, TrendingDown, Clock, Tag,
-  IndianRupee, Building2
+  IndianRupee, Building2, Filter, ArrowUpDown, Download
 } from 'lucide-react';
 
 interface Expense {
@@ -152,12 +152,36 @@ function ExpensesContent() {
   const [showModal, setShowModal]     = useState(false);
   const [editExpense, setEditExpense] = useState<Expense | null>(null);
   const [deletingId, setDeletingId]   = useState<string | null>(null);
+  // Aggregated stats across all pages (not just current page)
+  const [kpiStats, setKpiStats] = useState({ totalAmount: 0, pendingAmount: 0, approvedCount: 0, rejectedCount: 0 });
   const searchParams = useSearchParams();
 
   useEffect(() => { if (searchParams.get('action')==='add') setShowModal(true); }, [searchParams]);
 
   useEffect(() => {
     financeGetVendors({ limit: 200 }).then(r => setVendors(r.vendors || [])).catch(()=>{});
+  }, []);
+
+  // Load aggregated KPI stats from all statuses
+  const loadStats = useCallback(async () => {
+    try {
+      const [allRes, pendRes, appRes, rejRes] = await Promise.all([
+        financeGetExpenses({ limit: 1 }),
+        financeGetExpenses({ status: 'Pending', limit: 500 }),
+        financeGetExpenses({ status: 'Approved', limit: 500 }),
+        financeGetExpenses({ status: 'Rejected', limit: 500 }),
+      ]);
+      const pendingAmount  = (pendRes.expenses || []).reduce((s: number, e: Expense) => s + parseFloat(String(e.amount)), 0);
+      const totalAmount    = pendingAmount +
+        (appRes.expenses || []).reduce((s: number, e: Expense) => s + parseFloat(String(e.amount)), 0) +
+        (rejRes.expenses || []).reduce((s: number, e: Expense) => s + parseFloat(String(e.amount)), 0);
+      setKpiStats({
+        totalAmount,
+        pendingAmount,
+        approvedCount: appRes.total || 0,
+        rejectedCount: rejRes.total || 0,
+      });
+    } catch { /* keep last stats */ }
   }, []);
 
   const load = useCallback(async () => {
@@ -169,10 +193,10 @@ function ExpensesContent() {
     finally { setLoading(false); }
   }, [statusFilter, categoryFilter, searchQuery, page]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); loadStats(); }, [load, loadStats]);
 
   async function handleStatusUpdate(id: string, newStatus: string) {
-    try { await financeUpdateExpense(id, { status: newStatus }); load(); } catch {}
+    try { await financeUpdateExpense(id, { status: newStatus }); load(); loadStats(); } catch {}
   }
 
   async function handleDelete(id: string) {
@@ -180,23 +204,19 @@ function ExpensesContent() {
     try {
       setDeletingId(id);
       await financeDeleteExpense(id);
-      load();
+      load(); loadStats();
     } catch { alert('Failed to delete expense.'); }
     finally { setDeletingId(null); }
   }
 
-  // Stats
-  const totalAmount    = expenses.reduce((s,e)=>s+parseFloat(String(e.amount)),0);
-  const pendingAmount  = expenses.filter(e=>e.status==='Pending').reduce((s,e)=>s+parseFloat(String(e.amount)),0);
-  const approvedCount  = expenses.filter(e=>e.status==='Approved').length;
-  const rejectedCount  = expenses.filter(e=>e.status==='Rejected').length;
+  const { totalAmount, pendingAmount, approvedCount, rejectedCount } = kpiStats;
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-[var(--foreground)] tracking-tight">Expenses</h1>
+          <h1 className="text-xl font-bold text-[var(--foreground)] tracking-tight">Expenses <span className="ml-2 text-sm font-semibold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full">{total}</span></h1>
           <p className="text-xs text-[var(--muted-foreground)]">Track, approve and manage company expenses.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -215,6 +235,21 @@ function ExpensesContent() {
             <option value="">All Categories</option>
             {CATEGORIES.map(c=><option key={c}>{c}</option>)}
           </select>
+          <button className="flex items-center gap-2 p-2 border border-[var(--border)] rounded-xl text-xs font-semibold text-[var(--muted-foreground)] bg-[var(--card)] hover:bg-[var(--accent)] transition-colors">
+            <Filter className="w-4 h-4"/> Filter
+          </button>
+          <button className="flex items-center gap-2 p-2 border border-[var(--border)] rounded-xl text-xs font-semibold text-[var(--muted-foreground)] bg-[var(--card)] hover:bg-[var(--accent)] transition-colors">
+            <ArrowUpDown className="w-4 h-4"/> Sort
+          </button>
+          <button onClick={() => {
+              const headers = ['Description','Category','Amount','Vendor','Date','Status'];
+              const rows = expenses.map(e => [e.description,e.category,e.amount,e.vendor_name||'',new Date(e.expense_date).toLocaleDateString('en-IN'),e.status]);
+              const csv = [headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+              const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='expenses.csv';a.click();
+            }}
+            className="flex items-center gap-2 p-2 border border-[var(--border)] rounded-xl text-xs font-semibold text-[var(--muted-foreground)] bg-[var(--card)] hover:bg-[var(--accent)] transition-colors">
+            <Download className="w-4 h-4"/> Export
+          </button>
           <button onClick={()=>{ setEditExpense(null); setShowModal(true); }}
             className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl font-bold text-xs shadow transition active:scale-95">
             <Plus className="w-3.5 h-3.5"/> Add Expense

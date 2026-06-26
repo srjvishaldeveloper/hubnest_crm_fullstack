@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users, Plus, Trash2, Search, Loader2, X, ChevronDown, ChevronRight,
   RefreshCw, Mail, Phone, Building2, Calendar
@@ -44,7 +44,8 @@ export default function ContactListsPage() {
     setLoading(true);
     try {
       const res = await api.get('/marketing/lists');
-      setLists(res.data?.lists || res.data?.data || []);
+      const raw = res.data?.data?.lists || res.data?.lists || res.data?.data || [];
+      setLists(Array.isArray(raw) ? raw : []);
     } catch { setLists([]); } finally { setLoading(false); }
   }
 
@@ -53,7 +54,7 @@ export default function ContactListsPage() {
     setCreating(true);
     try {
       const res = await api.post('/marketing/lists', { name: listName, description: listDesc });
-      const nl = res.data?.list || res.data?.data || { id: `l-${Date.now()}`, name: listName, description: listDesc, contact_count: 0 };
+      const nl = res.data?.data?.list || res.data?.list || { id: `l-${Date.now()}`, name: listName, description: listDesc, contact_count: 0 };
       setLists([nl, ...lists]);
       setShowModal(false);
       setListName(''); setListDesc('');
@@ -84,7 +85,8 @@ export default function ContactListsPage() {
       setContactsLoading(listId);
       try {
         const res = await api.get(`/marketing/lists/${listId}/contacts`);
-        setListContacts(prev => ({ ...prev, [listId]: res.data?.contacts || res.data?.data || [] }));
+        const contacts = res.data?.data?.contacts || res.data?.contacts || res.data?.data || [];
+        setListContacts(prev => ({ ...prev, [listId]: Array.isArray(contacts) ? contacts : [] }));
       } catch { setListContacts(prev => ({ ...prev, [listId]: [] })); }
       finally { setContactsLoading(null); }
     }
@@ -161,8 +163,8 @@ export default function ContactListsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#1f1f1f]">
                 {filtered.map((list) => (
-                  <>
-                    <tr key={list.id} className="hover:bg-slate-50 dark:hover:bg-[#1a1a1a] transition">
+                  <React.Fragment key={list.id}>
+                    <tr className="hover:bg-slate-50 dark:hover:bg-[#1a1a1a] transition">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
@@ -194,7 +196,7 @@ export default function ContactListsPage() {
                       </td>
                     </tr>
                     {expandedList === list.id && (
-                      <tr key={`${list.id}-contacts`} className="bg-slate-50/50 dark:bg-[#0d0d0d]/50">
+                      <tr className="bg-slate-50/50 dark:bg-[#0d0d0d]/50">
                         <td colSpan={5} className="px-4 py-4">
                           {contactsLoading === list.id ? (
                             <div className="flex items-center justify-center py-6"><Loader2 className="w-5 h-5 text-indigo-600 animate-spin" /></div>
@@ -218,7 +220,7 @@ export default function ContactListsPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

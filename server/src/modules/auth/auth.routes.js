@@ -41,9 +41,15 @@ router.post('/delete-tenant-admin',authenticate, authorizeSuperAdmin, ctrl.delet
 router.get('/tenant-admins',       authenticate, authorizeSuperAdmin, ctrl.getTenantAdmins);
 
 // Profile management
-router.get('/profile',             authenticate, ctrl.getProfile);
-router.put('/profile',             authenticate, ctrl.updateProfile);
-router.put('/change-password',     authenticate, ctrl.changePassword);
+router.get('/profile',              authenticate, ctrl.getProfile);
+router.put('/profile',              authenticate, ctrl.updateProfile);
+router.patch('/profile',            authenticate, ctrl.updateProfile);
+router.post('/profile/avatar',      authenticate, ctrl.uploadAvatar);
+router.get('/profile/documents',    authenticate, ctrl.getDocuments);
+router.post('/profile/documents',   authenticate, ctrl.uploadDocument);
+router.delete('/profile/documents/:id', authenticate, ctrl.deleteDocument);
+router.put('/change-password',      authenticate, ctrl.changePassword);
+router.post('/change-password',     authenticate, ctrl.changePassword);
 router.get('/active-sessions',      authenticate, ctrl.getActiveSessions);
 router.post('/logout-other-devices',authenticate, ctrl.logoutOtherDevices);
 router.post('/revoke-session',      authenticate, ctrl.revokeSession);

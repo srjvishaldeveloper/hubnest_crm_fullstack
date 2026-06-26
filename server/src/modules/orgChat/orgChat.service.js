@@ -314,18 +314,81 @@ async function searchMessages(tenantId, userId, searchTerm) {
   return result.rows;
 }
 
-async function getOrganizationUsers(tenantId) {
+// Chat visibility rules:
+//  - Super Admin (no tenant_id): can only see and message Admins/Tenant Admins
+//  - Regular users: can see all active users in their tenant EXCEPT Super Admins
+async function getOrganizationUsers(tenantId, requestingUserId, requestingRole) {
+  const isSuperAdmin = requestingRole === 'Super Admin' || !tenantId;
+
+  if (isSuperAdmin) {
+    // Super Admin can only talk to Admins / Tenant Admins
+    const result = await query(
+      `SELECT u.id, u.name, u.email, u.photo_url, r.name AS role_name,
+              u.department_id, d.name AS department_name
+       FROM users u
+       JOIN roles r ON r.id = u.role_id
+       LEFT JOIN org_departments d ON u.department_id = d.id
+       WHERE u.status = 'Active'
+         AND u.id != $1
+         AND (LOWER(r.name) IN ('tenant admin', 'admin'))
+       ORDER BY u.name ASC`,
+      [requestingUserId]
+    );
+    return result.rows;
+  }
+
+  // Regular users: everyone in their tenant except Super Admins
   const result = await query(
     `SELECT u.id, u.name, u.email, u.photo_url, r.name AS role_name,
             u.department_id, d.name AS department_name
      FROM users u
      JOIN roles r ON r.id = u.role_id
      LEFT JOIN org_departments d ON u.department_id = d.id
-     WHERE u.tenant_id = $1 AND u.status = 'Active'
+     WHERE u.tenant_id = $1
+       AND u.status = 'Active'
+       AND u.id != $2
+       AND LOWER(r.name) NOT IN ('super admin', 'superadmin')
      ORDER BY u.name ASC`,
-    [tenantId]
+    [tenantId, requestingUserId]
   );
   return result.rows;
+}
+
+async function getConversationMembers(conversationId, tenantId) {
+  const result = await query(
+    `SELECT u.id, u.name, u.email, u.photo_url, r.name AS role_name,
+            cp.joined_at, cp.is_admin AS is_group_admin
+     FROM org_conversation_participants cp
+     JOIN users u ON u.id = cp.user_id
+     JOIN roles r ON r.id = u.role_id
+     WHERE cp.conversation_id = $1 AND u.tenant_id = $2 AND u.status = 'Active'
+     ORDER BY u.name ASC`,
+    [conversationId, tenantId]
+  );
+  return result.rows;
+}
+
+async function addConversationMembers(conversationId, tenantId, userIds, requesterId) {
+  // Verify conversation belongs to tenant
+  const conv = await query(
+    `SELECT id FROM org_conversations WHERE id = $1`, [conversationId]
+  );
+  if (!conv.rows[0]) throw new Error('Conversation not found');
+
+  for (const uid of userIds) {
+    await query(
+      `INSERT INTO org_conversation_participants (conversation_id, user_id)
+       VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [conversationId, uid]
+    );
+  }
+}
+
+async function removeConversationMember(conversationId, tenantId, userId) {
+  await query(
+    `DELETE FROM org_conversation_participants WHERE conversation_id = $1 AND user_id = $2`,
+    [conversationId, userId]
+  );
 }
 
 module.exports = {
@@ -346,4 +409,7 @@ module.exports = {
   getAnnouncements,
   searchMessages,
   getOrganizationUsers,
+  getConversationMembers,
+  addConversationMembers,
+  removeConversationMember,
 };

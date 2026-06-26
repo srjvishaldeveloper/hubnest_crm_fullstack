@@ -7,7 +7,8 @@ const axios = require('axios');
 const crypto = require('crypto');
 
 async function getDashboard(req, res) {
-  const data = await svc.getFinanceDashboard(req.user.tenant_id);
+  const { timeFilter } = req.query;
+  const data = await svc.getFinanceDashboard(req.user.tenant_id, timeFilter);
   return sendSuccess(res, data, 'Finance dashboard retrieved successfully');
 }
 
@@ -568,7 +569,40 @@ async function createCreditNote(req, res) {
   }
 }
 
+
+async function getPayrollDashboard(req, res) {
+  try {
+    const data = await svc.getPayrollDashboard(req.user.tenant_id);
+    return sendSuccess(res, data, 'Payroll dashboard retrieved');
+  } catch(err) {
+    return sendError(res, err.message, 500);
+  }
+}
+
+
+async function getComplianceDashboard(req, res) {
+  try {
+    const data = await svc.getComplianceDashboard(req.user.tenant_id);
+    return sendSuccess(res, data, 'Compliance dashboard retrieved');
+  } catch(err) {
+    return sendError(res, err.message, 500);
+  }
+}
+
+
+async function getProfileDashboard(req, res) {
+  try {
+    const data = await svc.getProfileDashboard(req.user.tenant_id);
+    return sendSuccess(res, data, 'Profile dashboard retrieved');
+  } catch(err) {
+    return sendError(res, err.message, 500);
+  }
+}
+
 module.exports = {
+  getProfileDashboard,
+  getComplianceDashboard,
+  getPayrollDashboard,
   getDashboard,
   listInvoices,
   getInvoice,

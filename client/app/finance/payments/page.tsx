@@ -34,7 +34,7 @@ interface Invoice {
   status: string;
 }
 
-const METHODS = ['Bank Transfer','UPI','Credit Card','Debit Card','Cash','Cheque','NEFT','RTGS','IMPS','Stripe','Razorpay','Other'];
+const METHODS = ['Bank Transfer','Credit Card','Debit Card','UPI','Cash','Cheque','NEFT','RTGS','IMPS','Stripe','Razorpay','Other'];
 
 function fmtINR(n: number) {
   return '₹' + (n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -61,6 +61,7 @@ function RecordPaymentModal({ invoices, onClose, onSaved }: {
   const [status, setStatus]       = useState('Completed');
   const [paidAt, setPaidAt]       = useState(new Date().toISOString().split('T')[0]);
   const [submitting, setSub]      = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   // Auto-fill amount from invoice
   useEffect(() => {
@@ -73,6 +74,7 @@ function RecordPaymentModal({ invoices, onClose, onSaved }: {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!amount) return;
+    setSubmitError('');
     try {
       setSub(true);
       await financeCreatePayment({
@@ -84,7 +86,10 @@ function RecordPaymentModal({ invoices, onClose, onSaved }: {
         paid_at:     paidAt,
       });
       onSaved();
-    } catch { /* handled by interceptor */ } finally { setSub(false); }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to record payment. Please try again.';
+      setSubmitError(msg);
+    } finally { setSub(false); }
   }
 
   const inp = 'w-full border border-[var(--border)] rounded-xl px-3 py-2.5 text-xs font-medium text-[var(--foreground)] focus:outline-none focus:border-blue-500 bg-[var(--card)] transition';
@@ -110,9 +115,9 @@ function RecordPaymentModal({ invoices, onClose, onSaved }: {
             <label className={lbl}>Link to Invoice (Optional)</label>
             <select value={selectedInvoice} onChange={e=>setSelectedInvoice(e.target.value)} className={inp}>
               <option value="">— No invoice (direct payment) —</option>
-              {invoices.filter(i=>i.status!=='Paid').map(i=>(
+              {invoices.map(i=>(
                 <option key={i.id} value={i.id}>
-                  {i.invoice_number} — {i.customer_name} — {fmtINR(parseFloat(String(i.total)))}
+                  {i.invoice_number} — {i.customer_name} — {fmtINR(parseFloat(String(i.total)))} [{i.status}]
                 </option>
               ))}
             </select>
@@ -156,6 +161,12 @@ function RecordPaymentModal({ invoices, onClose, onSaved }: {
             <input type="text" value={reference} onChange={e=>setReference(e.target.value)} placeholder="e.g. NEFT2024001, UTR123..." className={inp}/>
           </div>
 
+          {submitError && (
+            <div className="flex items-start gap-2 px-3 py-2.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/40 rounded-xl text-xs text-red-700 dark:text-red-400 font-semibold">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5"/>
+              <span>{submitError}</span>
+            </div>
+          )}
           <div className="pt-3 border-t border-[var(--border)] flex justify-end gap-3">
             <button type="button" onClick={onClose} className="px-4 py-2 border border-[var(--border)] rounded-xl text-xs font-bold text-[var(--foreground)] hover:bg-[var(--accent)] transition">Cancel</button>
             <button type="submit" disabled={submitting} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow transition disabled:opacity-60">
@@ -173,6 +184,7 @@ function RecordPaymentModal({ invoices, onClose, onSaved }: {
 
 function PaymentsContent() {
   const [payments, setPayments]       = useState<Payment[]>([]);
+  const [paidInvoices, setPaidInvoices] = useState<Invoice[]>([]);
   const [total, setTotal]             = useState(0);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState('');
@@ -188,7 +200,11 @@ function PaymentsContent() {
   useEffect(() => { if (searchParams.get('action')==='add') setShowModal(true); }, [searchParams]);
 
   useEffect(() => {
-    financeGetInvoices({ limit: 100 }).then(r => setInvoices(r.invoices || [])).catch(()=>{});
+    financeGetInvoices({ limit: 200 }).then(r => {
+      const all: Invoice[] = r.invoices || [];
+      setInvoices(all);
+      setPaidInvoices(all.filter((i: Invoice) => i.status === 'Paid'));
+    }).catch(()=>{});
   }, []);
 
   const load = useCallback(async () => {
@@ -219,10 +235,12 @@ function PaymentsContent() {
     Pending:   'bg-amber-100 text-amber-700',
   }[s] || 'bg-amber-100 text-amber-700');
 
-  // Stats
-  const totalReceived = payments.filter(p=>p.status==='Completed').reduce((s,p)=>s+parseFloat(String(p.amount)),0);
+  // Stats — include paid invoice totals in received amount
+  const manualReceived = payments.filter(p=>p.status==='Completed').reduce((s,p)=>s+parseFloat(String(p.amount)),0);
+  const invoicePaidTotal = paidInvoices.reduce((s,i)=>s+parseFloat(String(i.total)),0);
+  const totalReceived = manualReceived + invoicePaidTotal;
   const totalPending  = payments.filter(p=>p.status==='Pending').reduce((s,p)=>s+parseFloat(String(p.amount)),0);
-  const completedCount = payments.filter(p=>p.status==='Completed').length;
+  const completedCount = payments.filter(p=>p.status==='Completed').length + paidInvoices.length;
   const failedCount    = payments.filter(p=>p.status==='Failed').length;
 
   return (
@@ -231,7 +249,7 @@ function PaymentsContent() {
       <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-[var(--foreground)] tracking-tight">Payments</h1>
-          <p className="text-xs text-[var(--muted-foreground)]">Track incoming payments, link to invoices.</p>
+          <p className="text-xs text-[var(--muted-foreground)]">Track incoming payments, link to invoices. Paid invoices are counted as revenue received.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
@@ -275,6 +293,40 @@ function PaymentsContent() {
           </div>
         ))}
       </div>
+
+      {/* Paid Invoices = Revenue Received */}
+      {paidInvoices.length > 0 && (
+        <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:.03}}
+          className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-2xl overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-emerald-200 dark:border-emerald-800/40">
+            <Receipt className="w-4 h-4 text-emerald-600"/>
+            <h3 className="text-xs font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Paid Invoices — Revenue Received</h3>
+            <span className="ml-auto text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 rounded-lg">{fmtINR(invoicePaidTotal)} total</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="text-[10px] font-bold text-emerald-700 dark:text-emerald-500 uppercase tracking-wider">
+                  <th className="px-5 py-2.5">Invoice</th>
+                  <th className="px-5 py-2.5">Customer</th>
+                  <th className="px-5 py-2.5 text-right">Amount</th>
+                  <th className="px-5 py-2.5">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-emerald-100 dark:divide-emerald-900/30 text-xs">
+                {paidInvoices.map(inv => (
+                  <tr key={inv.id} className="hover:bg-emerald-100/50 dark:hover:bg-emerald-900/20 transition">
+                    <td className="px-5 py-3 font-bold text-amber-700 dark:text-amber-400">{inv.invoice_number}</td>
+                    <td className="px-5 py-3 text-[var(--foreground)] font-semibold">{inv.customer_name}</td>
+                    <td className="px-5 py-3 text-right font-extrabold text-emerald-700 dark:text-emerald-400">{fmtINR(parseFloat(String(inv.total)))}</td>
+                    <td className="px-5 py-3"><span className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase">Paid</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      )}
 
       {/* Table */}
       <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:.05}}

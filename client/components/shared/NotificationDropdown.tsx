@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Bell, Check, Info, AlertTriangle, ShieldCheck, Clock, Mail, UserPlus, Zap, X } from 'lucide-react';
+import { Bell, Check, Info, AlertTriangle, ShieldCheck, Clock, Mail, UserPlus, Zap, X, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthStore } from '../../store/authStore';
 import api from '../../services/api';
 
 interface Notification {
@@ -26,70 +27,91 @@ function formatRelTime(dateStr: string): string {
 }
 
 function mapServerNotif(n: any): Notification {
+  const rawTime = n.sent_at || n.created_at || n.sentAt;
   return {
     id: n.id,
     title: n.title || 'Notification',
     text: n.message || n.text || '',
-    time: n.sentAt || n.created_at ? formatRelTime(n.sentAt || n.created_at) : 'recently',
-    type: n.type || 'info',
+    time: rawTime ? formatRelTime(rawTime) : 'recently',
+    type: (n.type as Notification['type']) || 'info',
     read: n.status === 'read' || !!n.read,
   };
 }
 
-const FALLBACK_NOTIFS: Notification[] = [
-  { id: 1, title: 'System Update', text: 'v2.4 deployed successfully.', time: '2m ago', type: 'info', read: false },
-  { id: 2, title: 'New Lead Assigned', text: 'Acme Corp just signed up.', time: '1h ago', type: 'lead', read: false },
-  { id: 3, title: 'Server Alert', text: 'High CPU load detected on node 4.', time: '3h ago', type: 'warning', read: true },
-  { id: 4, title: 'Security Scan', text: 'No vulnerabilities found.', time: '1d ago', type: 'security', read: true },
-];
-
 export default function NotificationDropdown() {
+  const user = useAuthStore(s => s.user);
+  const isSuperAdmin = user?.role === 'Super Admin';
+
   const [isOpen, setIsOpen] = useState(false);
-  const [notifs, setNotifs] = useState<Notification[]>(FALLBACK_NOTIFS);
+  const [notifs, setNotifs] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+  // Correct endpoint per role
+  const endpoint = isSuperAdmin ? '/super-admin/notifications' : '/notifications';
 
-  const fetchNotifications = useCallback(async () => {
-    setLoading(true);
+  const fetchNotifications = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
-      const res = await api.get('/super-admin/notifications');
-      const raw: any[] = res.data?.data || res.data?.notifications || [];
-      if (Array.isArray(raw) && raw.length > 0) {
+      const res = await api.get(endpoint);
+      // super-admin returns { data: { notifications: [...] } } or { data: [...] }
+      const raw: any[] = Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data?.data?.notifications)
+          ? res.data.data.notifications
+          : Array.isArray(res.data?.notifications)
+            ? res.data.notifications
+            : [];
+      if (raw.length > 0) {
         setNotifs(raw.map(mapServerNotif));
+      } else if (!silent) {
+        setNotifs([]);
       }
     } catch {
-      // Keep fallback data on error
+      // keep existing notifs on poll failure
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, []);
+  }, [endpoint]);
 
+  // Fetch when dropdown opens
   useEffect(() => {
-    fetchNotifications();
-    // Poll every 60 seconds for new notifications
-    const interval = setInterval(fetchNotifications, 60000);
+    if (isOpen) fetchNotifications();
+  }, [isOpen, fetchNotifications]);
+
+  // Background poll every 60s
+  useEffect(() => {
+    const interval = setInterval(() => fetchNotifications(true), 60000);
+    // Initial silent fetch for badge count
+    fetchNotifications(true);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   const unreadCount = notifs.filter(n => !n.read).length;
 
-  const markAllRead = () => setNotifs(notifs.map(n => ({ ...n, read: true })));
+  const markAllRead = async () => {
+    setNotifs(prev => prev.map(n => ({ ...n, read: true })));
+    // persist to backend
+    notifs.filter(n => !n.read).forEach(n => {
+      api.put(`/notifications/${n.id}/read`).catch(() => {});
+    });
+  };
 
-  const markRead = (id: string | number) =>
-    setNotifs(notifs.map(n => n.id === id ? { ...n, read: true } : n));
+  const markRead = async (id: string | number) => {
+    setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    api.put(`/notifications/${id}/read`).catch(() => {});
+  };
 
-  const dismiss = (id: string | number) =>
-    setNotifs(notifs.filter(n => n.id !== id));
+  const dismiss = (id: string | number) => setNotifs(prev => prev.filter(n => n.id !== id));
 
   const getIcon = (type: Notification['type']) => {
     switch (type) {
@@ -120,7 +142,7 @@ export default function NotificationDropdown() {
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen(o => !o)}
         className="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-[#2A2A2A] transition group"
         aria-label="Notifications"
       >
@@ -146,17 +168,26 @@ export default function NotificationDropdown() {
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-[#2A2A2A] bg-slate-50 dark:bg-[#1A1A1A]">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-slate-800 dark:text-white">Notifications</h3>
-                {loading && <span className="w-3 h-3 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />}
+                {loading && <RefreshCw className="w-3 h-3 text-blue-500 animate-spin" />}
               </div>
-              {unreadCount > 0 && (
-                <button onClick={markAllRead} className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline">
-                  Mark all read
+              <div className="flex items-center gap-3">
+                {unreadCount > 0 && (
+                  <button onClick={markAllRead} className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+                    Mark all read
+                  </button>
+                )}
+                <button onClick={() => fetchNotifications()} className="text-[10px] font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-white transition">
+                  <RefreshCw className="w-3 h-3" />
                 </button>
-              )}
+              </div>
             </div>
 
             <div className="max-h-[340px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-[#333]">
-              {notifs.length === 0 ? (
+              {loading && notifs.length === 0 ? (
+                <div className="flex items-center justify-center py-10 gap-2 text-sm text-slate-400">
+                  <RefreshCw className="w-4 h-4 animate-spin" /> Loading…
+                </div>
+              ) : notifs.length === 0 ? (
                 <div className="p-6 text-center text-sm text-slate-500">No new notifications</div>
               ) : (
                 notifs.map(n => (
@@ -189,12 +220,13 @@ export default function NotificationDropdown() {
               )}
             </div>
 
-            <div className="p-2 bg-slate-50 dark:bg-[#1A1A1A] border-t border-slate-100 dark:border-[#2A2A2A] text-center">
+            <div className="p-3 bg-slate-50 dark:bg-[#1A1A1A] border-t border-slate-100 dark:border-[#2A2A2A] flex items-center justify-between">
+              <span className="text-[10px] text-slate-400">{notifs.length} notification{notifs.length !== 1 ? 's' : ''}</span>
               <button
-                onClick={fetchNotifications}
+                onClick={() => { fetchNotifications(); }}
                 className="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
               >
-                View All
+                Refresh
               </button>
             </div>
           </motion.div>

@@ -5,7 +5,7 @@ import api from '../../../services/api';
 import {
   Search, Filter, Download, Users, TrendingUp, CheckCircle2,
   MoreVertical, Mail, Phone, Star, Sparkles, AlertTriangle,
-  ChevronDown, ArrowUpRight, UserPlus, Upload, FileText,
+  ChevronDown, ArrowUpRight, ArrowDownRight, UserPlus, Upload, FileText,
   BarChart3, ChevronRight, Layers, Loader2, X, Check, Send, Zap,
 } from 'lucide-react';
 import {
@@ -81,14 +81,17 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function QualityBadge({ score }: { score: number }) {
-  const level = score >= 80 ? { label: 'High', cls: 'text-green-700 bg-green-50' }
-    : score >= 60 ? { label: 'Medium', cls: 'text-blue-700 bg-blue-50' }
-    : score >= 30 ? { label: 'Low', cls: 'text-amber-700 bg-amber-50' }
-    : { label: 'Spam', cls: 'text-red-700 bg-red-50' };
+  const color = score >= 80 ? '#16A34A' : score >= 50 ? '#2563EB' : score >= 30 ? '#D97706' : '#EF4444';
+  const label = score >= 80 ? 'High' : score >= 50 ? 'Medium' : score >= 30 ? 'Low' : 'Spam';
   return (
-    <div className="flex items-center gap-1">
-      <span className="text-[10px] font-extrabold text-[#0F172A] dark:text-[#F9FAFB]">{score}</span>
-      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${level.cls}`}>{level.label}</span>
+    <div className="flex flex-col gap-0.5 min-w-[70px]">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-extrabold text-slate-800 dark:text-[#ededed]">{score}/100</span>
+        <span className="text-[9px] font-bold ml-1" style={{ color }}>{label}</span>
+      </div>
+      <div className="w-full h-1.5 bg-slate-100 dark:bg-[#1f1f1f] rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, backgroundColor: color }} />
+      </div>
     </div>
   );
 }
@@ -109,7 +112,13 @@ interface SalesUser { id: string; name: string; email: string; active_leads: num
 export default function LeadsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [qualityFilter, setQualityFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<'date'|'quality'|'name'>('date');
+  const [sortDir, setSortDir] = useState<'asc'|'desc'>('desc');
   const [menuOpen, setMenuOpen] = useState<number | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -174,11 +183,27 @@ export default function LeadsPage() {
     }
   }
 
+  const uniqueSources = Array.from(new Set(leads.map(l => l.source || l.platform).filter(Boolean)));
+
   const filtered = leads.filter(l => {
     const matchSearch = l.name?.toLowerCase().includes(search.toLowerCase())
       || l.email?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'All Status' || l.status === statusFilter || l.status?.toLowerCase() === statusFilter.toLowerCase();
-    return matchSearch && matchStatus;
+    const q = l.quality ?? l.quality_score ?? 0;
+    const matchQuality = qualityFilter === 'all'
+      || (qualityFilter === 'high' && q >= 80)
+      || (qualityFilter === 'medium' && q >= 50 && q < 80)
+      || (qualityFilter === 'low' && q < 50);
+    const matchSource = sourceFilter === 'all' || (l.source || l.platform || '').toLowerCase() === sourceFilter.toLowerCase();
+    return matchSearch && matchStatus && matchQuality && matchSource;
+  }).sort((a, b) => {
+    let va: number | string = 0, vb: number | string = 0;
+    if (sortBy === 'quality') { va = a.quality ?? a.quality_score ?? 0; vb = b.quality ?? b.quality_score ?? 0; }
+    else if (sortBy === 'name') { va = a.name || ''; vb = b.name || ''; }
+    else { va = a.created_at || a.date || ''; vb = b.created_at || b.date || ''; }
+    if (typeof va === 'string' && typeof vb === 'string')
+      return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    return sortDir === 'asc' ? (va as number) - (vb as number) : (vb as number) - (va as number);
   });
 
   // Compute stats from real data
@@ -266,34 +291,67 @@ export default function LeadsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-extrabold text-[#0F172A] dark:text-[#F9FAFB]">Leads</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Total: {totalLeads.toLocaleString()} leads</p>
+          <p className="text-xs text-slate-500 mt-0.5">Total: {totalLeads.toLocaleString()} leads · {filtered.length} shown</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 w-48 focus-within:border-[#4F46E5] transition">
+          <div className="flex items-center gap-2 bg-white dark:bg-[#161616] border border-slate-200 dark:border-[#2a2a2a] rounded-xl px-3 py-2 w-48 focus-within:border-[#4F46E5] transition">
             <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search leads..."
-              className="bg-transparent text-xs text-slate-700 outline-none w-full placeholder:text-slate-400"
-            />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search leads..."
+              className="bg-transparent text-xs text-slate-700 dark:text-[#ededed] outline-none w-full placeholder:text-slate-400" />
+            {search && <button onClick={() => setSearch('')}><X className="w-3 h-3 text-slate-400" /></button>}
           </div>
-          <button className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 dark:bg-[#161616] transition">
-            <Filter className="w-4 h-4 text-slate-500" />
-          </button>
-          <button
-            onClick={handleSyncMeta}
-            disabled={syncingMeta}
-            title="Pull latest leads from Meta Ads (Facebook/Instagram)"
-            className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition disabled:opacity-50"
-          >
+          <select value={qualityFilter} onChange={e => setQualityFilter(e.target.value)}
+            className="border border-slate-200 dark:border-[#2a2a2a] rounded-xl px-2.5 py-2 text-xs dark:bg-[#161616] dark:text-white outline-none">
+            <option value="all">All Quality</option>
+            <option value="high">High (80-100)</option>
+            <option value="medium">Medium (50-79)</option>
+            <option value="low">Low (&lt;50)</option>
+          </select>
+          <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}
+            className="border border-slate-200 dark:border-[#2a2a2a] rounded-xl px-2.5 py-2 text-xs dark:bg-[#161616] dark:text-white outline-none">
+            <option value="all">All Sources</option>
+            {uniqueSources.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select value={`${sortBy}-${sortDir}`} onChange={e => { const [b, d] = e.target.value.split('-'); setSortBy(b as 'date'|'quality'|'name'); setSortDir(d as 'asc'|'desc'); }}
+            className="border border-slate-200 dark:border-[#2a2a2a] rounded-xl px-2.5 py-2 text-xs dark:bg-[#161616] dark:text-white outline-none">
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="quality-desc">Quality: High → Low</option>
+            <option value="quality-asc">Quality: Low → High</option>
+            <option value="name-asc">Name A–Z</option>
+            <option value="name-desc">Name Z–A</option>
+          </select>
+          <button onClick={handleSyncMeta} disabled={syncingMeta}
+            className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition disabled:opacity-50">
             <Zap className={`w-3.5 h-3.5 ${syncingMeta ? 'animate-pulse' : ''}`} />
-            {syncingMeta ? 'Syncing...' : 'Sync Meta Leads'}
+            {syncingMeta ? 'Syncing...' : 'Sync Meta'}
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 dark:bg-[#161616] text-slate-700 text-xs font-semibold rounded-xl transition">
+          <button className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-[#161616] border border-slate-200 dark:border-[#2a2a2a] hover:bg-slate-50 dark:hover:bg-[#1a1a1a] text-slate-700 dark:text-[#ededed] text-xs font-semibold rounded-xl transition">
             <Download className="w-3.5 h-3.5" /> Export
           </button>
         </div>
+      </div>
+
+      {/* ── Lead Status Overview with Arrows ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'New Leads', value: leads.filter(l => (l.status||'').toLowerCase() === 'new').length, prev: 0, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/10', icon: ArrowUpRight, up: true },
+          { label: 'Qualified', value: leads.filter(l => (l.status||'').toLowerCase() === 'qualified').length, prev: 0, color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-900/10', icon: ArrowUpRight, up: true },
+          { label: 'Converted', value: converted, prev: 0, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/10', icon: ArrowUpRight, up: true },
+          { label: 'Not Interested', value: leads.filter(l => (l.status||'').toLowerCase().includes('not')).length, prev: 0, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/10', icon: ArrowDownRight, up: false },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.label} className="bg-white dark:bg-[#161616] rounded-2xl border border-slate-200/60 dark:border-[#1f1f1f] shadow-sm p-4">
+              <p className="text-[10px] font-semibold text-slate-500 dark:text-[#a3a3a3]">{item.label}</p>
+              <p className={`text-2xl font-extrabold mt-1 ${item.color}`}>{item.value}</p>
+              <div className={`flex items-center gap-0.5 text-[10px] font-bold mt-1 ${item.up ? 'text-green-600' : 'text-red-500'}`}>
+                <Icon className="w-3 h-3" />
+                <span>{totalLeads > 0 ? ((item.value / totalLeads) * 100).toFixed(1) : 0}% of total</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {error && (

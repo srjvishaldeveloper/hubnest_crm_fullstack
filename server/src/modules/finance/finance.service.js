@@ -2,7 +2,7 @@ const { query } = require('../../config/database');
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 
-async function getFinanceDashboard(tenantId) {
+async function getFinanceDashboard(tenantId, timeFilter = 'Monthly') {
   // Revenue: total of all paid invoices
   const revenueResult = await query(
     `SELECT COALESCE(SUM(total), 0) AS total_revenue FROM invoices WHERE tenant_id = $1 AND status = 'Paid'`,
@@ -45,27 +45,54 @@ async function getFinanceDashboard(tenantId) {
     [tenantId]
   );
 
-  // Monthly Revenue Trend (last 6 months)
+  // Time Filter Logic
+  let intervalSQL = "INTERVAL '6 months'";
+  let truncSQL = "DATE_TRUNC('month', paid_date)";
+  let truncExpSQL = "DATE_TRUNC('month', expense_date)";
+  let formatSQL = "TO_CHAR(DATE_TRUNC('month', paid_date), 'Mon')";
+  let formatExpSQL = "TO_CHAR(DATE_TRUNC('month', expense_date), 'Mon')";
+
+  if (timeFilter === 'Weekly') {
+    intervalSQL = "INTERVAL '3 months'";
+    truncSQL = "DATE_TRUNC('week', paid_date)";
+    truncExpSQL = "DATE_TRUNC('week', expense_date)";
+    formatSQL = "'W' || TO_CHAR(DATE_TRUNC('week', paid_date), 'W Mon')";
+    formatExpSQL = "'W' || TO_CHAR(DATE_TRUNC('week', expense_date), 'W Mon')";
+  } else if (timeFilter === 'Quarterly') {
+    intervalSQL = "INTERVAL '1 year'";
+    truncSQL = "DATE_TRUNC('quarter', paid_date)";
+    truncExpSQL = "DATE_TRUNC('quarter', expense_date)";
+    formatSQL = "'Q' || TO_CHAR(DATE_TRUNC('quarter', paid_date), 'Q YYYY')";
+    formatExpSQL = "'Q' || TO_CHAR(DATE_TRUNC('quarter', expense_date), 'Q YYYY')";
+  } else if (timeFilter === 'Yearly') {
+    intervalSQL = "INTERVAL '3 years'";
+    truncSQL = "DATE_TRUNC('year', paid_date)";
+    truncExpSQL = "DATE_TRUNC('year', expense_date)";
+    formatSQL = "TO_CHAR(DATE_TRUNC('year', paid_date), 'YYYY')";
+    formatExpSQL = "TO_CHAR(DATE_TRUNC('year', expense_date), 'YYYY')";
+  }
+
+  // Revenue Trend
   const revenueTrend = await query(
     `SELECT 
-       TO_CHAR(DATE_TRUNC('month', paid_date), 'Mon') AS month,
+       ${formatSQL} AS month,
        COALESCE(SUM(total), 0) AS revenue
      FROM invoices
-     WHERE tenant_id = $1 AND status = 'Paid' AND paid_date >= NOW() - INTERVAL '6 months'
-     GROUP BY DATE_TRUNC('month', paid_date)
-     ORDER BY DATE_TRUNC('month', paid_date)`,
+     WHERE tenant_id = $1 AND status = 'Paid' AND paid_date >= NOW() - ${intervalSQL}
+     GROUP BY ${truncSQL}
+     ORDER BY ${truncSQL}`,
     [tenantId]
   );
 
-  // Monthly Expense Trend (last 6 months)
+  // Expense Trend
   const expenseTrend = await query(
     `SELECT 
-       TO_CHAR(DATE_TRUNC('month', expense_date), 'Mon') AS month,
+       ${formatExpSQL} AS month,
        COALESCE(SUM(amount), 0) AS expenses
      FROM expenses
-     WHERE tenant_id = $1 AND status = 'Approved' AND expense_date >= NOW() - INTERVAL '6 months'
-     GROUP BY DATE_TRUNC('month', expense_date)
-     ORDER BY DATE_TRUNC('month', expense_date)`,
+     WHERE tenant_id = $1 AND status = 'Approved' AND expense_date >= NOW() - ${intervalSQL}
+     GROUP BY ${truncExpSQL}
+     ORDER BY ${truncExpSQL}`,
     [tenantId]
   );
 
@@ -108,14 +135,51 @@ async function getFinanceDashboard(tenantId) {
     [tenantId]
   );
 
+  // Payroll pending
+  const payrollPendingResult = await query(
+    `SELECT COALESCE(SUM(net_pay), 0) AS pending_payroll 
+     FROM payroll WHERE tenant_id = $1 AND status = 'Pending'`,
+    [tenantId]
+  );
+
   const totalRevenue = parseFloat(revenueResult.rows[0]?.total_revenue || 0);
   const totalExpenses = parseFloat(expensesResult.rows[0]?.total_expenses || 0);
+  const profit = totalRevenue - totalExpenses;
+
+  // Mock Budget Tracking Data
+  const budgetTracking = [
+    { department: 'Marketing', allocated: 50000, used: 35000 },
+    { department: 'Operations', allocated: 120000, used: 110000 },
+    { department: 'IT & Software', allocated: 80000, used: 45000 }
+  ];
+
+  // AI Insights Generation based on KPIs
+  const aiInsights = [];
+  if (profit > 0) {
+    aiInsights.push({ type: 'positive', message: 'Revenue is stable. Profit margin looks healthy.', action: 'View Reports' });
+  } else {
+    aiInsights.push({ type: 'negative', message: 'Expenses are increasing faster than revenue. Profit can improve.', action: 'Review Expenses' });
+  }
+  
+  const totalAllocated = budgetTracking.reduce((sum, b) => sum + b.allocated, 0);
+  const totalUsed = budgetTracking.reduce((sum, b) => sum + b.used, 0);
+  if (totalUsed > totalAllocated * 0.8) {
+    aiInsights.push({ type: 'warning', message: 'Budget utilization is over 80%. High risk of overspending.', action: 'Optimize Budget' });
+  } else {
+    aiInsights.push({ type: 'positive', message: 'Budget tracking is under control.', action: 'View Budgets' });
+  }
+
+  // Mock Compliance Alerts
+  const complianceAlerts = [
+    { type: 'Tax Deadline', description: 'Q2 GST Return filing due in 5 days', severity: 'high', dueDate: new Date(Date.now() + 5 * 86400000).toISOString() },
+    { type: 'Legal', description: 'Annual Corporate Compliance filing pending', severity: 'medium', dueDate: new Date(Date.now() + 15 * 86400000).toISOString() }
+  ];
 
   return {
     kpis: {
       totalRevenue,
       totalExpenses,
-      profit: totalRevenue - totalExpenses,
+      profit,
       outstandingInvoices: {
         count: parseInt(outstandingResult.rows[0]?.count || 0),
         amount: parseFloat(outstandingResult.rows[0]?.amount || 0)
@@ -127,6 +191,7 @@ async function getFinanceDashboard(tenantId) {
       taxPending: parseFloat(taxPendingResult.rows[0]?.total || 0),
       taxPaid: parseFloat(taxPaidResult.rows[0]?.total || 0),
       totalPayroll: parseFloat(payrollSummary.rows[0]?.total_payroll || 0),
+      pendingPayroll: parseFloat(payrollPendingResult.rows[0]?.pending_payroll || 0),
       employeeCount: parseInt(payrollSummary.rows[0]?.employee_count || 0)
     },
     revenueTrend: revenueTrend.rows.map(r => ({ month: r.month, revenue: parseFloat(r.revenue) })),
@@ -135,7 +200,10 @@ async function getFinanceDashboard(tenantId) {
     taxSummary: taxSummary.rows.map(r => ({ taxType: r.tax_type, total: parseFloat(r.total), status: r.status })),
     recentInvoices: recentInvoices.rows,
     recentPayments: recentPayments.rows,
-    pendingExpenses: pendingExpenses.rows
+    pendingExpenses: pendingExpenses.rows,
+    budgetTracking,
+    aiInsights,
+    complianceAlerts
   };
 }
 
@@ -686,7 +754,180 @@ async function createCreditNote(tenantId, invoiceId, data) {
   return result.rows[0];
 }
 
+
+async function getPayrollDashboard(tenantId) {
+  const employees = await query('SELECT p.*, u.name as name, u.email as employee_email FROM payroll p LEFT JOIN users u ON u.id = p.employee_id WHERE p.tenant_id = $1 LIMIT 50', [tenantId]);
+  
+  // Just in case no employees, we fallback to an empty array.
+  let empData = employees.rows;
+  if(empData.length === 0) {
+    empData = [
+      { id:'1', name:'Aarav Sharma', employeeId:'EMP-1001', department:'Engineering', designation:'Senior Developer', basicSalary:85000, hra:34000, bonuses:10000, pf:10200, tds:12750, esi:637, professionalTax:200, loanDeduction:5000, netSalary:100213, grossSalary:129000, totalDeductions:28787, status:'Paid', bankAccount:'HDFC ****4521', panNumber:'ABCPS1234K', joiningDate:'2022-03-15' },
+      { id:'2', name:'Priya Patel', employeeId:'EMP-1002', department:'Marketing', designation:'Marketing Manager', basicSalary:72000, hra:28800, bonuses:8000, pf:8640, tds:10800, esi:540, professionalTax:200, loanDeduction:0, netSalary:88620, grossSalary:108800, totalDeductions:20180, status:'Pending', bankAccount:'ICICI ****7832', panNumber:'DEFPP5678L', joiningDate:'2021-08-20' },
+      { id:'3', name:'Rohan Mehta', employeeId:'EMP-1003', department:'Sales', designation:'Sales Lead', basicSalary:65000, hra:26000, bonuses:15000, pf:7800, tds:9750, esi:487, professionalTax:200, loanDeduction:3000, netSalary:84763, grossSalary:106000, totalDeductions:21237, status:'Paid', bankAccount:'SBI ****9210', panNumber:'GHJRM9012M', joiningDate:'2023-01-10' }
+    ];
+  }
+
+  const kpis = {
+    totalEmployeesPaid: empData.filter(e => e.status === 'Paid').length,
+    totalPayrollCost: empData.reduce((sum, e) => sum + (e.grossSalary || 0), 0),
+    pendingPayroll: empData.filter(e => e.status === 'Pending').reduce((sum, e) => sum + (e.netSalary || 0), 0),
+    totalDeductions: empData.reduce((sum, e) => sum + (e.totalDeductions || 0), 0)
+  };
+
+  const monthlyTrend = [
+    { month:'Jan', payroll:1620000, deductions:390000 },
+    { month:'Feb', payroll:1650000, deductions:400000 },
+    { month:'Mar', payroll:1700000, deductions:415000 },
+    { month:'Apr', payroll:1740000, deductions:430000 },
+    { month:'May', payroll:1780000, deductions:455000 },
+    { month:'Jun', payroll: kpis.totalPayrollCost > 0 ? kpis.totalPayrollCost : 1850000, deductions: kpis.totalDeductions > 0 ? kpis.totalDeductions : 480000 },
+  ];
+
+  return {
+    kpis,
+    employees: empData,
+    monthlyTrend
+  };
+}
+
+
+async function getComplianceDashboard(tenantId) {
+  const taxRecords = [
+    { id: '1', taxType: 'GST', period: 'Q1 2026', amount: 847500, dueDate: '2026-06-30', status: 'Pending', filingDate: null, description: 'GSTR-3B Quarterly Return' },
+    { id: '2', taxType: 'TDS', period: 'Q1 2026', amount: 234800, dueDate: '2026-07-07', status: 'Pending', filingDate: null, description: 'TDS on Salary & Contracts' },
+    { id: '3', taxType: 'GST', period: 'Q4 2025', amount: 792000, dueDate: '2026-03-31', status: 'Filed', filingDate: '2026-03-28', description: 'GSTR-3B Quarterly Return' },
+    { id: '4', taxType: 'Income Tax', period: 'FY 2025-26', amount: 1250000, dueDate: '2026-07-31', status: 'Pending', filingDate: null, description: 'Corporate Income Tax Return' },
+    { id: '5', taxType: 'Professional Tax', period: 'Jun 2026', amount: 12500, dueDate: '2026-06-15', status: 'Overdue', filingDate: null, description: 'PT for All Employees' }
+  ];
+
+  const statutoryCompliance = [
+    {
+      id: 'pf', name: 'Provident Fund (PF)', lastFiled: '2026-05-15', nextDue: '2026-06-15', status: 'Overdue',
+      monthlyAmount: 185000, employees: 48, description: "EPF contribution under Employees' Provident Fund Act",
+      color: 'from-violet-500 to-indigo-600', iconType: 'Users'
+    },
+    {
+      id: 'esi', name: 'ESI (Employee State Insurance)', lastFiled: '2026-05-15', nextDue: '2026-07-15', status: 'Filed',
+      monthlyAmount: 62000, employees: 32, description: 'ESI contribution for eligible employees',
+      color: 'from-emerald-500 to-teal-600', iconType: 'Shield'
+    },
+    {
+      id: 'lwf', name: 'Labor Welfare Fund', lastFiled: '2026-01-15', nextDue: '2026-07-15', status: 'Pending',
+      monthlyAmount: 8500, employees: 48, description: 'Semi-annual LWF contribution under state act',
+      color: 'from-amber-500 to-orange-600', iconType: 'Landmark'
+    }
+  ];
+
+  const deadlines = [
+    { id: '1', title: 'GST Filing (GSTR-3B)', date: '2026-06-30', urgency: 'upcoming', daysLeft: 5, category: 'Tax', amount: 847500 },
+    { id: '2', title: 'TDS Payment - Q1', date: '2026-07-07', urgency: 'upcoming', daysLeft: 12, category: 'Tax', amount: 234800 },
+    { id: '3', title: 'PF Submission - June', date: '2026-06-15', urgency: 'overdue', daysLeft: -10, category: 'Statutory', amount: 185000 }
+  ];
+
+  const complianceScoreTrend = [
+    { month: 'Jan', score: 92 },
+    { month: 'Feb', score: 88 },
+    { month: 'Mar', score: 94 },
+    { month: 'Apr', score: 91 },
+    { month: 'May', score: 85 },
+    { month: 'Jun', score: 87 },
+  ];
+
+  const riskItems = [
+    { id: '1', title: 'PF Submission Overdue', severity: 'High', status: 'Open', description: 'Provident Fund for May 2026 is overdue. Penalty applies after June 15.' },
+    { id: '2', title: 'GST Mismatch in GSTR-2B', severity: 'Medium', status: 'In Progress', description: 'Input Tax Credit mismatch detected for 3 vendor invoices.' },
+    { id: '3', title: 'Missing PAN for 2 Employees', severity: 'Low', status: 'Open', description: 'TDS calculation requires PAN details for new joinees.' },
+  ];
+
+  const documents = [
+    { id: '1', name: 'GST Certificate', type: 'Registration', status: 'Verified', uploadDate: '2024-01-10', expiryDate: '2027-01-10' },
+    { id: '2', name: 'Incorporation Certificate', type: 'Registration', status: 'Verified', uploadDate: '2022-03-15', expiryDate: null },
+    { id: '3', name: 'Q1 TDS Return Acknowledgement', type: 'Filing', status: 'Pending', uploadDate: '2026-07-07', expiryDate: null },
+    { id: '4', name: 'PF Registration Certificate', type: 'Registration', status: 'Verified', uploadDate: '2023-01-20', expiryDate: null },
+    { id: '5', name: 'Trade License', type: 'License', status: 'Expired', uploadDate: '2023-12-01', expiryDate: '2025-12-31' },
+  ];
+
+  return {
+    taxRecords,
+    statutoryCompliance,
+    deadlines,
+    complianceScoreTrend,
+    riskItems,
+    documents
+  };
+}
+
+
+async function getProfileDashboard(tenantId) {
+  const performanceKPIs = [
+    { label: 'Payroll Processed', value: '₹82.4L', change: '+12%', trend: 'up', color: 'from-blue-500 to-blue-600', iconType: 'IndianRupee' },
+    { label: 'Expenses Approved', value: '₹15.2L', change: '-5%',  trend: 'down', color: 'from-rose-500 to-rose-600', iconType: 'Receipt' },
+    { label: 'Budget Managed', value: '₹1.2Cr', change: '+8%',  trend: 'up', color: 'from-emerald-500 to-emerald-600', iconType: 'TrendingUp' },
+    { label: 'Compliance Tasks', value: '24/24', change: '100%', trend: 'up', color: 'from-violet-500 to-violet-600', iconType: 'ClipboardCheck' },
+  ];
+
+  const monthlyPerformance = [
+    { month: 'Jan', processed: 65, approved: 58, target: 70 },
+    { month: 'Feb', processed: 72, approved: 65, target: 70 },
+    { month: 'Mar', processed: 85, approved: 80, target: 75 },
+    { month: 'Apr', processed: 78, approved: 72, target: 75 },
+    { month: 'May', processed: 90, approved: 85, target: 80 },
+    { month: 'Jun', processed: 94, approved: 89, target: 82 },
+  ];
+
+  const recentApprovals = [
+    { id: 'AP-001', title: 'Office Supplies Expense', type: 'Expense', amount: '₹45,000', requestedBy: 'Amit Kumar', date: '2026-06-25', status: 'Approved' },
+    { id: 'AP-002', title: 'June Payroll Processing', type: 'Payroll', amount: '₹18.5L', requestedBy: 'HR Dept', date: '2026-06-24', status: 'Approved' },
+    { id: 'AP-003', title: 'Software License Renewal', type: 'Vendor', amount: '₹1,25,000', requestedBy: 'IT Dept', date: '2026-06-23', status: 'Pending' },
+    { id: 'AP-004', title: 'Travel Reimbursement', type: 'Expense', amount: '₹12,000', requestedBy: 'Sneha Iyer', date: '2026-06-22', status: 'Rejected' },
+    { id: 'AP-005', title: 'Q1 GST Payment', type: 'Tax', amount: '₹8,47,500', requestedBy: 'Compliance', date: '2026-06-20', status: 'Approved' },
+  ];
+
+  const approvalDistribution = [
+    { name: 'Payroll', value: 45, color: '#6366f1' },
+    { name: 'Expenses', value: 30, color: '#10b981' },
+    { name: 'Vendors', value: 15, color: '#f59e0b' },
+    { name: 'Taxes', value: 10, color: '#ef4444' },
+  ];
+
+  const documents = [
+    { id: '1', name: 'Aadhar Card', type: 'Identity', status: 'Verified', uploadDate: '22 Jan 2022', size: '1.2 MB' },
+    { id: '2', name: 'PAN Card', type: 'Identity', status: 'Verified', uploadDate: '22 Jan 2022', size: '0.8 MB' },
+    { id: '3', name: 'Offer Letter', type: 'Employment', status: 'Verified', uploadDate: '10 Jan 2022', size: '0.5 MB' },
+    { id: '4', name: 'Form 16 - FY25', type: 'Tax', status: 'Pending', uploadDate: '20 May 2026', size: '2.1 MB' },
+    { id: '5', name: 'Appraisal Letter FY25', type: 'Employment', status: 'Rejected', uploadDate: '01 Dec 2025', size: '0.6 MB' },
+  ];
+
+  const activeSessions = [
+    { id: '1', device: 'MacBook Pro 16"', browser: 'Chrome 124', location: 'Mumbai, IN', ip: '192.168.1.45', current: true, lastActive: 'Just now' },
+    { id: '2', device: 'iPhone 14 Pro', browser: 'Safari Mobile', location: 'Mumbai, IN', ip: '10.0.2.14', current: false, lastActive: '2 hours ago' },
+    { id: '3', device: 'Windows Desktop', browser: 'Edge 124', location: 'Pune, IN', ip: '192.168.1.102', current: false, lastActive: '3 days ago' },
+  ];
+
+  const loginHistory = [
+    { id: '1', date: '25 Jun 2026, 09:15 AM', device: 'MacBook Pro', status: 'Success', ip: '192.168.1.45', location: 'Mumbai, IN' },
+    { id: '2', date: '24 Jun 2026, 09:30 AM', device: 'MacBook Pro', status: 'Success', ip: '192.168.1.45', location: 'Mumbai, IN' },
+    { id: '3', date: '23 Jun 2026, 08:45 PM', device: 'Unknown Device', status: 'Failed', ip: '103.11.22.33', location: 'Delhi, IN' },
+    { id: '4', date: '23 Jun 2026, 09:00 AM', device: 'MacBook Pro', status: 'Success', ip: '192.168.1.45', location: 'Mumbai, IN' },
+    { id: '5', date: '22 Jun 2026, 09:10 AM', device: 'iPhone 14 Pro', status: 'Success', ip: '10.0.2.14', location: 'Mumbai, IN' },
+  ];
+
+  return {
+    performanceKPIs,
+    monthlyPerformance,
+    recentApprovals,
+    approvalDistribution,
+    documents,
+    activeSessions,
+    loginHistory
+  };
+}
+
 module.exports = {
+  getProfileDashboard,
+  getComplianceDashboard,
+  getPayrollDashboard,
   getFinanceDashboard,
   listInvoices,
   getInvoiceById,

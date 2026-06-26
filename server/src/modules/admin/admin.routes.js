@@ -24,17 +24,64 @@ router.get('/dashboard', async (req, res) => {
     // Check if leads table exists, handle fallback if not
     let countLeads = 0;
     try {
-      const leadsCountResult = await query('SELECT count(*) FROM leads WHERE tenant_id = $1', [tenantId]);
+      const leadsCountResult = await query('SELECT count(*) FROM leads_marketing WHERE tenant_id = $1', [tenantId]);
       countLeads = parseInt(leadsCountResult.rows[0].count, 10);
     } catch {
       countLeads = 0;
     }
+
+    // Role Pie
+    const rolePieResult = await query(`
+      SELECT r.name, COUNT(u.id) as count 
+      FROM roles r 
+      LEFT JOIN users u ON u.role_id = r.id AND u.tenant_id = $1 AND u.status != 'Archived'
+      WHERE r.name NOT IN ('Super Admin', 'super_admin')
+      GROUP BY r.name
+    `, [tenantId]);
+    const ROLE_COLORS = {
+      'Sales': '#2563EB',
+      'Sales Manager': '#2563EB',
+      'Marketing': '#8B5CF6',
+      'Support Agent': '#06B6D4',
+      'Support Manager': '#06B6D4',
+      'Finance': '#F59E0B',
+      'Admin': '#EF4444'
+    };
+    const rolePie = rolePieResult.rows.map(r => ({
+      name: r.name,
+      value: parseInt(r.count, 10),
+      color: ROLE_COLORS[r.name] || '#94A3B8'
+    })).filter(r => r.value > 0);
+
+    // Weekly Activity
+    const weeklyResult = await query(`
+      WITH days AS (
+        SELECT generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, '1 day'::interval) AS day_date
+      )
+      SELECT 
+        to_char(d.day_date, 'Dy') AS day,
+        d.day_date,
+        (SELECT COUNT(*) FROM leads_marketing WHERE tenant_id = $1 AND DATE(created_at) = DATE(d.day_date)) AS leads,
+        (SELECT COUNT(*) FROM leads_marketing WHERE tenant_id = $1 AND status = 'Converted' AND DATE(updated_at) = DATE(d.day_date)) AS converted,
+        (SELECT COUNT(*) FROM support_tickets WHERE tenant_id = $1 AND DATE(created_at) = DATE(d.day_date)) AS tickets
+      FROM days d
+      ORDER BY d.day_date
+    `, [tenantId]);
+
+    const weeklyActivity = weeklyResult.rows.map(r => ({
+      day: r.day,
+      leads: parseInt(r.leads, 10),
+      converted: parseInt(r.converted, 10),
+      tickets: parseInt(r.tickets, 10)
+    }));
     
     return sendSuccess(res, {
       totalUsers: parseInt(usersCount.rows[0].count, 10),
       totalLeads: countLeads,
       systemStatus: 'Healthy',
-      kpis: { activeUsers: parseInt(usersCount.rows[0].count, 10), conversionRate: '12%' }
+      kpis: { activeUsers: parseInt(usersCount.rows[0].count, 10), conversionRate: '12%' },
+      rolePie,
+      weeklyActivity
     }, 'Dashboard KPI data retrieved');
   } catch (err) {
     return sendError(res, err.message, 500);

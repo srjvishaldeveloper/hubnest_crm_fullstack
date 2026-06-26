@@ -55,6 +55,9 @@ router.post('/vendors', ctrl.createVendor);
 router.patch('/vendors/:id', ctrl.updateVendor);
 
 // Payroll
+router.get('/payroll/dashboard', ctrl.getPayrollDashboard);
+router.get('/compliance/dashboard', ctrl.getComplianceDashboard);
+router.get('/profile/dashboard', ctrl.getProfileDashboard);
 router.get('/payroll', ctrl.listPayroll);
 
 // Tax Records

@@ -29,10 +29,12 @@ export default function ForgotPasswordPage() {
       setMessage(res.message);
       setStep('otp');
     } catch (err: unknown) {
-      setError(
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Request failed. Please try again.'
-      );
+      const data = (err as any)?.response?.data;
+      if (data?.errors && data.errors.length > 0) {
+        setError(data.errors.map((e: any) => e.msg).join(' '));
+      } else {
+        setError(data?.message || 'Request failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -48,10 +50,12 @@ export default function ForgotPasswordPage() {
       setMessage(res.message);
       setStep('done');
     } catch (err: unknown) {
-      setError(
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Reset failed. Please try again.'
-      );
+      const data = (err as any)?.response?.data;
+      if (data?.errors && data.errors.length > 0) {
+        setError(data.errors.map((e: any) => e.msg).join(' '));
+      } else {
+        setError(data?.message || 'Reset failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

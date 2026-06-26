@@ -301,6 +301,8 @@ function LeadsPageContent() {
   const [statusFilter, setStatusFilter] = useState<typeof STATUS_FILTERS[number]>('All');
   const [priorityFilter, setPriorityFilter] = useState<typeof PRIORITY_FILTERS[number]>('All');
   const [assignedToFilter, setAssignedToFilter] = useState<string>('All');
+  const [sortBy, setSortBy] = useState<'Date' | 'Name' | 'Priority' | 'Status'>('Date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [bulkAssignTarget, setBulkAssignTarget] = useState('');
@@ -602,12 +604,26 @@ function LeadsPageContent() {
     const matchPriority = priorityFilter === 'All' || l.priority === priorityFilter;
     const matchAssigned = assignedToFilter === 'All' || l.assignedTo?._id === assignedToFilter;
     return matchSearch && matchStatus && matchPriority && matchAssigned;
+  }).sort((a, b) => {
+    let cmp = 0;
+    if (sortBy === 'Name') cmp = a.name.localeCompare(b.name);
+    else if (sortBy === 'Status') cmp = a.status.localeCompare(b.status);
+    else if (sortBy === 'Priority') {
+      const pMap = { Hot: 3, Warm: 2, Cold: 1 };
+      cmp = (pMap[a.priority] || 0) - (pMap[b.priority] || 0);
+    }
+    else { // Date
+      const dA = new Date(a.createdAt || 0).getTime();
+      const dB = new Date(b.createdAt || 0).getTime();
+      cmp = dA - dB;
+    }
+    return sortOrder === 'asc' ? cmp : -cmp;
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  useEffect(() => { setCurrentPage(1); }, [search, statusFilter, priorityFilter, assignedToFilter]);
+  useEffect(() => { setCurrentPage(1); }, [search, statusFilter, priorityFilter, assignedToFilter, sortBy, sortOrder]);
 
   // ─── Stats ──────────────────────────────────────────────────────────────────
   const now = new Date();
@@ -803,6 +819,20 @@ function LeadsPageContent() {
             style={{ padding: '9px 12px', borderRadius: 10, border: '1.5px solid #E2E8F0', fontSize: 13, color: '#475569', background: '#F8FAFC', outline: 'none', cursor: 'pointer' }}>
             <option value="All">All Assignees</option>
             {team.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}
+          </select>
+
+          {/* Sort By */}
+          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
+            style={{ padding: '9px 12px', borderRadius: 10, border: '1.5px solid #E2E8F0', fontSize: 13, color: '#475569', background: '#F8FAFC', outline: 'none', cursor: 'pointer' }}>
+            <option value="Date">Sort by Date</option>
+            <option value="Name">Sort by Name</option>
+            <option value="Priority">Sort by Priority</option>
+            <option value="Status">Sort by Status</option>
+          </select>
+          <select value={sortOrder} onChange={e => setSortOrder(e.target.value as any)}
+            style={{ padding: '9px 12px', borderRadius: 10, border: '1.5px solid #E2E8F0', fontSize: 13, color: '#475569', background: '#F8FAFC', outline: 'none', cursor: 'pointer' }}>
+            <option value="desc">Desc</option>
+            <option value="asc">Asc</option>
           </select>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

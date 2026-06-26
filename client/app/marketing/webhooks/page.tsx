@@ -65,7 +65,11 @@ export default function WebhooksAndAPIs() {
     setLoading(true);
     try {
       const res = await api.get('/marketing/webhooks');
-      const data: WebhookItem[] = res.data?.webhooks || res.data?.data || [];
+      const raw = res.data?.data?.webhooks || res.data?.webhooks || res.data?.data || [];
+      const data: WebhookItem[] = (Array.isArray(raw) ? raw : []).map((w: any) => ({
+        ...w,
+        events: Array.isArray(w.events) ? w.events : (typeof w.events === 'string' ? JSON.parse(w.events || '[]') : []),
+      }));
       setWebhooks(data);
     } catch {
       setWebhooks([]);
@@ -81,7 +85,8 @@ export default function WebhooksAndAPIs() {
     setCreating(true);
     try {
       const res = await api.post('/marketing/webhooks', { url: urlInput.trim(), events: selectedEvents, status: 'Active' });
-      const created = res.data?.webhook || { id: Date.now(), url: urlInput.trim(), events: selectedEvents, status: 'Active' };
+      const raw = res.data?.data?.webhook || res.data?.webhook || { id: Date.now(), url: urlInput.trim(), events: selectedEvents, status: 'Active' };
+      const created = { ...raw, events: Array.isArray(raw.events) ? raw.events : (typeof raw.events === 'string' ? JSON.parse(raw.events || '[]') : selectedEvents) };
       setWebhooks(prev => [created, ...prev]);
       setShowModal(false);
       setUrlInput('');

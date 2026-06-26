@@ -1241,7 +1241,194 @@ async function testIntegration(tenantId, provider) {
   return { success: true, message: 'Credentials saved successfully' };
 }
 
+
+async function getDashboard(tenantId) {
+  const campaigns = await query('SELECT COUNT(*) as cnt FROM campaigns WHERE tenant_id = $1', [tenantId]);
+  const leads = await query('SELECT COUNT(*) as cnt FROM leads_marketing WHERE tenant_id = $1', [tenantId]);
+  const activeCamp = await query("SELECT COUNT(*) as cnt FROM campaigns WHERE tenant_id = $1 AND status = 'Active'", [tenantId]);
+
+  const TREND_DAILY = [
+    { date: 'Mon', leads: 42, cost: 4100 },
+    { date: 'Tue', leads: 68, cost: 5200 },
+    { date: 'Wed', leads: 55, cost: 4800 },
+    { date: 'Thu', leads: 80, cost: 6100 },
+    { date: 'Fri', leads: 95, cost: 7200 },
+    { date: 'Sat', leads: 30, cost: 2000 },
+    { date: 'Sun', leads: 20, cost: 1500 },
+  ];
+
+  const TREND_WEEKLY = [
+    { date: 'Week 1', leads: 150, cost: 12000 },
+    { date: 'Week 2', leads: 210, cost: 18000 },
+    { date: 'Week 3', leads: 190, cost: 15000 },
+    { date: 'Week 4', leads: 320, cost: 25000 },
+  ];
+
+  const TREND_MONTHLY = [
+    { date: 'Jan', leads: 450, cost: 35000 },
+    { date: 'Feb', leads: 520, cost: 42000 },
+    { date: 'Mar', leads: 480, cost: 38000 },
+    { date: 'Apr', leads: 750, cost: 50000 },
+  ];
+
+  return {
+    kpi: {
+      totalLeads: parseInt(leads.rows[0].cnt),
+      activeCampaigns: parseInt(activeCamp.rows[0].cnt),
+      totalCampaigns: parseInt(campaigns.rows[0].cnt),
+      roi: '245%'
+    },
+    trendDaily: TREND_DAILY,
+    trendWeekly: TREND_WEEKLY,
+    trendMonthly: TREND_MONTHLY
+  };
+}
+
+async function getRoi(tenantId, period = 'monthly') {
+  let groupExpr, labelExpr, interval;
+  if (period === 'daily') {
+    groupExpr = `TO_CHAR(ca.date, 'Dy')`;
+    labelExpr = `TO_CHAR(ca.date, 'Dy DD Mon')`;
+    interval  = `7 days`;
+  } else if (period === 'weekly') {
+    groupExpr = `TO_CHAR(DATE_TRUNC('week', ca.date), 'YYYY-MM-DD')`;
+    labelExpr = `'Wk ' || TO_CHAR(ca.date, 'IW')`;
+    interval  = `8 weeks`;
+  } else if (period === 'quarterly') {
+    groupExpr = `TO_CHAR(DATE_TRUNC('quarter', ca.date), 'YYYY-Q')`;
+    labelExpr = `'Q' || EXTRACT(QUARTER FROM ca.date)::text || ' ' || TO_CHAR(ca.date, 'YYYY')`;
+    interval  = `2 years`;
+  } else if (period === 'yearly') {
+    groupExpr = `TO_CHAR(ca.date, 'YYYY')`;
+    labelExpr = `TO_CHAR(ca.date, 'YYYY')`;
+    interval  = `5 years`;
+  } else {
+    // monthly (default)
+    groupExpr = `TO_CHAR(ca.date, 'YYYY-MM')`;
+    labelExpr = `TO_CHAR(ca.date, 'Mon YYYY')`;
+    interval  = `12 months`;
+  }
+
+  const result = await query(
+    `SELECT
+       ${labelExpr}                                          AS name,
+       ${groupExpr}                                          AS period_key,
+       SUM(ca.cost)                                         AS cost,
+       SUM(ca.revenue)                                      AS profit,
+       CASE WHEN SUM(ca.cost) > 0
+            THEN ROUND(((SUM(ca.revenue) - SUM(ca.cost)) / SUM(ca.cost)) * 100, 2)
+            ELSE 0
+       END                                                   AS roi
+     FROM campaign_analytics ca
+     JOIN campaigns c ON c.id = ca.campaign_id
+     WHERE c.tenant_id = $1
+       AND ca.date >= NOW() - INTERVAL '${interval}'
+     GROUP BY ${groupExpr}, ${labelExpr}
+     ORDER BY ${groupExpr}`,
+    [tenantId]
+  );
+
+  return result.rows.map(r => ({
+    name:   r.name,
+    cost:   parseFloat(r.cost)   || 0,
+    profit: parseFloat(r.profit) || 0,
+    roi:    parseFloat(r.roi)    || 0,
+  }));
+}
+
+async function recordCampaignAnalytics(tenantId, campaignId, { date, impressions, clicks, leads, cost, revenue }) {
+  // Verify campaign belongs to tenant
+  const check = await query(
+    `SELECT id FROM campaigns WHERE id = $1 AND tenant_id = $2`,
+    [campaignId, tenantId]
+  );
+  if (!check.rows.length) throw new Error('Campaign not found');
+
+  // Check if entry already exists for this campaign+date and update, else insert
+  const existing = await query(
+    `SELECT id FROM campaign_analytics WHERE campaign_id = $1 AND date = $2`,
+    [campaignId, date || new Date().toISOString().slice(0, 10)]
+  );
+  let result;
+  if (existing.rows.length > 0) {
+    result = await query(
+      `UPDATE campaign_analytics
+         SET impressions = impressions + $3,
+             clicks      = clicks      + $4,
+             leads       = leads       + $5,
+             cost        = cost        + $6,
+             revenue     = revenue     + $7
+       WHERE campaign_id = $1 AND date = $2
+       RETURNING *`,
+      [campaignId, date || new Date().toISOString().slice(0, 10),
+       impressions || 0, clicks || 0, leads || 0, cost || 0, revenue || 0]
+    );
+  } else {
+    result = await query(
+      `INSERT INTO campaign_analytics (campaign_id, date, impressions, clicks, leads, cost, revenue)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [campaignId, date || new Date().toISOString().slice(0, 10),
+       impressions || 0, clicks || 0, leads || 0, cost || 0, revenue || 0]
+    );
+  }
+  return result.rows[0];
+}
+
+async function getCampaignAnalytics(tenantId, campaignId, period = 'monthly') {
+  let groupExpr, labelExpr, interval;
+  if (period === 'daily') {
+    groupExpr = `TO_CHAR(ca.date, 'Dy')`;
+    labelExpr = `TO_CHAR(ca.date, 'Dy DD Mon')`;
+    interval  = `7 days`;
+  } else if (period === 'weekly') {
+    groupExpr = `TO_CHAR(DATE_TRUNC('week', ca.date), 'YYYY-MM-DD')`;
+    labelExpr = `'Wk ' || TO_CHAR(ca.date, 'IW')`;
+    interval  = `8 weeks`;
+  } else {
+    groupExpr = `TO_CHAR(ca.date, 'YYYY-MM')`;
+    labelExpr = `TO_CHAR(ca.date, 'Mon YYYY')`;
+    interval  = `12 months`;
+  }
+
+  let sql = `
+    SELECT
+      ${labelExpr}   AS name,
+      ${groupExpr}   AS period_key,
+      SUM(ca.impressions) AS impressions,
+      SUM(ca.clicks)      AS clicks,
+      SUM(ca.leads)       AS leads,
+      SUM(ca.cost)        AS cost,
+      SUM(ca.revenue)     AS revenue,
+      CASE WHEN SUM(ca.cost) > 0
+           THEN ROUND(((SUM(ca.revenue) - SUM(ca.cost)) / SUM(ca.cost)) * 100, 2)
+           ELSE 0
+      END                 AS roi
+    FROM campaign_analytics ca
+    JOIN campaigns c ON c.id = ca.campaign_id
+    WHERE c.tenant_id = $1
+      AND ca.date >= NOW() - INTERVAL '${interval}'`;
+  const params = [tenantId];
+  if (campaignId) { params.push(campaignId); sql += ` AND ca.campaign_id = $${params.length}`; }
+  sql += ` GROUP BY ${groupExpr}, ${labelExpr} ORDER BY ${groupExpr}`;
+
+  const result = await query(sql, params);
+  return result.rows.map(r => ({
+    name:        r.name,
+    impressions: parseInt(r.impressions) || 0,
+    clicks:      parseInt(r.clicks)      || 0,
+    leads:       parseInt(r.leads)       || 0,
+    cost:        parseFloat(r.cost)      || 0,
+    revenue:     parseFloat(r.revenue)   || 0,
+    roi:         parseFloat(r.roi)       || 0,
+  }));
+}
+
 module.exports = {
+  getDashboard,
+  getRoi,
+  recordCampaignAnalytics,
+  getCampaignAnalytics,
   // Campaigns
   listCampaigns, getCampaignById, createCampaign, updateCampaign, deleteCampaign,
   listLeads, updateLead, bulkAssignLeads,

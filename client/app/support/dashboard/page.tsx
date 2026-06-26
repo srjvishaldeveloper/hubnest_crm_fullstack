@@ -45,27 +45,14 @@ interface DashboardData {
     customer_name: string;
     status: string;
   }>;
-  agentPerformance: Array<{
-    id: string;
-    name: string;
-    ticketsHandled: number;
-    resolutionTime: string;
-    satisfaction: number;
-  }>;
-  statusOverview: Array<{
-    status: string;
-    count: number;
-  }>;
-  recentActivity: Array<{
-    time: string;
-    desc: string;
-    ticketId: string;
-  }>;
-  customerAlerts: Array<{
-    name: string;
-    issues: string;
-    risk: string;
-  }>;
+  agentPerformance: Array<{ id: string; name: string; ticketsHandled: number; resolutionTime: string; satisfaction: number }>;
+  customerAlerts: Array<{ name: string; issues: string; risk: string }>;
+  weeklyTickets?: Array<{ day: string; open: number; resolved: number; pending: number }>;
+  categoryBar?: Array<{ name: string; count: number }>;
+  slaTrend?: Array<{ day: string; compliance: number }>;
+  csatTrend?: Array<{ week: string; score: number }>;
+  statusOverview?: Array<{ status: string; count: number }>;
+  recentActivity?: Array<{ time: string; desc: string; ticketId: string }>;
 }
 
 export default function SupportDashboard() {

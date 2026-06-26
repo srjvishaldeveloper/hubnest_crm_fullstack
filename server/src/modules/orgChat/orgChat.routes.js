@@ -19,4 +19,12 @@ router.get('/announcements', controller.getAnnouncements);
 router.get('/search', controller.searchMessages);
 router.get('/users', controller.getOrganizationUsers);
 
+// File upload (base64 data URL — consistent with avatar/documents)
+router.post('/upload', controller.uploadFile);
+
+// Conversation member management
+router.get('/conversations/:conversationId/members', controller.getConversationMembers);
+router.post('/conversations/:conversationId/members', controller.addConversationMembers);
+router.delete('/conversations/:conversationId/members/:userId', controller.removeConversationMember);
+
 module.exports = router;

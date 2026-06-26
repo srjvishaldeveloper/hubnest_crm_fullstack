@@ -164,12 +164,71 @@ async function searchMessages(req, res) {
 
 async function getOrganizationUsers(req, res) {
   try {
-    const { tenant_id: tenantId } = req.user;
-    const users = await svc.getOrganizationUsers(tenantId);
+    const { id: userId, tenant_id: tenantId, role_name: roleName } = req.user;
+    const users = await svc.getOrganizationUsers(tenantId, userId, roleName);
     const usersWithStatus = users.map(u => ({ ...u, isOnline: onlineUsers.has(u.id) }));
     res.json(usersWithStatus);
   } catch (err) {
     logger.error('getOrganizationUsers error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// Upload a file as base64 data URL — returns a url to store in attachment_url
+async function uploadFile(req, res) {
+  try {
+    const { file_data, file_name, mime_type } = req.body;
+    if (!file_data || !file_name) return res.status(400).json({ error: 'file_data and file_name required' });
+    const MAX = 15 * 1024 * 1024; // 15 MB limit (base64 is ~33% larger)
+    if (file_data.length > MAX * 1.4) return res.status(400).json({ error: 'File too large. Max 15 MB.' });
+    // Store the data URL directly — same pattern as avatar/documents
+    return res.json({ success: true, url: file_data, name: file_name, mime_type });
+  } catch (err) {
+    logger.error('uploadFile error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// Get members of a conversation
+async function getConversationMembers(req, res) {
+  try {
+    const { conversationId } = req.params;
+    const { tenant_id: tenantId } = req.user;
+    const members = await svc.getConversationMembers(conversationId, tenantId);
+    res.json(members);
+  } catch (err) {
+    logger.error('getConversationMembers error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// Add members to an existing group conversation
+async function addConversationMembers(req, res) {
+  try {
+    const { conversationId } = req.params;
+    const { userIds } = req.body;
+    const { id: requesterId, tenant_id: tenantId } = req.user;
+    if (!Array.isArray(userIds) || userIds.length === 0) return res.status(400).json({ error: 'userIds array required' });
+    await svc.addConversationMembers(conversationId, tenantId, userIds, requesterId);
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('addConversationMembers error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// Remove a member from a group conversation
+async function removeConversationMember(req, res) {
+  try {
+    const { conversationId, userId } = req.params;
+    const { id: requesterId, role_name: roleName, tenant_id: tenantId } = req.user;
+    const isAdmin = roleName === 'Tenant Admin' || roleName === 'Admin';
+    // Can remove self, or admin can remove others
+    if (userId !== requesterId && !isAdmin) return res.status(403).json({ error: 'Not allowed' });
+    await svc.removeConversationMember(conversationId, tenantId, userId);
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('removeConversationMember error', { error: err.message });
     res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -188,4 +247,8 @@ module.exports = {
   getAnnouncements,
   searchMessages,
   getOrganizationUsers,
+  uploadFile,
+  getConversationMembers,
+  addConversationMembers,
+  removeConversationMember,
 };

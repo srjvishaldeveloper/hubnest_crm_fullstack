@@ -239,7 +239,10 @@ async function forgotPassword(email) {
   try {
     await emailService.sendPasswordResetEmail(user.email, otp, user.name);
   } catch (emailErr) {
-    if (!IS_DEV) throw emailErr;
+    if (!IS_DEV) {
+      logger.error('Failed to send password reset email via SMTP: ' + emailErr.message);
+      throw emailErr;
+    }
     logger.warn(`[DEV] Reset email failed — use OTP above. Error: ${emailErr.message}`);
   }
 

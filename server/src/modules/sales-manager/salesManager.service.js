@@ -141,6 +141,43 @@ async function getManagerDashboard(tenantId, managerId) {
     managerTarget = inserted.rows[0];
   }
 
+  // Monthly Revenue Trend
+  const revResult = await query(
+    `SELECT to_char(created_at, 'Mon') as month, 
+            SUM(amount) FILTER (WHERE status = 'Paid') as revenue,
+            SUM(amount) FILTER (WHERE status = 'Pending') as pipeline
+     FROM payments 
+     WHERE tenant_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '6 months'
+     GROUP BY to_char(created_at, 'Mon'), EXTRACT(MONTH FROM created_at)
+     ORDER BY EXTRACT(MONTH FROM created_at)`,
+    [tenantId]
+  );
+  const revenueTrend = revResult.rows.map(r => ({
+    month: r.month,
+    revenue: parseFloat(r.revenue) || 0,
+    pipeline: parseFloat(r.pipeline) || 0
+  }));
+
+  // Funnel Data (already calculated in pipeline Map)
+  const funnelData = [
+    { name: 'Leads', value: pipelineMap['New'] || 0, fill: '#3B82F6' },
+    { name: 'Contacted', value: pipelineMap['Contacted'] || 0, fill: '#6366F1' },
+    { name: 'Interested', value: pipelineMap['Interested'] || 0, fill: '#8B5CF6' },
+    { name: 'Negotiation', value: pipelineMap['Negotiation'] || 0, fill: '#EC4899' },
+    { name: 'Won', value: pipelineMap['Converted'] || 0, fill: '#10B981' }
+  ].filter(f => f.value > 0);
+
+  // Team Radar Data (mocked based on actual team members for now, or just static mapped to teamPerf)
+  const teamRadar = teamPerf.slice(0, 5).map(m => ({
+    subject: m.name.split(' ')[0],
+    Conversion: m.conversionRate,
+    Activity: Math.min(100, (m.leadsTotal / 20) * 100),
+    Deals: Math.min(100, (m.leadsConverted / 5) * 100),
+    Response: 90, // mock
+    Retention: 85, // mock
+    fullMark: 100
+  }));
+
   return {
     kpis: {
       totalLeads: parseInt(leadsTotal.rows[0].cnt),
@@ -158,6 +195,9 @@ async function getManagerDashboard(tenantId, managerId) {
     activitySummary: actSummary,
     managerTarget,
     teamSize: memberIds.length,
+    revenueTrend,
+    funnelData,
+    teamRadar
   };
 }
 
