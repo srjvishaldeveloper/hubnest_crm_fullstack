@@ -3,63 +3,62 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '../../../services/api';
 import ProfileCore from '../../../components/shared/ProfileCore';
-import { BarChart3, Megaphone, TrendingUp, Users, Mail, Sparkles, Award, Check, Edit3, X, Save } from 'lucide-react';
+import { BarChart3, Target, TrendingUp, Phone, CheckCircle2, Sparkles, Award, Check, Edit3, X, Save } from 'lucide-react';
 
-function MarketingPerformanceTab() {
+function SalesExecutivePerformanceTab() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   // Interactive Target / Change State
   const [showChangeModal, setShowChangeModal] = useState(false);
-  const [customTargetLeads, setCustomTargetLeads] = useState(5000); // 5000 default target
-  const [customAchievedLeads, setCustomAchievedLeads] = useState(4620); // 4620 default achieved
-  const [tempTarget, setTempTarget] = useState(customTargetLeads);
-  const [tempAchieved, setTempAchieved] = useState(customAchievedLeads);
+  const [customTarget, setCustomTarget] = useState(100000); // 1L default target
+  const [customAchieved, setCustomAchieved] = useState(86000); // 86K default achieved
+  const [tempTarget, setTempTarget] = useState(customTarget);
+  const [tempAchieved, setTempAchieved] = useState(customAchieved);
 
   useEffect(() => {
-    api.get('/marketing/dashboard')
+    api.get('/sales/performance')
       .then(r => {
-        const d = r.data?.data || r.data;
+        const d = r.data?.data?.stats || r.data;
         setData(d);
-        if (d?.target?.target_leads) setCustomTargetLeads(Number(d.target.target_leads));
-        if (d?.target?.converted_leads) setCustomAchievedLeads(Number(d.target.converted_leads));
-        else if (d?.totalLeads) setCustomAchievedLeads(d.totalLeads);
+        if (d?.target_amount) setCustomTarget(Number(d.target_amount));
+        if (d?.achieved_amount) setCustomAchieved(Number(d.achieved_amount));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const handleSaveTarget = () => {
-    api.patch('/marketing/targets', { target_leads: tempTarget, total_leads: tempAchieved })
+    api.patch('/sales/performance', { target_amount: tempTarget, achieved_amount: tempAchieved })
       .then(() => {
-        setCustomTargetLeads(tempTarget);
-        setCustomAchievedLeads(tempAchieved);
+        setCustomTarget(tempTarget);
+        setCustomAchieved(tempAchieved);
         setShowChangeModal(false);
       })
       .catch(() => {
-        setCustomTargetLeads(tempTarget);
-        setCustomAchievedLeads(tempAchieved);
+        setCustomTarget(tempTarget);
+        setCustomAchieved(tempAchieved);
         setShowChangeModal(false);
       });
   };
 
   const calculatedScore = useMemo(() => {
-    if (!customTargetLeads) return 92;
-    const score = Math.min(Math.round((customAchievedLeads / customTargetLeads) * 100), 100);
+    if (!customTarget) return 86;
+    const score = Math.min(Math.round((customAchieved / customTarget) * 100), 100);
     return Math.max(score, 10);
-  }, [customTargetLeads, customAchievedLeads]);
+  }, [customTarget, customAchieved]);
 
   const kpis = [
-    { label: 'Campaigns',    value: data?.totalCampaigns  ?? '24 Active', icon: Megaphone,  color: 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400', desc: 'Omnichannel campaigns' },
-    { label: 'Total Leads',  value: customAchievedLeads.toLocaleString(), icon: Users,      color: 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400', desc: `Goal: ${customTargetLeads.toLocaleString()} Leads` },
-    { label: 'Emails Sent',  value: data?.emailsSent      ?? '142.5K', icon: Mail,       color: 'bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400', desc: '99.4% delivery rate' },
-    { label: 'Conversions',  value: data?.conversions     ?? '1,840 Won', icon: TrendingUp, color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400', desc: 'High ROI conversion' },
+    { label: 'Monthly Target',  value: `₹${(customTarget/1000).toFixed(0)}K`, icon: Target,       color: 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400', desc: 'Quota assigned' },
+    { label: 'Achieved Revenue',value: `₹${(customAchieved/1000).toFixed(0)}K`, icon: TrendingUp, color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400', desc: `${calculatedScore}% of quota met` },
+    { label: 'Total Calls',     value: data?.calls_made ?? '142 Calls', icon: Phone,        color: 'bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400', desc: 'Active prospecting' },
+    { label: 'Converted Deals', value: data?.converted_leads ?? '18 Won', icon: CheckCircle2, color: 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400', desc: 'Closed this month' },
   ];
 
   return (
     <div className="space-y-6 pb-10">
       {/* ─── PERFORMANCE SCORE GRID CARD ─── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 p-6 sm:p-8 shadow-xl text-white">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 sm:p-8 shadow-xl text-white">
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
             <div className="relative w-24 h-24 flex items-center justify-center shrink-0 bg-white/10 rounded-2xl backdrop-blur-md border border-white/20 shadow-inner">
@@ -75,17 +74,17 @@ function MarketingPerformanceTab() {
             <div>
               <div className="flex items-center gap-2">
                 <Award className="w-6 h-6 text-yellow-300" />
-                <h2 className="text-2xl font-bold tracking-tight">Marketing Performance Score: {calculatedScore >= 85 ? 'Excellent' : 'Good'}</h2>
+                <h2 className="text-2xl font-bold tracking-tight">Sales Executive Score: {calculatedScore >= 80 ? 'Excellent' : 'Good'}</h2>
               </div>
               <p className="text-white/80 text-xs sm:text-sm mt-1 max-w-xl leading-relaxed">
-                Your performance rating accounts for lead acquisition volume, campaign reach efficiency, and overall email marketing engagement.
+                Your performance score reflects monthly quota achievement, outbound call activity, and deal conversion efficiency.
               </p>
               <div className="flex flex-wrap items-center gap-2 mt-3">
                 <span className="bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-semibold text-white flex items-center gap-1">
-                  <Check className="w-3 h-3 text-emerald-300" /> Exceeding Lead Goals
+                  <Check className="w-3 h-3 text-emerald-300" /> Consistent Outreach
                 </span>
                 <span className="bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-semibold text-white flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-yellow-300" /> Optimized Ad Spend
+                  <Sparkles className="w-3 h-3 text-yellow-300" /> High Conversion Rate
                 </span>
               </div>
             </div>
@@ -96,12 +95,12 @@ function MarketingPerformanceTab() {
                 <Sparkles className="w-3.5 h-3.5" /> Dynamic Adjustment
               </h4>
               <p className="text-xs text-white/90 leading-relaxed mb-3">
-                Customize your monthly lead acquisition targets to instantly update goal thresholds and recalculate your score.
+                Customize your monthly individual sales targets to instantly update goal thresholds and recalculate your score.
               </p>
             </div>
             <button 
-              onClick={() => { setTempTarget(customTargetLeads); setTempAchieved(customAchievedLeads); setShowChangeModal(true); }}
-              className="w-full py-2 bg-white text-rose-700 hover:bg-slate-100 rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-1.5"
+              onClick={() => { setTempTarget(customTarget); setTempAchieved(customAchieved); setShowChangeModal(true); }}
+              className="w-full py-2 bg-white text-indigo-700 hover:bg-slate-100 rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-1.5"
             >
               <Edit3 className="w-3.5 h-3.5" /> Change Target / Goals
             </button>
@@ -116,7 +115,7 @@ function MarketingPerformanceTab() {
           <div className="w-full max-w-md rounded-2xl bg-[var(--card)] border border-[var(--border)] p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <h3 className="text-base font-bold text-[var(--foreground)] flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-rose-500" /> Adjust Marketing Targets
+                <Edit3 className="w-4 h-4 text-blue-500" /> Adjust Sales Executive Targets
               </h3>
               <button onClick={() => setShowChangeModal(false)} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
                 <X className="w-4 h-4" />
@@ -124,31 +123,31 @@ function MarketingPerformanceTab() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-[var(--muted-foreground)] block mb-1.5">Target Leads</label>
+                <label className="text-xs font-bold text-[var(--muted-foreground)] block mb-1.5">Monthly Target (₹)</label>
                 <input 
                   type="number" 
                   value={tempTarget} 
                   onChange={(e) => setTempTarget(Number(e.target.value))} 
-                  className="w-full px-3 py-2.5 border border-[var(--border)] rounded-xl bg-[var(--surface)] text-[var(--foreground)] text-sm focus:outline-none focus:border-rose-500" 
+                  className="w-full px-3 py-2.5 border border-[var(--border)] rounded-xl bg-[var(--surface)] text-[var(--foreground)] text-sm focus:outline-none focus:border-blue-500" 
                 />
-                <p className="text-[10px] text-[var(--muted-foreground)] mt-1">Example: 5000 leads</p>
+                <p className="text-[10px] text-[var(--muted-foreground)] mt-1">Example: 100000 for ₹1 Lakh</p>
               </div>
               <div>
-                <label className="text-xs font-bold text-[var(--muted-foreground)] block mb-1.5">Achieved Leads</label>
+                <label className="text-xs font-bold text-[var(--muted-foreground)] block mb-1.5">Achieved Amount (₹)</label>
                 <input 
                   type="number" 
                   value={tempAchieved} 
                   onChange={(e) => setTempAchieved(Number(e.target.value))} 
-                  className="w-full px-3 py-2.5 border border-[var(--border)] rounded-xl bg-[var(--surface)] text-[var(--foreground)] text-sm focus:outline-none focus:border-rose-500" 
+                  className="w-full px-3 py-2.5 border border-[var(--border)] rounded-xl bg-[var(--surface)] text-[var(--foreground)] text-sm focus:outline-none focus:border-blue-500" 
                 />
-                <p className="text-[10px] text-[var(--muted-foreground)] mt-1">Example: 4620 leads</p>
+                <p className="text-[10px] text-[var(--muted-foreground)] mt-1">Example: 86000 for ₹86K</p>
               </div>
             </div>
             <div className="flex gap-3 pt-2">
               <button onClick={() => setShowChangeModal(false)} className="flex-1 py-2.5 border border-[var(--border)] rounded-xl text-xs font-bold text-[var(--foreground)] hover:bg-[var(--accent)] transition">
                 Cancel
               </button>
-              <button onClick={handleSaveTarget} className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5">
+              <button onClick={handleSaveTarget} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5">
                 <Save className="w-3.5 h-3.5" /> Save Changes
               </button>
             </div>
@@ -175,12 +174,12 @@ function MarketingPerformanceTab() {
   );
 }
 
-export default function MarketingProfilePage() {
+export default function SalesExecutiveProfilePage() {
   return (
     <ProfileCore
-      accent="rose"
-      roleLabel="Marketing Manager"
-      extraTabs={[{ id: 'performance', label: 'Performance', icon: BarChart3, content: <MarketingPerformanceTab /> }]}
+      accent="blue"
+      roleLabel="Sales Executive"
+      extraTabs={[{ id: 'performance', label: 'Performance', icon: BarChart3, content: <SalesExecutivePerformanceTab /> }]}
     />
   );
 }

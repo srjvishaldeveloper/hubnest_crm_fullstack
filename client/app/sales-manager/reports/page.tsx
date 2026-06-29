@@ -26,7 +26,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ActiveTab = 'overview' | 'sales' | 'leads' | 'team' | 'activity' | 'pipeline' | 'revenue';
-type DateFilter = 'today' | 'week' | 'month' | 'custom';
+type DateFilter = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
 
 interface TeamMember {
   rank: number;
@@ -188,9 +188,11 @@ const TABS: { id: ActiveTab; label: string; icon: React.ElementType }[] = [
 ];
 
 const DATE_FILTERS: { id: DateFilter; label: string }[] = [
-  { id: 'today', label: 'Today' },
-  { id: 'week', label: 'Week' },
-  { id: 'month', label: 'Month' },
+  { id: 'today', label: 'Daily' },
+  { id: 'week', label: 'Weekly' },
+  { id: 'month', label: 'Monthly' },
+  { id: 'quarter', label: 'Quarterly' },
+  { id: 'year', label: 'Yearly' },
   { id: 'custom', label: 'Custom' },
 ];
 
@@ -200,6 +202,15 @@ export default function SalesManagerReportsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const [dateFilter, setDateFilter] = useState<DateFilter>('month');
+
+  const [trendTimeFilter, setTrendTimeFilter] = useState('monthly');
+  const [trendSort, setTrendSort] = useState('date');
+  const [funnelFilter, setFunnelFilter] = useState('monthly');
+  const [funnelSort, setFunnelSort] = useState('stage');
+  const [salesTimeFilter, setSalesTimeFilter] = useState('monthly');
+  const [salesSort, setSalesSort] = useState('month');
+  const [pipelineTimeFilter, setPipelineTimeFilter] = useState('monthly');
+  const [pipelineSort, setPipelineSort] = useState('stage');
 
   // Toast notifications state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -314,7 +325,7 @@ startxref
 
   useEffect(() => {
     setLoading(true);
-    smGetReports()
+    smGetReports(dateFilter)
       .then((raw: any) => {
         if (!raw) return;
         // Normalize backend shape → ReportData shape
@@ -344,8 +355,8 @@ startxref
           pipeline: pipelineArr.length ? pipelineArr : MOCK_DATA.pipeline,
           activity: { calls: act.Call || 0, emails: act.Email || 0, meetings: act.Meeting || 0 },
           team: team.length ? team : MOCK_DATA.team,
-          leadFunnel: MOCK_DATA.leadFunnel,
-          statusDistribution: MOCK_DATA.statusDistribution,
+          leadFunnel: pipelineArr.length ? pipelineArr.map(p => ({ label: p.stage, value: p.count, color: p.color.replace('bg-', 'text-').replace('500', '700'), bg: p.color })) : MOCK_DATA.leadFunnel,
+          statusDistribution: pipelineArr.length ? pipelineArr.map(p => ({ label: p.stage, value: p.count, color: p.color.includes('blue') ? '#3B82F6' : p.color.includes('violet') ? '#8B5CF6' : p.color.includes('amber') ? '#F59E0B' : p.color.includes('orange') ? '#F97316' : p.color.includes('emerald') ? '#10B981' : '#64748B' })) : MOCK_DATA.statusDistribution,
           pipelineStages: pipelineArr.length ? pipelineArr.map(p => ({ stage: p.stage, value: p.count, color: p.color.replace('bg-','text-') })) : MOCK_DATA.pipelineStages,
           pipelineHealth: kpis.conversionRate || MOCK_DATA.pipelineHealth,
           insights: raw.insights || MOCK_DATA.insights,
@@ -445,7 +456,7 @@ startxref
             </div>
 
             <button
-              onClick={() => { setLoading(true); smGetReports().then((d: any) => { if (d) setReportData(d); }).catch(() => {}).finally(() => setLoading(false)); }}
+              onClick={() => { setLoading(true); smGetReports(dateFilter).then((d: any) => { if (d) setReportData(d); }).catch(() => {}).finally(() => setLoading(false)); }}
               className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors"
               title="Refresh"
             >
@@ -539,14 +550,29 @@ startxref
 
                   {/* Lead Trend Bar Chart */}
                   <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                       <div>
                         <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB]">Lead Trend</h3>
-                        <p className="text-xs text-slate-500 mt-0.5">Last 6 months</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Analytics breakdown</p>
                       </div>
-                      <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
-                        <TrendingUp className="w-3 h-3" /> +23% overall
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <select value={trendTimeFilter} onChange={e => setTrendTimeFilter(e.target.value)}
+                          className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-600 outline-none">
+                          <option value="daily">Daily</option>
+                          <option value="weekly">Weekly</option>
+                          <option value="monthly">Monthly</option>
+                          <option value="quarterly">Quarterly</option>
+                          <option value="yearly">Yearly</option>
+                        </select>
+                        <select value={trendSort} onChange={e => setTrendSort(e.target.value)}
+                          className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-600 outline-none">
+                          <option value="date">Sort by Date</option>
+                          <option value="value">Sort by Value</option>
+                        </select>
+                        <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                          <TrendingUp className="w-3 h-3" /> +23% overall
+                        </span>
+                      </div>
                     </div>
                     <div style={{ width: '100%', height: 160 }}>
                       <ResponsiveContainer width="100%" height="100%" minHeight={1}>
@@ -606,8 +632,27 @@ startxref
 
                 {/* Pipeline Funnel Horizontal */}
                 <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
-                  <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-1">Pipeline Overview</h3>
-                  <p className="text-xs text-slate-500 mb-5">Leads per stage</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                    <div>
+                      <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-1">Pipeline Overview</h3>
+                      <p className="text-xs text-slate-500">Leads per stage</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <select value={pipelineTimeFilter} onChange={e => setPipelineTimeFilter(e.target.value)}
+                        className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-600 outline-none">
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="yearly">Yearly</option>
+                      </select>
+                      <select value={pipelineSort} onChange={e => setPipelineSort(e.target.value)}
+                        className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-600 outline-none">
+                        <option value="stage">Sort by Stage</option>
+                        <option value="value">Sort by Value</option>
+                      </select>
+                    </div>
+                  </div>
                   <div style={{ width: '100%', height: 240 }}>
                     <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                       <BarChart data={reportData.pipeline} layout="vertical" margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
@@ -641,8 +686,27 @@ startxref
               <div className="space-y-6">
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                   <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
-                    <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-1">Monthly Sales Performance</h3>
-                    <p className="text-xs text-slate-500 mb-5">Revenue vs Target</p>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                      <div>
+                        <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-1">Monthly Sales Performance</h3>
+                        <p className="text-xs text-slate-500">Revenue vs Target</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <select value={salesTimeFilter} onChange={e => setSalesTimeFilter(e.target.value)}
+                          className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-600 outline-none">
+                          <option value="daily">Daily</option>
+                          <option value="weekly">Weekly</option>
+                          <option value="monthly">Monthly</option>
+                          <option value="quarterly">Quarterly</option>
+                          <option value="yearly">Yearly</option>
+                        </select>
+                        <select value={salesSort} onChange={e => setSalesSort(e.target.value)}
+                          className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-600 outline-none">
+                          <option value="month">Sort by Month</option>
+                          <option value="revenue">Sort by Revenue</option>
+                        </select>
+                      </div>
+                    </div>
                     <div style={{ width: '100%', height: 210 }}>
                       <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                         <BarChart data={[
@@ -694,8 +758,27 @@ startxref
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                   {/* Funnel */}
                   <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
-                    <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-1">Lead Funnel</h3>
-                    <p className="text-xs text-slate-500 mb-6">Stage-by-stage conversion</p>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                      <div>
+                        <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F9FAFB] mb-1">Lead Funnel</h3>
+                        <p className="text-xs text-slate-500">Stage-by-stage conversion</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <select value={funnelFilter} onChange={e => setFunnelFilter(e.target.value)}
+                          className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-600 outline-none">
+                          <option value="daily">Daily</option>
+                          <option value="weekly">Weekly</option>
+                          <option value="monthly">Monthly</option>
+                          <option value="quarterly">Quarterly</option>
+                          <option value="yearly">Yearly</option>
+                        </select>
+                        <select value={funnelSort} onChange={e => setFunnelSort(e.target.value)}
+                          className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-600 outline-none">
+                          <option value="stage">Sort by Stage</option>
+                          <option value="dropoff">Sort by Drop-off</option>
+                        </select>
+                      </div>
+                    </div>
                     <div className="flex flex-col items-center gap-2">
                       {reportData.leadFunnel.map((f, i) => {
                         const maxVal = reportData.leadFunnel[0].value;

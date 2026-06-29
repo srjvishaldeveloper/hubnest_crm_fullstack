@@ -1,0 +1,16 @@
+{
+  "name": "HubNest CRM",
+  "short_name": "HubNest",
+  "description": "Smart CRM for Growing Businesses",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080E1A",
+  "theme_color": "#080E1A",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

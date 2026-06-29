@@ -116,3 +116,61 @@ export const supportRateArticle = async (id: string, isLike: boolean) => {
   const res = await api.post(`${BASE}/knowledge-base/${id}/rate`, { isLike });
   return res.data.data;
 };
+
+export const supportAddKbComment = async (id: string, comment: string) => {
+  const res = await api.post(`${BASE}/knowledge-base/${id}/comments`, { comment });
+  return res.data.data;
+};
+
+export const supportGetKbAnalytics = async () => {
+  const res = await api.get(`${BASE}/knowledge-base/analytics`);
+  return res.data.data;
+};
+
+// ─── ADVANCED TICKETS ─────────────────────────────────────────────────────────
+export const supportBulkUpdateTickets = async (ticketIds: string[], updateData: any) => {
+  const res = await api.post(`${BASE}/tickets/bulk`, { ticketIds, updateData });
+  return res.data.data;
+};
+
+export const supportEscalateTicket = async (id: string, reason: string) => {
+  const res = await api.post(`${BASE}/tickets/${id}/escalate`, { reason });
+  return res.data.data;
+};
+
+export const supportAssignTicket = async (id: string, assignedAgentId: string) => {
+  const res = await api.post(`${BASE}/tickets/${id}/assign`, { assignedAgentId });
+  return res.data.data;
+};
+
+// ─── ADVANCED CUSTOMERS ───────────────────────────────────────────────────────
+export const supportCreateCustomer = async (data: any) => {
+  const res = await api.post(`${BASE}/customers`, data);
+  return res.data.data;
+};
+
+export const supportUpdateCustomer = async (id: string, data: any) => {
+  const res = await api.patch(`${BASE}/customers/${id}`, data);
+  return res.data.data;
+};
+
+export const supportAddCustomerNote = async (id: string, note: string) => {
+  const res = await api.post(`${BASE}/customers/${id}/notes`, { note });
+  return res.data.data;
+};
+
+export const supportBulkUpdateCustomers = async (customerIds: string[], updateData: any) => {
+  const res = await api.post(`${BASE}/customers/bulk`, { customerIds, updateData });
+  return res.data.data;
+};
+
+// ─── PROFILE ──────────────────────────────────────────────────────────────────
+export const supportGetProfile = async () => {
+  const res = await api.get(`${BASE}/profile`);
+  return res.data.data;
+};
+
+export const supportUpdateProfile = async (data: any) => {
+  const res = await api.patch(`${BASE}/profile`, data);
+  return res.data.data;
+};

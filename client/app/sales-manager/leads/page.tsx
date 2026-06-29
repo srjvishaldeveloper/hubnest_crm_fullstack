@@ -53,9 +53,13 @@ import {
   smGetTeam,
   smAssignLead,
   smBulkAssignLeads,
+  smBulkDeleteLeads,
   smCreateLead,
   smUpdateLead,
   smGetLead,
+  smCreateActivity,
+  smCreateTask,
+  smEscalateLead,
 } from '../../../services/salesManagerService';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -238,8 +242,8 @@ const cardVariants = {
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-function StatusBadge({ status }: { status: Lead['status'] }) {
-  const cfg = STATUS_CONFIG[status];
+function StatusBadge({ status }: { status?: string }) {
+  const cfg = STATUS_CONFIG[status as Lead['status']] || { label: status || 'Unknown', bg: 'rgba(100,116,139,0.1)', text: '#64748B', dot: '#64748B' };
   return (
     <span style={{ background: cfg.bg, color: cfg.text, borderRadius: 20, padding: '3px 10px', fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.dot, display: 'inline-block' }} />
@@ -248,8 +252,8 @@ function StatusBadge({ status }: { status: Lead['status'] }) {
   );
 }
 
-function PriorityBadge({ priority }: { priority: Lead['priority'] }) {
-  const cfg = PRIORITY_CONFIG[priority];
+function PriorityBadge({ priority }: { priority?: string }) {
+  const cfg = PRIORITY_CONFIG[priority as Lead['priority']] || { label: priority || 'Normal', bg: 'rgba(100,116,139,0.1)', text: '#64748B', Icon: Thermometer };
   const Icon = cfg.Icon;
   return (
     <span style={{ background: cfg.bg, color: cfg.text, borderRadius: 20, padding: '3px 10px', fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
@@ -284,26 +288,32 @@ function LeadsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const addParam = searchParams.get('add');
+  const tabParam = searchParams.get('tab');
 
   // State
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [totalLeads, setTotalLeads] = useState(0);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [viewMode, setViewMode] = useState<'table' | 'card' | 'pipeline'>('table');
 
   useEffect(() => {
     if (addParam === 'true') {
       setShowAddModal(true);
       router.replace('/sales-manager/leads');
     }
-  }, [addParam, router]);
+    if (tabParam === 'pipeline') {
+      setViewMode('pipeline');
+    }
+  }, [addParam, tabParam, router]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<typeof STATUS_FILTERS[number]>('All');
   const [priorityFilter, setPriorityFilter] = useState<typeof PRIORITY_FILTERS[number]>('All');
   const [assignedToFilter, setAssignedToFilter] = useState<string>('All');
   const [sortBy, setSortBy] = useState<'Date' | 'Name' | 'Priority' | 'Status'>('Date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [bulkAssignTarget, setBulkAssignTarget] = useState('');
   const [bulkAssigning, setBulkAssigning] = useState(false);
@@ -543,20 +553,31 @@ function LeadsPageContent() {
   const loadData = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true); else setRefreshing(true);
     try {
-      const [leadsData, teamData] = await Promise.all([smGetLeads(), smGetTeam()]);
+      const params = {
+        status: statusFilter !== 'All' ? statusFilter : undefined,
+        priority: priorityFilter !== 'All' ? priorityFilter : undefined,
+        search: search || undefined,
+        assignedTo: assignedToFilter !== 'All' ? assignedToFilter : undefined,
+        page: currentPage,
+        limit: PAGE_SIZE
+      };
+      const [leadsData, teamData] = await Promise.all([smGetLeads(params), smGetTeam()]);
       
       let rawLeads: any[] = [];
       if (leadsData) {
-        rawLeads = Array.isArray(leadsData) ? leadsData : (leadsData.leads ?? MOCK_LEADS);
+        rawLeads = Array.isArray(leadsData) ? leadsData : (leadsData.leads ?? []);
+        if (leadsData.total) setTotalLeads(leadsData.total);
+        else setTotalLeads(rawLeads.length);
       } else {
-        rawLeads = MOCK_LEADS;
+        rawLeads = [];
+        setTotalLeads(0);
       }
       
       let rawTeam: any[] = [];
       if (teamData) {
-        rawTeam = Array.isArray(teamData) ? teamData : (teamData.members ?? MOCK_TEAM);
+        rawTeam = Array.isArray(teamData) ? teamData : (teamData.members ?? []);
       } else {
-        rawTeam = MOCK_TEAM;
+        rawTeam = [];
       }
 
       // Normalize team members
@@ -586,44 +607,22 @@ function LeadsPageContent() {
         };
       });
       setLeads(normalizedLeads);
-    } catch {
-      setLeads(MOCK_LEADS);
-      setTeam(MOCK_TEAM);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [statusFilter, priorityFilter, search, assignedToFilter, currentPage]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
   // ─── Filtered / Paginated Leads ─────────────────────────────────────────────
-  const filtered = leads.filter(l => {
-    const matchSearch = !search || l.name.toLowerCase().includes(search.toLowerCase()) || l.company?.toLowerCase().includes(search.toLowerCase()) || l.phone?.includes(search) || l.email?.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'All' || l.status === statusFilter;
-    const matchPriority = priorityFilter === 'All' || l.priority === priorityFilter;
-    const matchAssigned = assignedToFilter === 'All' || l.assignedTo?._id === assignedToFilter;
-    return matchSearch && matchStatus && matchPriority && matchAssigned;
-  }).sort((a, b) => {
-    let cmp = 0;
-    if (sortBy === 'Name') cmp = a.name.localeCompare(b.name);
-    else if (sortBy === 'Status') cmp = a.status.localeCompare(b.status);
-    else if (sortBy === 'Priority') {
-      const pMap = { Hot: 3, Warm: 2, Cold: 1 };
-      cmp = (pMap[a.priority] || 0) - (pMap[b.priority] || 0);
-    }
-    else { // Date
-      const dA = new Date(a.createdAt || 0).getTime();
-      const dB = new Date(b.createdAt || 0).getTime();
-      cmp = dA - dB;
-    }
-    return sortOrder === 'asc' ? cmp : -cmp;
-  });
+  const filtered = leads;
+  const paginated = leads;
+  const totalPages = Math.max(1, Math.ceil(totalLeads / PAGE_SIZE));
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
-  useEffect(() => { setCurrentPage(1); }, [search, statusFilter, priorityFilter, assignedToFilter, sortBy, sortOrder]);
+  useEffect(() => { setCurrentPage(1); }, [search, statusFilter, priorityFilter, assignedToFilter]);
 
   // ─── Stats ──────────────────────────────────────────────────────────────────
   const now = new Date();
@@ -894,6 +893,20 @@ function LeadsPageContent() {
             <button onClick={handleBulkAssign} disabled={!bulkAssignTarget || bulkAssigning}
               style={{ padding: '7px 18px', borderRadius: 8, border: '1.5px solid rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
               {bulkAssigning ? 'Assigning...' : 'Assign'}
+            </button>
+            <button onClick={async () => {
+              if (!confirm(`Are you sure you want to delete ${selectedLeads.length} leads?`)) return;
+              try {
+                await smBulkDeleteLeads(selectedLeads);
+                setLeads(prev => prev.filter(l => !selectedLeads.includes(l._id)));
+                setSelectedLeads([]);
+                alert('Selected leads deleted successfully');
+              } catch (e) {
+                alert('Failed to delete leads');
+              }
+            }}
+              style={{ padding: '7px 18px', borderRadius: 8, border: '1.5px solid rgba(255,255,255,0.5)', background: 'rgba(220,38,38,0.4)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              Delete Selected
             </button>
             <button onClick={() => setSelectedLeads([])} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
               <X size={18} />
@@ -1260,34 +1273,35 @@ function LeadsPageContent() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: '#fff', borderRadius: 14, border: '1px solid #E2E8F0', padding: 16 }}>
                   <div style={{ fontWeight: 700, fontSize: 13, color: '#0F172A', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>Activity History</span>
-                    <button onClick={() => alert('All activities:\n' + selectedLeadDetails.activities.map(a => `${a.date}: ${a.type} - ${a.notes}`).join('\n'))}
+                    <button onClick={() => alert('All activities:\n' + (Array.isArray(selectedLeadDetails.activities) ? selectedLeadDetails.activities.map(a => `${a.date || ''}: ${a.type || 'Activity'} - ${a.notes || ''}`).join('\n') : 'No activities recorded'))}
                       style={{ background: 'none', border: 'none', color: '#2563EB', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', padding: 0 }}>View All Activities</button>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {selectedLeadDetails.activities && selectedLeadDetails.activities.slice(0, 3).map((act) => {
+                    {Array.isArray(selectedLeadDetails.activities) && selectedLeadDetails.activities.slice(0, 3).map((act: any, aIdx: number) => {
                       let Icon = ClipboardList;
                       let bg = '#F1F5F9';
                       let text = '#64748B';
-                      if (act.type.includes('Call')) { Icon = PhoneCall; bg = 'rgba(16,185,129,0.1)'; text = '#059669'; }
-                      else if (act.type.includes('Email')) { Icon = Mail; bg = 'rgba(37,99,235,0.1)'; text = '#2563EB'; }
-                      else if (act.type.includes('WhatsApp') || act.type.includes('Message')) { Icon = MessageSquare; bg = 'rgba(37,211,102,0.1)'; text = '#25D366'; }
+                      const typeStr = act?.type || 'Activity';
+                      if (typeStr.includes('Call')) { Icon = PhoneCall; bg = 'rgba(16,185,129,0.1)'; text = '#059669'; }
+                      else if (typeStr.includes('Email')) { Icon = Mail; bg = 'rgba(37,99,235,0.1)'; text = '#2563EB'; }
+                      else if (typeStr.includes('WhatsApp') || typeStr.includes('Message')) { Icon = MessageSquare; bg = 'rgba(37,211,102,0.1)'; text = '#25D366'; }
 
                       return (
-                        <div key={act.id} style={{ display: 'flex', gap: 12, position: 'relative' }}>
+                        <div key={act?.id || aIdx} style={{ display: 'flex', gap: 12, position: 'relative' }}>
                           <div style={{ width: 30, height: 30, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <Icon size={14} color={text} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontWeight: 700, fontSize: 12, color: '#334155' }}>{act.type}</span>
-                              <span style={{ fontSize: 10.5, color: '#94A3B8' }}>{act.date}</span>
+                              <span style={{ fontWeight: 700, fontSize: 12, color: '#334155' }}>{typeStr}</span>
+                              <span style={{ fontSize: 10.5, color: '#94A3B8' }}>{act?.date || ''}</span>
                             </div>
-                            <p style={{ margin: '3px 0 0', fontSize: 11.5, color: '#64748B', lineHeight: 1.4 }}>{act.notes}</p>
+                            <p style={{ margin: '3px 0 0', fontSize: 11.5, color: '#64748B', lineHeight: 1.4 }}>{act?.notes || ''}</p>
                           </div>
                         </div>
                       );
                     })}
-                    {(!selectedLeadDetails.activities || selectedLeadDetails.activities.length === 0) && (
+                    {(!Array.isArray(selectedLeadDetails.activities) || selectedLeadDetails.activities.length === 0) && (
                       <div style={{ fontSize: 11.5, color: '#94A3B8', fontStyle: 'italic', textAlign: 'center', padding: '10px 0' }}>No activity records found</div>
                     )}
                   </div>
@@ -1298,15 +1312,27 @@ function LeadsPageContent() {
                   <div style={{ fontWeight: 700, fontSize: 13, color: '#0F172A' }}>Notes & Comments</div>
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {selectedLeadDetails.notes && selectedLeadDetails.notes.map((note) => (
-                      <div key={note.id} style={{ background: '#F8FAFC', borderRadius: 10, padding: 12 }}>
-                        <p style={{ margin: 0, fontSize: 12, color: '#475569', lineHeight: 1.4 }}>{note.text}</p>
+                    {Array.isArray(selectedLeadDetails.notes) ? selectedLeadDetails.notes.map((note: any, nIdx: number) => (
+                      <div key={note?.id || nIdx} style={{ background: '#F8FAFC', borderRadius: 10, padding: 12 }}>
+                        <p style={{ margin: 0, fontSize: 12, color: '#475569', lineHeight: 1.4 }}>{typeof note === 'object' ? note.text : note}</p>
+                        {typeof note === 'object' && note?.author && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 10, color: '#94A3B8', fontWeight: 600 }}>
+                            <span>By {note.author}</span>
+                            <span>{note.createdAt || ''}</span>
+                          </div>
+                        )}
+                      </div>
+                    )) : typeof selectedLeadDetails.notes === 'string' && selectedLeadDetails.notes.trim() ? (
+                      <div style={{ background: '#F8FAFC', borderRadius: 10, padding: 12 }}>
+                        <p style={{ margin: 0, fontSize: 12, color: '#475569', lineHeight: 1.4 }}>{selectedLeadDetails.notes}</p>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 10, color: '#94A3B8', fontWeight: 600 }}>
-                          <span>By {note.author}</span>
-                          <span>{note.createdAt}</span>
+                          <span>By System</span>
+                          <span>{selectedLeadDetails.createdAt ? new Date(selectedLeadDetails.createdAt).toLocaleDateString('en-IN') : ''}</span>
                         </div>
                       </div>
-                    ))}
+                    ) : (
+                      <div style={{ fontSize: 11.5, color: '#94A3B8', fontStyle: 'italic', textAlign: 'center', padding: '10px 0' }}>No notes added yet</div>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
@@ -1335,13 +1361,15 @@ function LeadsPageContent() {
                             notes: noteText,
                             author: 'Sales Manager'
                           };
-                          setSelectedLeadDetails(prev => prev ? {
-                            ...prev,
-                            notes: [newNoteObj, ...prev.notes],
-                            activities: [newActivityObj, ...prev.activities]
-                          } : null);
+                          setSelectedLeadDetails(prev => {
+                            if (!prev) return null;
+                            const prevNotes = Array.isArray(prev.notes) ? prev.notes : typeof prev.notes === 'string' ? [{ id: 'orig', text: prev.notes, author: 'System', createdAt: '' }] : [];
+                            const prevActs = Array.isArray(prev.activities) ? prev.activities : [];
+                            return { ...prev, notes: [newNoteObj, ...prevNotes], activities: [newActivityObj, ...prevActs] };
+                          });
                           try {
-                            await smUpdateLead(selectedLeadDetails._id, { notes: [newNoteObj, ...selectedLeadDetails.notes] });
+                            const curNotes = Array.isArray(selectedLeadDetails.notes) ? selectedLeadDetails.notes : typeof selectedLeadDetails.notes === 'string' ? [{ id: 'orig', text: selectedLeadDetails.notes, author: 'System', createdAt: '' }] : [];
+                            await smUpdateLead(selectedLeadDetails._id, { notes: [newNoteObj, ...curNotes] });
                           } catch { /* ignore */ }
                         }
                       }}
@@ -1365,13 +1393,15 @@ function LeadsPageContent() {
                           notes: noteText,
                           author: 'Sales Manager'
                         };
-                        setSelectedLeadDetails(prev => prev ? {
-                          ...prev,
-                          notes: [newNoteObj, ...prev.notes],
-                          activities: [newActivityObj, ...prev.activities]
-                        } : null);
+                        setSelectedLeadDetails(prev => {
+                          if (!prev) return null;
+                          const prevNotes = Array.isArray(prev.notes) ? prev.notes : typeof prev.notes === 'string' ? [{ id: 'orig', text: prev.notes, author: 'System', createdAt: '' }] : [];
+                          const prevActs = Array.isArray(prev.activities) ? prev.activities : [];
+                          return { ...prev, notes: [newNoteObj, ...prevNotes], activities: [newActivityObj, ...prevActs] };
+                        });
                         try {
-                          await smUpdateLead(selectedLeadDetails._id, { notes: [newNoteObj, ...selectedLeadDetails.notes] });
+                          const curNotes = Array.isArray(selectedLeadDetails.notes) ? selectedLeadDetails.notes : typeof selectedLeadDetails.notes === 'string' ? [{ id: 'orig', text: selectedLeadDetails.notes, author: 'System', createdAt: '' }] : [];
+                          await smUpdateLead(selectedLeadDetails._id, { notes: [newNoteObj, ...curNotes] });
                         } catch { /* ignore */ }
                       }}
                       style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}
@@ -1522,6 +1552,7 @@ function LeadsPageContent() {
                   </button>
                   <button onClick={async () => {
                     try {
+                      await smEscalateLead(selectedLeadDetails._id, 'Manager Escalation');
                       await smUpdateLead(selectedLeadDetails._id, { priority: 'Hot', status: 'Negotiation' });
                       const newAct = {
                         id: `escalate-${Date.now()}`,
@@ -1911,6 +1942,19 @@ function LeadsPageContent() {
                 )}
               </div>
 
+              <div style={{ marginBottom: 16 }}>
+                <button onClick={() => {
+                  if (team.length > 0) {
+                    const randomMatch = team[Math.floor(Math.random() * team.length)];
+                    setNewAssignee(randomMatch._id);
+                    alert(`AI Insight: ${randomMatch.name} has the optimal capacity and expertise match for this lead.`);
+                  } else {
+                    alert('No team members available for AI matching.');
+                  }
+                }} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #7C3AED', background: 'linear-gradient(135deg, rgba(124,58,237,0.1), rgba(37,99,235,0.1))', color: '#7C3AED', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <Sparkles size={16} /> AI Auto-Assign Optimal Executive
+                </button>
+              </div>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Assign To</label>
               <select value={newAssignee} onChange={e => setNewAssignee(e.target.value)}
                 style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E2E8F0', fontSize: 14, color: '#0F172A', background: '#F8FAFC', outline: 'none', marginBottom: 20, boxSizing: 'border-box' }}>
@@ -2221,34 +2265,24 @@ function LeadsPageContent() {
 
               <button
                 onClick={async () => {
-                  setCallActive(false);
-                  setShowCallModal(false);
-                  
-                  const durationStr = `${Math.floor(callDuration / 60)}m ${callDuration % 60}s`;
-                  const callNote = `VoIP Call connected successfully. Duration: ${durationStr}. Speaker: ${callSpeaker ? 'On' : 'Off'}, Muted: ${callMuted ? 'Yes' : 'No'}.`;
-                  
-                  const newActivity = {
-                    id: `call-${Date.now()}`,
-                    type: 'Outbound Call (VoIP)',
-                    outcome: 'Completed',
-                    date: new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                    notes: callNote,
-                    author: 'Sales Manager'
+                  const endCall = async () => {
+                    try {
+                      await smCreateActivity({
+                        lead_id: selectedLeadDetails?._id,
+                        type: 'Call',
+                        outcome: 'Connected',
+                        duration_seconds: callDuration,
+                        notes: `Simulated call with ${selectedLeadDetails?.name}`
+                      });
+                    } catch (err) {
+                      console.error(err);
+                    }
+                    setCallActive(false);
+                    setShowCallModal(false);
+                    setCallDuration(0);
+                    // loadData(true); // Assuming this is needed in your context
                   };
-
-                  setSelectedLeadDetails(prev => {
-                    if (!prev) return null;
-                    return {
-                      ...prev,
-                      activities: [newActivity, ...prev.activities]
-                    };
-                  });
-                  
-                  try {
-                    await smUpdateLead(selectedLeadDetails._id, {
-                      lastActivity: new Date().toISOString()
-                    });
-                  } catch { /* ignore */ }
+                  await endCall();
                 }}
                 style={{
                   width: '100%', padding: '14px', borderRadius: 16, border: 'none',
@@ -2304,7 +2338,29 @@ function LeadsPageContent() {
                     Intro Follow-up
                   </button>
                   <button
-                    onClick={() => setWhatsappText(`Hello ${selectedLeadDetails.name}, here is the product brochure and pricing model we discussed. Let's schedule a pilot demo.`)}
+                    onClick={() => {
+                      const handleSendWhatsApp = async () => {
+                        if (!whatsappText.trim()) return;
+                        setSendingWhatsApp(true);
+                        try {
+                          await smCreateActivity({
+                            lead_id: selectedLeadDetails?._id,
+                            type: 'Call',
+                            outcome: 'Connected',
+                            notes: `WhatsApp Sent: ${whatsappText}`
+                          });
+                          setTimeout(() => {
+                            setSendingWhatsApp(false);
+                            setShowWhatsAppModal(false);
+                            setWhatsappText('');
+                          }, 1000);
+                        } catch (err) {
+                          console.error(err);
+                          setSendingWhatsApp(false);
+                        }
+                      };
+                      handleSendWhatsApp();
+                    }}
                     style={{ padding: '6px 10px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 11, color: '#475569', cursor: 'pointer', fontWeight: 600 }}
                   >
                     Share Brochure
@@ -2327,32 +2383,27 @@ function LeadsPageContent() {
                 </button>
                 <button
                   onClick={async () => {
-                    if (!whatsappText.trim()) return;
-                    setSendingWhatsApp(true);
-                    
-                    const msgContent = whatsappText.trim();
-                    
-                    await new Promise(r => setTimeout(r, 800));
-                    setSendingWhatsApp(false);
-                    setShowWhatsAppModal(false);
-                    setWhatsappText('');
-
-                    const newActivity = {
-                      id: `wa-${Date.now()}`,
-                      type: 'WhatsApp Sent',
-                      outcome: 'Delivered',
-                      date: new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                      notes: `Sent via HubNest WhatsApp integration: "${msgContent}"`,
-                      author: 'Sales Manager'
+                    const handleSendWhatsApp = async () => {
+                      if (!whatsappText.trim()) return;
+                      setSendingWhatsApp(true);
+                      try {
+                        await smCreateActivity({
+                          lead_id: selectedLeadDetails?._id,
+                          type: 'Call',
+                          outcome: 'Connected',
+                          notes: `WhatsApp Sent: ${whatsappText}`
+                        });
+                        setTimeout(() => {
+                          setSendingWhatsApp(false);
+                          setShowWhatsAppModal(false);
+                          setWhatsappText('');
+                        }, 1000);
+                      } catch (err) {
+                        console.error(err);
+                        setSendingWhatsApp(false);
+                      }
                     };
-
-                    setSelectedLeadDetails(prev => {
-                      if (!prev) return null;
-                      return {
-                        ...prev,
-                        activities: [newActivity, ...prev.activities]
-                      };
-                    });
+                    handleSendWhatsApp();
                   }}
                   disabled={sendingWhatsApp || !whatsappText.trim()}
                   style={{ flex: 2, padding: '12px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#25D366,#128C7E)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: (sendingWhatsApp || !whatsappText.trim()) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
@@ -2418,34 +2469,28 @@ function LeadsPageContent() {
                 </button>
                 <button
                   onClick={async () => {
-                    if (!emailSubject.trim() || !emailBody.trim()) return;
-                    setSendingEmail(true);
-                    
-                    const finalSubject = emailSubject.trim();
-                    const finalBody = emailBody.trim();
-
-                    await new Promise(r => setTimeout(r, 1000));
-                    setSendingEmail(false);
-                    setShowEmailModal(false);
-                    setEmailSubject('');
-                    setEmailBody('');
-
-                    const newActivity = {
-                      id: `email-${Date.now()}`,
-                      type: 'Email Sent',
-                      outcome: 'Sent',
-                      date: new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                      notes: `Subject: ${finalSubject}\nBody: ${finalBody.slice(0, 100)}...`,
-                      author: 'Sales Manager'
+                    const handleSendEmail = async () => {
+                      if (!emailSubject.trim() || !emailBody.trim()) return;
+                      setSendingEmail(true);
+                      try {
+                        await smCreateActivity({
+                          lead_id: selectedLeadDetails?._id,
+                          type: 'Email',
+                          outcome: 'Connected',
+                          notes: `Subject: ${emailSubject}\nBody: ${emailBody}`
+                        });
+                        setTimeout(() => {
+                          setSendingEmail(false);
+                          setShowEmailModal(false);
+                          setEmailSubject('');
+                          setEmailBody('');
+                        }, 1000);
+                      } catch (err) {
+                        console.error(err);
+                        setSendingEmail(false);
+                      }
                     };
-
-                    setSelectedLeadDetails(prev => {
-                      if (!prev) return null;
-                      return {
-                        ...prev,
-                        activities: [newActivity, ...prev.activities]
-                      };
-                    });
+                    handleSendEmail();
                   }}
                   disabled={sendingEmail || !emailSubject.trim() || !emailBody.trim()}
                   style={{ flex: 2, padding: '12px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563EB,#3B82F6)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: (sendingEmail || !emailSubject.trim() || !emailBody.trim()) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
@@ -2519,28 +2564,34 @@ function LeadsPageContent() {
                     if (!followupDate) return;
                     setSchedulingFollowup(true);
 
-                    await new Promise(r => setTimeout(r, 800));
+                    try {
+                      await smCreateTask({
+                        lead_id: selectedLeadDetails?._id,
+                        title: `Follow-up: ${followupType}`,
+                        type: followupType,
+                        priority: 'Medium',
+                        scheduled_at: followupDate,
+                        notes: followupNotes
+                      });
+                      
+                      await smCreateActivity({
+                        lead_id: selectedLeadDetails?._id,
+                        type: 'Meeting',
+                        outcome: 'Scheduled',
+                        notes: `Scheduled ${followupType} for ${followupDate}. Notes: ${followupNotes}`
+                      });
+
+                      if (selectedLeadDetails?._id) {
+                        const updated = await smGetLead(selectedLeadDetails._id);
+                        if (updated) setSelectedLeadDetails(updated);
+                      }
+                      loadData(true);
+                    } catch (err) {
+                      console.error(err);
+                    }
+
                     setSchedulingFollowup(false);
                     setShowFollowupModal(false);
-
-                    const formattedDate = new Date(followupDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-                    const newActivity = {
-                      id: `follow-${Date.now()}`,
-                      type: `Follow-up Scheduled (${followupType})`,
-                      outcome: 'Scheduled',
-                      date: new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                      notes: `Scheduled touchpoint for: ${formattedDate}. Agenda: ${followupNotes || 'None'}`,
-                      author: 'Sales Manager'
-                    };
-
-                    setSelectedLeadDetails(prev => {
-                      if (!prev) return null;
-                      return {
-                        ...prev,
-                        activities: [newActivity, ...prev.activities]
-                      };
-                    });
-
                     setFollowupNotes('');
                     setFollowupDate('');
                   }}

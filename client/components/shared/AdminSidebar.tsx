@@ -1,9 +1,11 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '../../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
+import api from '@/services/api';
 import {
   LayoutDashboard, Users, SlidersHorizontal, BarChart3,
   UserCircle, LogOut, X, Sparkles, ShieldCheck,
@@ -11,7 +13,7 @@ import {
   TrendingUp, Brain, UserCheck, Briefcase, BookOpen,
   CreditCard, Shield, DollarSign, FileText, Receipt,
   Wallet, Building2, MessageSquare, Grid3X3,
-  GitBranch, CheckSquare, Send, Zap
+  GitBranch, CheckSquare, Send, Zap, HardDrive
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -24,8 +26,37 @@ interface AdminSidebarProps {
 export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' }: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const logout = useAuthStore((s) => s.logout);
-  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((state) => state.logout);
+  const user = useAuthStore((state) => state.user);
+  
+  const [globalStorage, setGlobalStorage] = useState<{current: number, limit: number}>({ current: 0, limit: 1 });
+  
+  useEffect(() => {
+    const fetchStorage = async () => {
+      try {
+        const usageRes = await api.get('/subscription/usage');
+        if (usageRes.data?.success) {
+          const storageUsage = usageRes.data.data.usage.find((u: any) => u.resource === 'storage_bytes');
+          if (storageUsage) {
+            setGlobalStorage({ current: storageUsage.current, limit: storageUsage.limit });
+          }
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    if (open || !collapsed) {
+      fetchStorage();
+    }
+  }, [open, collapsed]);
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === -1) return 'Unlimited';
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    if (bytes === 0) return '0 Byte';
+    const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)).toString());
+    return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
+  };
 
   async function handleLogout() {
     await logout();
@@ -293,6 +324,40 @@ export default function AdminSidebar({ open, collapsed, onClose, role = 'Admin' 
               >
                 Ask AI
               </button>
+            </div>
+          )}
+          
+          {/* Storage Widget */}
+          {!collapsed && (
+            <div className="mt-4 mx-2 p-3 bg-slate-50 dark:bg-[#202020] rounded-xl border border-slate-100 dark:border-[#333333]">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
+                  <HardDrive className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Storage</span>
+                </div>
+                <span className="text-[10px] font-bold text-slate-500">
+                  {globalStorage.limit === -1 ? 'Unlimited' : `${((globalStorage.current / globalStorage.limit) * 100).toFixed(0)}%`}
+                </span>
+              </div>
+              
+              <div className="w-full h-1.5 bg-slate-200 dark:bg-[#333] rounded-full overflow-hidden mb-2">
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 ${globalStorage.limit > 0 && (globalStorage.current / globalStorage.limit) >= 0.9 ? 'bg-rose-500' : 'bg-[#2563EB]'}`}
+                  style={{ width: globalStorage.limit === -1 ? '100%' : `${Math.min((globalStorage.current / globalStorage.limit) * 100, 100)}%` }}
+                />
+              </div>
+              
+              <div className="flex justify-between items-end">
+                <p className="text-[10px] text-slate-500 font-medium">
+                  {formatBytes(globalStorage.current)} of {formatBytes(globalStorage.limit)} used
+                </p>
+              </div>
+              
+              {globalStorage.limit > 0 && (globalStorage.current / globalStorage.limit) >= 0.9 && (
+                <Link href="/admin/subscription" className="block text-center mt-2 text-[10px] font-bold text-[#2563EB] hover:underline">
+                  Upgrade your plan
+                </Link>
+              )}
             </div>
           )}
         </div>

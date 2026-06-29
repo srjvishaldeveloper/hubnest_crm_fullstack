@@ -59,6 +59,8 @@ router.get('/payroll/dashboard', ctrl.getPayrollDashboard);
 router.get('/compliance/dashboard', ctrl.getComplianceDashboard);
 router.get('/profile/dashboard', ctrl.getProfileDashboard);
 router.get('/payroll', ctrl.listPayroll);
+router.post('/payroll/employee', ctrl.createPayrollEmployee);
+router.post('/payroll/:id/pay', ctrl.updatePayrollStatus);
 
 // Tax Records
 router.get('/tax-records', ctrl.listTaxRecords);

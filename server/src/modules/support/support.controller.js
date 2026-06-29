@@ -108,6 +108,75 @@ async function rateArticle(req, res) {
   return sendSuccess(res, { article }, 'Article rated successfully');
 }
 
+async function bulkUpdateTickets(req, res) {
+  const { ticketIds, actionData } = req.body;
+  if (!ticketIds || !Array.isArray(ticketIds)) return sendError(res, 'ticketIds array is required', 400);
+  const tickets = await svc.bulkUpdateTickets(req.user.tenant_id, ticketIds, actionData || {});
+  return sendSuccess(res, { tickets }, 'Tickets bulk updated successfully');
+}
+
+async function escalateTicket(req, res) {
+  const ticket = await svc.escalateTicket(req.user.tenant_id, req.params.id);
+  if (!ticket) return sendError(res, 'Ticket not found', 404);
+  return sendSuccess(res, { ticket }, 'Ticket escalated successfully');
+}
+
+async function assignTicket(req, res) {
+  const { assignedAgentId } = req.body;
+  const ticket = await svc.assignTicket(req.user.tenant_id, req.params.id, assignedAgentId);
+  if (!ticket) return sendError(res, 'Ticket not found', 404);
+  return sendSuccess(res, { ticket }, 'Ticket assigned successfully');
+}
+
+async function createCustomer(req, res) {
+  const { name, email } = req.body;
+  if (!name || !email) return sendError(res, 'name and email are required', 400);
+  const customer = await svc.createCustomer(req.user.tenant_id, req.body);
+  return sendSuccess(res, { customer }, 'Customer created successfully', 201);
+}
+
+async function updateCustomer(req, res) {
+  const customer = await svc.updateCustomer(req.user.tenant_id, req.params.id, req.body);
+  if (!customer) return sendError(res, 'Customer not found', 404);
+  return sendSuccess(res, { customer }, 'Customer updated successfully');
+}
+
+async function addCustomerNote(req, res) {
+  const { note } = req.body;
+  if (!note) return sendError(res, 'note is required', 400);
+  const data = await svc.addCustomerNote(req.user.tenant_id, req.params.id, note, req.user.name);
+  return sendSuccess(res, { note: data }, 'Note added successfully', 201);
+}
+
+async function bulkUpdateCustomers(req, res) {
+  const { customerIds, actionData } = req.body;
+  if (!customerIds || !Array.isArray(customerIds)) return sendError(res, 'customerIds array is required', 400);
+  const customers = await svc.bulkUpdateCustomers(req.user.tenant_id, customerIds, actionData || {});
+  return sendSuccess(res, { customers }, 'Customers bulk updated successfully');
+}
+
+async function getSupportProfile(req, res) {
+  const profile = await svc.getSupportProfile(req.user.tenant_id, req.user.id);
+  return sendSuccess(res, profile, 'Profile retrieved successfully');
+}
+
+async function updateSupportProfile(req, res) {
+  const profile = await svc.updateSupportProfile(req.user.tenant_id, req.user.id, req.body);
+  return sendSuccess(res, profile, 'Profile updated successfully');
+}
+
+async function getKbAnalytics(req, res) {
+  const analytics = await svc.getKbAnalytics(req.user.tenant_id);
+  return sendSuccess(res, analytics, 'KB Analytics retrieved successfully');
+}
+
+async function addKbComment(req, res) {
+  const { comment } = req.body;
+  if (!comment) return sendError(res, 'comment is required', 400);
+  const data = await svc.addKbComment(req.user.tenant_id, req.params.id, req.user.id, comment);
+  return sendSuccess(res, { comment: data }, 'Comment added successfully', 201);
+}
+
 module.exports = {
   getDashboard,
   listTickets,
@@ -121,5 +190,16 @@ module.exports = {
   getArticle,
   createArticle,
   updateArticle,
-  rateArticle
+  rateArticle,
+  bulkUpdateTickets,
+  escalateTicket,
+  assignTicket,
+  createCustomer,
+  updateCustomer,
+  addCustomerNote,
+  bulkUpdateCustomers,
+  getSupportProfile,
+  updateSupportProfile,
+  getKbAnalytics,
+  addKbComment
 };

@@ -21,6 +21,7 @@ import {
   RefreshCw,
   CalendarDays
 } from 'lucide-react';
+import { smGetTasks, smCreateTask, smUpdateTask } from '../../../services/salesManagerService';
 
 // --- Types ---
 type TaskPriority = 'High' | 'Medium' | 'Low';
@@ -39,20 +40,32 @@ interface Task {
   status: TaskStatus;
 }
 
-// --- Mock Data ---
-const MOCK_TASKS: Task[] = [
-  { id: '1', title: 'Follow-up Call', type: 'Call', leadName: 'Amit Sharma', company: 'Sharma Enterprises', date: 'Today', time: '10:00 AM', priority: 'High', status: 'Pending' },
-  { id: '2', title: 'Product Demo', type: 'Meeting', leadName: 'Neha Verma', company: 'Verma Solutions', date: 'Today', time: '12:00 PM', priority: 'Medium', status: 'Pending' },
-  { id: '3', title: 'Pricing Discussion', type: 'Call', leadName: 'Rajeev Kumar', company: 'Kumar Traders', date: 'Today', time: '02:30 PM', priority: 'High', status: 'Pending' },
-  { id: '4', title: 'Check budget approval', type: 'Follow-up', leadName: 'Pooja Aggarwal', company: 'Aggarwal Industries', date: 'Today', time: '04:00 PM', priority: 'Low', status: 'Completed' },
-  { id: '5', title: 'Send proposal', type: 'Follow-up', leadName: 'Vikram Singh', company: 'Singh & Sons', date: 'Yesterday', time: '11:00 AM', priority: 'High', status: 'Missed' },
-];
+const formatTaskDate = (dateString: string | null) => {
+  if (!dateString) return { date: 'No Date', time: '' };
+  const d = new Date(dateString);
+  const now = new Date();
+  
+  const isToday = d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  
+  now.setDate(now.getDate() - 1);
+  const isYesterday = d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  
+  let dateText = d.toLocaleDateString();
+  if (isToday) dateText = 'Today';
+  else if (isYesterday) dateText = 'Yesterday';
+
+  return { date: dateText, time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+};
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
+  const [tasks, setTasks] = React.useState<Task[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<TaskType | 'All'>('All');
   const [filterStatus, setFilterStatus] = useState<TaskStatus | 'All'>('All');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [addForm, setAddForm] = useState({ title: '', type: 'Call', priority: 'Medium', lead_id: '', scheduled_at: '', notes: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Computed
   const filteredTasks = tasks.filter(t => {
@@ -67,8 +80,83 @@ export default function TasksPage() {
   const completedTasks = tasks.filter(t => t.status === 'Completed');
   const missedTasks = tasks.filter(t => t.status === 'Missed');
 
-  const handleComplete = (id: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'Completed' } : t));
+  const handleComplete = async (id: string) => {
+    try {
+      await smUpdateTask(id, { status: 'Done' });
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'Completed' } : t));
+    } catch (error) {
+      console.error('Failed to update task:', error);
+    }
+  };
+
+  React.useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setLoading(true);
+        const data = await smGetTasks();
+        if (data && Array.isArray(data)) {
+          const formatted = data.map((t: any) => {
+            const { date, time } = formatTaskDate(t.scheduled_at);
+            return {
+              id: t.id,
+              title: t.title || 'Untitled',
+              type: t.type || 'Call',
+              leadName: t.lead_name || 'Unknown Lead',
+              company: t.company || 'Unknown Company',
+              date,
+              time,
+              priority: t.priority || 'Medium',
+              status: t.status === 'Done' ? 'Completed' : t.status || 'Pending'
+            };
+          });
+          setTasks(formatted);
+        }
+      } catch (error) {
+        console.error('Failed to load tasks', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTasks();
+  }, []);
+
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addForm.title) return;
+    try {
+      setIsSubmitting(true);
+      await smCreateTask(addForm);
+      // Optimistic refresh
+      const fetchTasks = async () => {
+        try {
+          const data = await smGetTasks();
+          if (data && Array.isArray(data)) {
+            const formatted = data.map((t: any) => {
+              const { date, time } = formatTaskDate(t.scheduled_at);
+              return {
+                id: t.id,
+                title: t.title || 'Untitled',
+                type: t.type || 'Call',
+                leadName: t.lead_name || 'Unknown Lead',
+                company: t.company || 'Unknown Company',
+                date,
+                time,
+                priority: t.priority || 'Medium',
+                status: t.status === 'Done' ? 'Completed' : t.status || 'Pending'
+              };
+            });
+            setTasks(formatted);
+          }
+        } catch (error) {}
+      };
+      await fetchTasks();
+      setIsModalOpen(false);
+      setAddForm({ title: '', type: 'Call', priority: 'Medium', lead_id: '', scheduled_at: '', notes: '' });
+    } catch (error) {
+      console.error('Create task error', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -79,7 +167,10 @@ export default function TasksPage() {
           <h1 className="text-2xl font-bold text-slate-800">Tasks / Follow-ups</h1>
           <p className="text-sm text-slate-500 mt-1">Stay on track. Follow up. Close more deals.</p>
         </div>
-        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-blue-200">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-blue-200"
+        >
           <Plus size={18} />
           Add New Task
         </button>
@@ -147,7 +238,13 @@ export default function TasksPage() {
 
           {/* List */}
           <div className="divide-y divide-slate-100 flex-1 overflow-auto">
-            <AnimatePresence>
+            {loading ? (
+              <div className="p-12 text-center flex flex-col items-center justify-center">
+                <RefreshCw size={32} className="text-blue-500 animate-spin mb-4" />
+                <h3 className="text-lg font-semibold text-slate-800">Loading tasks...</h3>
+              </div>
+            ) : (
+              <AnimatePresence>
               {filteredTasks.length > 0 ? filteredTasks.map(task => (
                 <motion.div 
                   key={task.id}
@@ -234,9 +331,71 @@ export default function TasksPage() {
                 </div>
               )}
             </AnimatePresence>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Add Task Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-[#0F172A] rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+            >
+              <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-800">
+                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Add New Task</h2>
+                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                  <XCircle size={24} />
+                </button>
+              </div>
+              <form onSubmit={handleCreateTask} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Title</label>
+                  <input required value={addForm.title} onChange={e => setAddForm({ ...addForm, title: e.target.value })}
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-[#161616] text-slate-900 dark:text-white"
+                    placeholder="E.g. Follow-up Call" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Type</label>
+                    <select value={addForm.type} onChange={e => setAddForm({ ...addForm, type: e.target.value })}
+                      className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-[#161616] text-slate-900 dark:text-white">
+                      <option value="Call">Call</option>
+                      <option value="Meeting">Meeting</option>
+                      <option value="Email">Email</option>
+                      <option value="Follow-up">Follow-up</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Priority</label>
+                    <select value={addForm.priority} onChange={e => setAddForm({ ...addForm, priority: e.target.value })}
+                      className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-[#161616] text-slate-900 dark:text-white">
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Scheduled Date & Time</label>
+                  <input type="datetime-local" value={addForm.scheduled_at} onChange={e => setAddForm({ ...addForm, scheduled_at: e.target.value })}
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-[#161616] text-slate-900 dark:text-white" />
+                </div>
+                <div className="pt-4 flex justify-end gap-3">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={isSubmitting} className="px-5 py-2 font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm shadow-blue-200">
+                    {isSubmitting ? 'Saving...' : 'Save Task'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -76,6 +76,15 @@ export default function AdminHeader({ onToggleSidebar, sidebarOpen, role = 'Admi
   } else if (pathname.includes('/finance/analytics')) {
     pageTitle = 'Financial Analytics';
     pageSubtitle = 'Revenue, cash flow, and financial insights';
+  } else if (pathname.includes('/finance/payroll')) {
+    pageTitle = 'Payroll';
+    pageSubtitle = 'Manage employee salaries, deductions, and processing';
+  } else if (pathname.includes('/finance/compliance')) {
+    pageTitle = 'Compliance';
+    pageSubtitle = 'Manage tax, legal requirements, and statutory compliances';
+  } else if (pathname.includes('/finance/profile')) {
+    pageTitle = 'Finance Profile';
+    pageSubtitle = 'Manage personal details, financial performance, and security';
   } else if (pathname.includes('/finance')) {
     pageTitle = 'Finance';
     pageSubtitle = 'Financial overview and department metrics';
@@ -226,6 +235,20 @@ export default function AdminHeader({ onToggleSidebar, sidebarOpen, role = 'Admi
                     {(role === 'Finance Executive' || role === 'Finance Manager' || role === 'Accountant') && (
                       <>
                         <Link
+                          href="/finance/payroll?action=run"
+                          onClick={() => setShowQuickAdd(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:bg-[#161616] dark:hover:bg-[#2A2A2A] font-semibold"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-[#2563EB]" /> Run Payroll
+                        </Link>
+                        <Link
+                          href="/finance/expenses?action=add"
+                          onClick={() => setShowQuickAdd(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:bg-[#161616] dark:hover:bg-[#2A2A2A] font-semibold"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-[#2563EB]" /> Add Expense
+                        </Link>
+                        <Link
                           href="/finance/invoices?action=add"
                           onClick={() => setShowQuickAdd(false)}
                           className="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:bg-[#161616] dark:hover:bg-[#2A2A2A] font-semibold"
@@ -240,18 +263,25 @@ export default function AdminHeader({ onToggleSidebar, sidebarOpen, role = 'Admi
                           <Plus className="w-3.5 h-3.5 text-[#2563EB]" /> Record Payment
                         </Link>
                         <Link
-                          href="/finance/expenses?action=add"
-                          onClick={() => setShowQuickAdd(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:bg-[#161616] dark:hover:bg-[#2A2A2A] font-semibold"
-                        >
-                          <Plus className="w-3.5 h-3.5 text-[#2563EB]" /> Add Expense
-                        </Link>
-                        <Link
                           href="/finance/vendors?action=add"
                           onClick={() => setShowQuickAdd(false)}
                           className="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:bg-[#161616] dark:hover:bg-[#2A2A2A] font-semibold"
                         >
                           <Plus className="w-3.5 h-3.5 text-[#2563EB]" /> Add Vendor
+                        </Link>
+                        <Link
+                          href="/finance/compliance?action=add"
+                          onClick={() => setShowQuickAdd(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:bg-[#161616] dark:hover:bg-[#2A2A2A] font-semibold"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-[#2563EB]" /> Add Compliance Task
+                        </Link>
+                        <Link
+                          href="/finance/analytics?view=reports"
+                          onClick={() => setShowQuickAdd(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:bg-[#161616] dark:hover:bg-[#2A2A2A] font-semibold"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-[#2563EB]" /> View Reports
                         </Link>
                       </>
                     )}
@@ -278,8 +308,12 @@ export default function AdminHeader({ onToggleSidebar, sidebarOpen, role = 'Admi
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200 dark:border-[#333333] ml-1"
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shrink-0 ring-2 ring-blue-50 dark:ring-blue-500/20 shadow-sm text-white font-bold text-xs">
-                {user?.name?.charAt(0).toUpperCase() || 'A'}
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shrink-0 ring-2 ring-blue-50 dark:ring-blue-500/20 shadow-sm text-white font-bold text-xs overflow-hidden">
+                {user?.photoUrl ? (
+                  <img src={user.photoUrl} alt="avatar" className="w-full h-full object-cover" />
+                ) : (
+                  user?.name?.charAt(0).toUpperCase() || 'A'
+                )}
               </div>
               <div className="hidden lg:flex flex-col items-start leading-tight">
                 <span className="text-xs font-semibold text-[#0F172A] dark:text-white">{user?.name || 'Admin'}</span>
@@ -299,7 +333,7 @@ export default function AdminHeader({ onToggleSidebar, sidebarOpen, role = 'Admi
                     exit={{ opacity: 0, y: 8 }}
                     className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1f1f1f] border border-slate-200 dark:border-[#333] rounded-xl shadow-lg py-1 z-20"
                   >
-                    <Link href={`/${role === 'Admin' ? 'admin' : 'superadmin'}/profile`} onClick={() => setShowProfileMenu(false)} className="block px-4 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] font-semibold transition">Profile</Link>
+                    <Link href={pathname.startsWith('/finance') ? '/finance/profile' : `/${role === 'Admin' ? 'admin' : 'superadmin'}/profile`} onClick={() => setShowProfileMenu(false)} className="block px-4 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] font-semibold transition">Profile</Link>
                     <button onClick={() => { setShowProfileMenu(false); useAuthStore.getState().logout(); }} className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 font-semibold transition flex items-center gap-2">
                       <LogOut className="w-3.5 h-3.5" />
                       Logout

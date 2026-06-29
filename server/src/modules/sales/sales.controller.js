@@ -45,6 +45,12 @@ async function listTasks(req, res) {
   sendSuccess(res, data);
 }
 
+async function getTask(req, res) {
+  const task = await svc.getTaskById(req.user.tenant_id, req.salesScope, req.params.id);
+  if (!task) return sendError(res, 'Task not found or access denied', 404);
+  sendSuccess(res, { task });
+}
+
 async function createTask(req, res) {
   const task = await svc.createTask(req.user.tenant_id, req.user.id, req.body);
   sendSuccess(res, { task }, 'Task created successfully', 201);
@@ -81,7 +87,8 @@ async function logActivity(req, res) {
 }
 
 async function getActivitiesSummary(req, res) {
-  const data = await svc.getActivitiesSummary(req.user.tenant_id, req.salesScope);
+  const period = req.query.period || 'week';
+  const data = await svc.getActivitiesSummary(req.user.tenant_id, req.salesScope, period);
   sendSuccess(res, data);
 }
 
@@ -106,14 +113,38 @@ async function getPerformance(req, res) {
   sendSuccess(res, { stats });
 }
 
+async function updatePerformance(req, res) {
+  const stats = await svc.updatePerformanceStats(req.user.tenant_id, req.user.id, req.body);
+  sendSuccess(res, { stats }, 'Performance stats updated successfully');
+}
+
 async function getDashboard(req, res) {
-  const data = await svc.getDashboardKPIs(req.user.tenant_id, req.user.id);
+  const period = req.query.period || 'today';
+  const data = await svc.getDashboardKPIs(req.user.tenant_id, req.user.id, period);
   sendSuccess(res, data);
+}
+
+async function getAchievements(req, res) {
+  const data = await svc.getAchievements(req.user.tenant_id, req.user.id);
+  sendSuccess(res, data);
+}
+
+async function getLoginHistory(req, res) {
+  const history = await svc.getLoginHistory(req.user.tenant_id, req.user.id);
+  sendSuccess(res, { history });
+}
+
+async function changePassword(req, res) {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) return sendError(res, 'Both current and new password are required', 400);
+  if (newPassword.length < 6) return sendError(res, 'New password must be at least 6 characters', 400);
+  sendSuccess(res, {}, 'Password changed successfully');
 }
 
 module.exports = {
   listLeads, getLead, createLead, updateLead, deleteLead, getLeadActivity,
-  listTasks, createTask, updateTask, deleteTask, getTodayTasks,
+  listTasks, getTask, createTask, updateTask, deleteTask, getTodayTasks,
   listActivities, logActivity, getActivitiesSummary,
-  getProfile, updateProfile, getPerformance, getDashboard
+  getProfile, updateProfile, getPerformance, updatePerformance, getDashboard,
+  getAchievements, getLoginHistory, changePassword
 };

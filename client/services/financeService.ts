@@ -191,7 +191,17 @@ export const financeGetPayroll = async (params?: {
 
 export const financeGetPayrollDashboard = async () => {
   const res = await api.get(`${BASE}/payroll/dashboard`);
-  return res.data.data;
+  return res.data?.data || res.data;
+};
+
+export const financeUpdatePayrollStatus = async (id: string, data: { status: string; payment_method?: string; payment_ref?: string }) => {
+  const res = await api.post(`${BASE}/payroll/${id}/pay`, data);
+  return res.data?.data || res.data;
+};
+
+export const financeCreatePayrollEmployee = async (data: any) => {
+  const res = await api.post(`${BASE}/payroll/employee`, data);
+  return res.data?.data || res.data;
 };
 
 export const financeGetComplianceDashboard = async () => {

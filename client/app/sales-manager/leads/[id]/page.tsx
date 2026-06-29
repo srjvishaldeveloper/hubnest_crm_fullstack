@@ -199,7 +199,7 @@ export default function LeadDetailPage() {
   const id = (params?.id as string) || '';
 
   const [lead, setLead] = useState<Lead | null>(null);
-  const [team, setTeam] = useState<TeamMember[]>(MOCK_TEAM);
+  const [team, setTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>('info');
@@ -394,10 +394,9 @@ export default function LeadDetailPage() {
         const [leadData, teamData] = await Promise.all([smGetLead(id), smGetTeam()]);
         const leadObj = leadData?.lead || leadData;
         if (leadObj) setLead(leadObj);
-        else setLead(buildMockLead(id));
-        if (teamData) setTeam(teamData);
+        else setLead(null);
+        if (teamData) setTeam(Array.isArray(teamData) ? teamData : (teamData.members ?? []));
       } catch {
-        setLead(buildMockLead(id));
       } finally {
         setLoading(false);
       }

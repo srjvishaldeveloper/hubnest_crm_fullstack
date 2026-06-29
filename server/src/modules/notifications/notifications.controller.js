@@ -1,6 +1,6 @@
 
 const svc = require('./notifications.service');
-const { sendSuccess, sendError } = require('../../utils/responseHelper');
+const { sendSuccess, sendError } = require('../../utils/helpers');
 
 async function getNotifications(req, res) {
   try {

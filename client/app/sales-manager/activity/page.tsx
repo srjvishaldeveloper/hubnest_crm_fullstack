@@ -17,35 +17,42 @@ import {
   Clock
 } from 'lucide-react';
 
-type ActivityType = 'Call' | 'Email' | 'Meeting';
-type ActivityOutcome = 'Connected' | 'No Answer' | 'Sent' | 'Opened' | 'Clicked' | 'Completed' | 'Rescheduled';
+import { smGetActivities } from '../../../services/salesManagerService';
+
+type ActivityType = 'Call' | 'Email' | 'Meeting' | 'Follow-up Scheduled (Call)' | 'Follow-up Scheduled (Email)' | 'Follow-up Scheduled (Meeting)' | string;
+type ActivityOutcome = 'Connected' | 'No Answer' | 'Sent' | 'Opened' | 'Clicked' | 'Completed' | 'Rescheduled' | 'Scheduled' | string;
 
 interface Activity {
   id: string;
   type: ActivityType;
-  leadName: string;
-  company: string;
+  leadName?: string;
+  company?: string;
   dateTime: string;
   outcome: ActivityOutcome;
-  duration?: string;
+  duration_seconds?: number;
   notes: string;
+  userName?: string;
 }
 
-const MOCK_ACTIVITIES: Activity[] = [
-  { id: '1', type: 'Call', leadName: 'Amit Sharma', company: 'Sharma Enterprises', dateTime: 'Today, 05:30 PM', outcome: 'Connected', duration: '04:32', notes: 'Discussed about pricing and product features. He showed interest.' },
-  { id: '2', type: 'Email', leadName: 'Neha Verma', company: 'Verma Solutions', dateTime: 'Today, 04:15 PM', outcome: 'Opened', notes: 'Sent proposal email with custom pricing tier.' },
-  { id: '3', type: 'Meeting', leadName: 'Rajeev Kumar', company: 'Kumar Traders', dateTime: 'Today, 02:20 PM', outcome: 'Completed', duration: '45:00', notes: 'Product demo conducted. Customer asked for technical docs.' },
-  { id: '4', type: 'Call', leadName: 'Pooja Aggarwal', company: 'Aggarwal Industries', dateTime: 'Today, 01:10 PM', outcome: 'No Answer', duration: '00:45', notes: 'Left a voicemail to call back.' },
-  { id: '5', type: 'Email', leadName: 'Vikram Singh', company: 'Singh & Sons', dateTime: 'Yesterday, 11:30 AM', outcome: 'Sent', notes: 'Follow-up on the previous meeting.' },
-];
-
 export default function ActivityPage() {
-  const [activities, setActivities] = useState<Activity[]>(MOCK_ACTIVITIES);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<ActivityType | 'All'>('All');
 
+  React.useEffect(() => {
+    smGetActivities().then(data => {
+      setActivities(data);
+      setLoading(false);
+    }).catch(e => {
+      console.error(e);
+      setLoading(false);
+    });
+  }, []);
+
   const filteredActivities = activities.filter(a => {
-    const matchSearch = a.leadName.toLowerCase().includes(search.toLowerCase()) || a.company.toLowerCase().includes(search.toLowerCase());
+    const s = search.toLowerCase();
+    const matchSearch = (a.leadName?.toLowerCase().includes(s)) || (a.company?.toLowerCase().includes(s)) || (a.notes?.toLowerCase().includes(s));
     const matchType = filterType === 'All' || a.type === filterType;
     return matchSearch && matchType;
   });

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Target, TrendingUp, TrendingDown, Users, Briefcase, Star, AlertCircle,
@@ -215,16 +216,17 @@ function LoadingSkeleton() {
   );
 }
 
-function KPICard({ label, value, trend, icon: Icon, iconBg, iconColor, delay }: {
+function KPICard({ label, value, trend, icon: Icon, iconBg, iconColor, delay, onClick }: {
   label: string; value: string; trend: number;
-  icon: React.ElementType; iconBg: string; iconColor: string; delay: number;
+  icon: React.ElementType; iconBg: string; iconColor: string; delay: number; onClick?: () => void;
 }) {
   const up = trend >= 0;
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4, ease: 'easeOut' }}
-      className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm hover:shadow-md transition-all duration-300 group cursor-default"
+      onClick={onClick}
+      className={`bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm hover:shadow-md transition-all duration-300 group ${onClick ? 'cursor-pointer hover:-translate-y-1' : 'cursor-default'}`}
     >
       <div className="flex items-start justify-between mb-4">
         <div style={{ background: iconBg }} className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm">
@@ -242,11 +244,11 @@ function KPICard({ label, value, trend, icon: Icon, iconBg, iconColor, delay }: 
 }
 
 function TaskTypeBadge({ type }: { type: Task['type'] }) {
-  const cfg = {
+  const cfg = ({
     Call:    { bg: 'rgba(59,130,246,0.10)', color: '#1D4ED8', icon: Phone },
     Email:   { bg: 'rgba(245,158,11,0.10)', color: '#B45309', icon: Mail },
     Meeting: { bg: 'rgba(16,185,129,0.10)', color: '#047857', icon: Calendar },
-  }[type];
+  } as Record<string, { bg: string; color: string; icon: any }>)[type] || { bg: 'rgba(100,116,139,0.10)', color: '#64748B', icon: Mail };
   const I = cfg.icon;
   return (
     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold" style={{ background: cfg.bg, color: cfg.color }}>
@@ -257,17 +259,17 @@ function TaskTypeBadge({ type }: { type: Task['type'] }) {
 
 function PriorityDot({ priority }: { priority?: Task['priority'] }) {
   if (!priority) return null;
-  const color = { High: '#EF4444', Medium: '#F59E0B', Low: '#10B981' }[priority];
+  const color = ({ High: '#EF4444', Medium: '#F59E0B', Low: '#10B981' } as Record<string, string>)[priority] || '#64748B';
   return <span style={{ background: color }} className="w-2 h-2 rounded-full inline-block" />;
 }
 
 function StatusBadge({ status }: { status: TeamMember['status'] }) {
-  const cfg = {
+  const cfg = ({
     Active:    'bg-emerald-50 text-emerald-700 border-emerald-200',
     Inactive:  'bg-red-50 text-red-700 border-red-200',
     'On Leave':'bg-amber-50 text-amber-700 border-amber-200',
-  }[status];
-  return <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${cfg}`}>{status}</span>;
+  } as Record<string, string>)[status || 'Active'] || 'bg-blue-50 text-blue-700 border-blue-200';
+  return <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${cfg}`}>{status || 'Active'}</span>;
 }
 
 function ProbabilityBadge({ prob }: { prob: number }) {
@@ -293,11 +295,13 @@ function AvatarCircle({ name, size = 32, gradient = 'from-blue-500 to-cyan-500' 
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function SalesManagerDashboard() {
+  const router = useRouter();
   const { user } = useAuthStore();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [timeFilter, setTimeFilter] = useState('Monthly');
 
   const managerName = user?.name ?? 'Sales Manager';
 
@@ -306,7 +310,7 @@ export default function SalesManagerDashboard() {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
-      const res = await smGetDashboard();
+      const res = await smGetDashboard(timeFilter);
       if (!res) { setData(MOCK_DATA); return; }
 
       // Normalize backend response to match frontend DashboardData interface
@@ -365,16 +369,16 @@ export default function SalesManagerDashboard() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [timeFilter]);
 
   const d = data ?? MOCK_DATA;
   const kpis = d.kpis ?? MOCK_DATA.kpis!;
-  const pipeline = d.pipeline ?? MOCK_DATA.pipeline!;
-  const team = d.teamPerformance ?? MOCK_DATA.teamPerformance!;
-  const tasks = d.todayTasks ?? MOCK_DATA.todayTasks!;
-  const hotLeads = d.hotLeads ?? MOCK_DATA.hotLeads!;
+  const pipeline = d.pipeline?.length ? d.pipeline : MOCK_DATA.pipeline!;
+  const team = d.teamPerformance?.length ? d.teamPerformance : MOCK_DATA.teamPerformance!;
+  const tasks = d.todayTasks?.length ? d.todayTasks : MOCK_DATA.todayTasks!;
+  const hotLeads = d.hotLeads?.length ? d.hotLeads : MOCK_DATA.hotLeads!;
   const activity = d.activity ?? MOCK_DATA.activity!;
-  const insights = d.aiInsights ?? MOCK_DATA.aiInsights!;
+  const insights = d.aiInsights?.length ? d.aiInsights : MOCK_DATA.aiInsights!;
 
   const maxPipeline = Math.max(...pipeline.map(p => p.count), 1);
 
@@ -416,6 +420,19 @@ export default function SalesManagerDashboard() {
               <span className="px-3 py-1 rounded-full bg-white/15 text-white text-xs font-semibold border border-white/20">
                 {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
               </span>
+              <select
+                value={timeFilter}
+                onChange={(e) => setTimeFilter(e.target.value)}
+                className="bg-white/15 text-white text-xs font-semibold rounded-full border border-white/20 px-3 py-1.5 appearance-none focus:outline-none focus:ring-2 focus:ring-white/30"
+                style={{ cursor: 'pointer' }}
+              >
+                <option value="Daily" className="text-black">Daily</option>
+                <option value="Weekly" className="text-black">Weekly</option>
+                <option value="Monthly" className="text-black">Monthly</option>
+                <option value="Quarterly" className="text-black">Quarterly</option>
+                <option value="Yearly" className="text-black">Yearly</option>
+                <option value="Custom" className="text-black">Custom</option>
+              </select>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -441,10 +458,10 @@ export default function SalesManagerDashboard() {
 
       {/* ── 2. KPI CARDS ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard label="Total Leads"           value={String(kpis.totalLeads ?? 0)}           trend={kpis.leadsTrend ?? 0}      icon={Target}    iconBg="rgba(37,99,235,0.10)"  iconColor="#2563EB" delay={0} />
-        <KPICard label="Revenue Generated"     value={formatRupees(kpis.revenueGenerated ?? 0)} trend={kpis.revenueTrend ?? 0}   icon={TrendingUp} iconBg="rgba(16,185,129,0.10)" iconColor="#059669" delay={0.05} />
-        <KPICard label="Conversion Rate"       value={`${kpis.conversionRate ?? 0}%`}          trend={kpis.conversionTrend ?? 0} icon={BarChart3}  iconBg="rgba(245,158,11,0.10)" iconColor="#D97706" delay={0.10} />
-        <KPICard label="Active Deals"          value={String(kpis.activeDeals ?? 0)}            trend={kpis.dealsTrend ?? 0}      icon={Briefcase}  iconBg="rgba(6,182,212,0.10)"  iconColor="#0891B2" delay={0.15} />
+        <KPICard label="Total Leads"           value={String(kpis.totalLeads ?? 0)}           trend={kpis.leadsTrend ?? 0}      icon={Target}    iconBg="rgba(37,99,235,0.10)"  iconColor="#2563EB" delay={0} onClick={() => router.push('/sales-manager/leads')} />
+        <KPICard label="Revenue Generated"     value={formatRupees(kpis.revenueGenerated ?? 0)} trend={kpis.revenueTrend ?? 0}   icon={TrendingUp} iconBg="rgba(16,185,129,0.10)" iconColor="#059669" delay={0.05} onClick={() => router.push('/sales-manager/reports')} />
+        <KPICard label="Conversion Rate"       value={`${kpis.conversionRate ?? 0}%`}          trend={kpis.conversionTrend ?? 0} icon={BarChart3}  iconBg="rgba(245,158,11,0.10)" iconColor="#D97706" delay={0.10} onClick={() => router.push('/sales-manager/reports')} />
+        <KPICard label="Active Deals"          value={String(kpis.activeDeals ?? 0)}            trend={kpis.dealsTrend ?? 0}      icon={Briefcase}  iconBg="rgba(6,182,212,0.10)"  iconColor="#0891B2" delay={0.15} onClick={() => router.push('/sales-manager/leads?status=Active')} />
       </div>
 
       {/* ── 3. SALES PIPELINE ─────────────────────────────────────────────── */}
@@ -748,6 +765,7 @@ export default function SalesManagerDashboard() {
                 gradient: 'linear-gradient(135deg,#1D4ED8,#2563EB)',
                 shadow: 'rgba(37,99,235,0.35)',
                 delay: 0.55,
+                onClick: () => router.push('/sales-manager/leads'),
               },
               {
                 label: 'Create Task',
@@ -756,6 +774,7 @@ export default function SalesManagerDashboard() {
                 gradient: 'linear-gradient(135deg,#EA580C,#F97316)',
                 shadow: 'rgba(249,115,22,0.35)',
                 delay: 0.6,
+                onClick: () => router.push('/sales-manager/tasks?add=true'),
               },
               {
                 label: 'View Reports',
@@ -764,6 +783,7 @@ export default function SalesManagerDashboard() {
                 gradient: 'linear-gradient(135deg,#047857,#059669)',
                 shadow: 'rgba(5,150,105,0.35)',
                 delay: 0.65,
+                onClick: () => router.push('/sales-manager/reports'),
               },
             ].map((action) => (
               <motion.button
@@ -772,6 +792,7 @@ export default function SalesManagerDashboard() {
                 transition={{ delay: action.delay }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={action.onClick}
                 className="flex items-center gap-3.5 p-4 rounded-xl text-white font-semibold text-sm text-left w-full shadow-lg transition-all"
                 style={{ background: action.gradient, boxShadow: `0 4px 20px ${action.shadow}` }}
               >

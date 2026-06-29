@@ -6,7 +6,7 @@ async function findByEmailOrAdminId(emailOrAdminId) {
             u.password_hash, u.status, u.created_at, u.updated_at,
             u.phone, u.photo_url, u.language,
             r.name AS role_name, r.permissions,
-            t.schema_name
+            t.schema_name, t.name AS tenant_name
      FROM users u
      JOIN roles r ON r.id = u.role_id
      JOIN tenants t ON t.id = u.tenant_id
@@ -23,7 +23,7 @@ async function findById(id) {
             u.password_hash, u.status, u.created_at, u.updated_at,
             u.phone, u.photo_url, u.language,
             r.name AS role_name, r.permissions,
-            t.schema_name
+            t.schema_name, t.name AS tenant_name
      FROM users u
      JOIN roles r ON r.id = u.role_id
      JOIN tenants t ON t.id = u.tenant_id
@@ -40,7 +40,7 @@ async function findByEmail(email) {
             u.password_hash, u.status, u.created_at, u.updated_at,
             u.phone, u.photo_url, u.language,
             r.name AS role_name, r.permissions,
-            t.schema_name
+            t.schema_name, t.name AS tenant_name
      FROM users u
      JOIN roles r ON r.id = u.role_id
      JOIN tenants t ON t.id = u.tenant_id
@@ -82,7 +82,7 @@ async function findByPhone(phone) {
             u.password_hash, u.status, u.created_at, u.updated_at,
             u.phone, u.phone_number, u.country_code, u.photo_url, u.language,
             r.name AS role_name, r.permissions,
-            t.schema_name
+            t.schema_name, t.name AS tenant_name
      FROM users u
      JOIN roles r ON r.id = u.role_id
      JOIN tenants t ON t.id = u.tenant_id

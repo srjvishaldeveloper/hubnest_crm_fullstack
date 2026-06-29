@@ -228,4 +228,51 @@ router.get('/billing/invoices/:id/download', async (req, res) => {
   }
 });
 
+// ─── DEPARTMENT STORAGE ────────────────────────────────────────────────────────
+
+router.get('/departments/storage', async (req, res) => {
+  try {
+    const tenantId = req.user.tenant_id;
+    const result = await query(`
+      SELECT id, name, storage_quota, storage_used
+      FROM org_departments
+      WHERE tenant_id = $1
+      ORDER BY name ASC
+    `, [tenantId]);
+    return sendSuccess(res, { departments: result.rows }, 'Department storage retrieved');
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+});
+
+router.put('/departments/:id/storage', async (req, res) => {
+  try {
+    const tenantId = req.user.tenant_id;
+    const { id } = req.params;
+    const { storage_quota } = req.body;
+    
+    if (storage_quota === undefined) {
+      return sendError(res, 'storage_quota is required', 400);
+    }
+    
+    const checkResult = await query(
+      `SELECT id FROM org_departments WHERE id = $1 AND tenant_id = $2`,
+      [id, tenantId]
+    );
+    if (checkResult.rows.length === 0) {
+      return sendError(res, 'Department not found', 404);
+    }
+    
+    await query(
+      `UPDATE org_departments SET storage_quota = $1, updated_at = NOW() WHERE id = $2`,
+      [storage_quota, id]
+    );
+    
+    return sendSuccess(res, { id, storage_quota }, 'Department storage quota updated');
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+});
+
 module.exports = router;
+

@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "migrate": "node -e \"require('./src/config/database').runMigrations().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
     "seed": "node seed/seedSuperAdmin.js",
+    "seed:demo": "node seed/seedDemoUsers.js",
     "update-admin": "node seed/updateSuperAdmin.js"
   },
   "dependencies": {

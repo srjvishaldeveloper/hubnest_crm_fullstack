@@ -61,6 +61,43 @@ async function checkLimit(tenantId, resource) {
 }
 
 /**
+ * Check whether a tenant and department can add a specific amount of storage (in bytes).
+ */
+async function checkStorageLimit(tenantId, departmentId, bytesToAdd) {
+  try {
+    // 1. Check Tenant global limit
+    const globalCheck = await checkLimit(tenantId, 'storage_bytes');
+    if (!globalCheck.allowed || (globalCheck.limit !== -1 && globalCheck.current + bytesToAdd > globalCheck.limit)) {
+      return { allowed: false, reason: 'Tenant storage limit exceeded', current: globalCheck.current, limit: globalCheck.limit };
+    }
+
+    // 2. Check Department limit (if departmentId is provided)
+    if (departmentId) {
+      const deptResult = await query(
+        `SELECT storage_quota, storage_used FROM org_departments WHERE id = $1 AND tenant_id = $2`,
+        [departmentId, tenantId]
+      );
+      if (deptResult.rows.length > 0) {
+        const { storage_quota, storage_used } = deptResult.rows[0];
+        // Quota of 0 means no department-specific limit (unlimited within tenant), 
+        // but if they set it > 0, we check it.
+        const quota = parseInt(storage_quota, 10);
+        const used = parseInt(storage_used, 10);
+        
+        if (quota > 0 && (used + bytesToAdd) > quota) {
+          return { allowed: false, reason: 'Department storage limit exceeded', current: used, limit: quota };
+        }
+      }
+    }
+
+    return { allowed: true };
+  } catch (err) {
+    logger.error('Failed to check storage limit', { tenantId, departmentId, message: err.message });
+    throw err;
+  }
+}
+
+/**
  * Return current usage vs limits for every resource on the tenant's plan.
  */
 async function getUsage(tenantId) {
@@ -113,6 +150,44 @@ async function trackUsage(tenantId, resource, delta = 1) {
   } catch (err) {
     logger.error('Failed to track usage', { tenantId, resource, delta, message: err.message });
     throw err;
+  }
+}
+
+/**
+ * Increment storage usage for a tenant and optionally a department.
+ */
+async function trackStorageUsage(tenantId, departmentId, deltaBytes) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Track globally in usage_tracking
+    await client.query(
+      `INSERT INTO usage_tracking (tenant_id, resource, current_count, last_updated)
+       VALUES ($1, 'storage_bytes', GREATEST(0, $2), NOW())
+       ON CONFLICT (tenant_id, resource)
+       DO UPDATE SET current_count = GREATEST(0, usage_tracking.current_count + $2),
+                     last_updated  = NOW()`,
+      [tenantId, deltaBytes]
+    );
+
+    // Track locally in department
+    if (departmentId) {
+      await client.query(
+        `UPDATE org_departments 
+         SET storage_used = GREATEST(0, storage_used + $1), updated_at = NOW()
+         WHERE id = $2 AND tenant_id = $3`,
+        [deltaBytes, departmentId, tenantId]
+      );
+    }
+    
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    logger.error('Failed to track storage usage', { tenantId, departmentId, deltaBytes, message: err.message });
+    throw err;
+  } finally {
+    client.release();
   }
 }
 
@@ -278,8 +353,10 @@ async function assignPlan(tenantId, planSlug, billingCycle = 'monthly') {
 
 module.exports = {
   checkLimit,
+  checkStorageLimit,
   getUsage,
   trackUsage,
+  trackStorageUsage,
   getTenantPlan,
   getAvailablePlans,
   assignPlan,

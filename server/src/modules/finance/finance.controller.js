@@ -225,6 +225,17 @@ async function listPayroll(req, res) {
   return sendSuccess(res, data, 'Payroll records retrieved successfully');
 }
 
+async function updatePayrollStatus(req, res) {
+  const { id } = req.params;
+  const payroll = await svc.updatePayrollStatus(req.user.tenant_id, id, req.body);
+  return sendSuccess(res, { payroll }, 'Payroll status updated successfully');
+}
+
+async function createPayrollEmployee(req, res) {
+  const payroll = await svc.createPayrollRecord(req.user.tenant_id, req.body);
+  return sendSuccess(res, { payroll }, 'Payroll record created successfully');
+}
+
 // ─── TAX RECORDS ──────────────────────────────────────────────────────────────
 
 async function listTaxRecords(req, res) {
@@ -622,6 +633,8 @@ module.exports = {
   createVendor,
   updateVendor,
   listPayroll,
+  updatePayrollStatus,
+  createPayrollEmployee,
   listTaxRecords,
   getAnalytics,
   getPublicInvoicePaymentConfig,

@@ -18,7 +18,9 @@ import {
 } from 'recharts';
 import {
   financeGetPayrollDashboard,
-  financeGetPayroll
+  financeGetPayroll,
+  financeUpdatePayrollStatus,
+  financeCreatePayrollEmployee
 } from '@/services/financeService';
 
 /* ─────────────── CHART COLORS ─────────────── */
@@ -67,25 +69,6 @@ interface MonthlyTrend {
   payroll: number;
   deductions: number;
 }
-
-/* ─────────────── STATIC FALLBACK DATA ─────────────── */
-const FALLBACK_EMPLOYEES: Employee[] = [
-  { id:'e1', name:'Arjun Mehta',   employeeId:'EMP001', department:'Engineering', designation:'Senior Developer',  basicSalary:85000, hra:34000, bonuses:5000,  pf:10200, tds:8500, esi:0,    professionalTax:200, loanDeduction:0,    grossSalary:124000, totalDeductions:18900, netSalary:105100, status:'Paid',    bankAccount:'HDFC xxxx4521', panNumber:'ARJPM1234A', joiningDate:'2022-01-15' },
-  { id:'e2', name:'Priya Sharma',  employeeId:'EMP002', department:'Marketing',   designation:'Campaign Manager',  basicSalary:65000, hra:26000, bonuses:4000,  pf:7800,  tds:6500, esi:1950, professionalTax:200, loanDeduction:5000, grossSalary:95000,  totalDeductions:21450, netSalary:73550,  status:'Paid',    bankAccount:'ICICI xxxx7832', panNumber:'PRISM5678B', joiningDate:'2021-06-01' },
-  { id:'e3', name:'Rahul Verma',   employeeId:'EMP003', department:'Sales',       designation:'Sales Executive',   basicSalary:45000, hra:18000, bonuses:8000,  pf:5400,  tds:4500, esi:1350, professionalTax:200, loanDeduction:0,    grossSalary:71000,  totalDeductions:11450, netSalary:59550,  status:'Pending', bankAccount:'SBI xxxx1234',  panNumber:'RAHVM2345C', joiningDate:'2023-03-10' },
-  { id:'e4', name:'Sneha Patil',   employeeId:'EMP004', department:'Finance',     designation:'Finance Analyst',   basicSalary:72000, hra:28800, bonuses:3000,  pf:8640,  tds:7200, esi:0,    professionalTax:200, loanDeduction:0,    grossSalary:103800, totalDeductions:16040, netSalary:87760,  status:'Paid',    bankAccount:'AXIS xxxx9876',  panNumber:'SNEPA3456D', joiningDate:'2020-11-20' },
-  { id:'e5', name:'Vikram Nair',   employeeId:'EMP005', department:'HR',          designation:'HR Manager',        basicSalary:58000, hra:23200, bonuses:2500,  pf:6960,  tds:5800, esi:1740, professionalTax:200, loanDeduction:3000, grossSalary:83700,  totalDeductions:17700, netSalary:66000,  status:'Paid',    bankAccount:'KOTAK xxxx3344', panNumber:'VIKNA4567E', joiningDate:'2019-08-05' },
-  { id:'e6', name:'Ananya Singh',  employeeId:'EMP006', department:'Engineering', designation:'Frontend Developer', basicSalary:60000, hra:24000, bonuses:3000,  pf:7200,  tds:6000, esi:0,    professionalTax:200, loanDeduction:0,    grossSalary:87000,  totalDeductions:13400, netSalary:73600,  status:'On Hold', bankAccount:'PNB xxxx5566',   panNumber:'ANANS5678F', joiningDate:'2022-09-12' },
-];
-
-const FALLBACK_TREND: MonthlyTrend[] = [
-  { month:'Jan', payroll:485000, deductions:92000 },
-  { month:'Feb', payroll:492000, deductions:94000 },
-  { month:'Mar', payroll:498000, deductions:95500 },
-  { month:'Apr', payroll:510000, deductions:97000 },
-  { month:'May', payroll:525000, deductions:99000 },
-  { month:'Jun', payroll:538000, deductions:102000 },
-];
 
 const PAYMENT_METHODS = [
   { id:'bank',   label:'Bank Transfer',  icon: Banknote,   desc:'NEFT / RTGS / IMPS' },
@@ -273,7 +256,7 @@ function AddBonusModal({ employees, onClose, onSave }: {
 /* ─────────────── MAIN COMPONENT ─────────────── */
 export default function PayrollPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [monthlyTrend, setMonthlyTrend] = useState<MonthlyTrend[]>(FALLBACK_TREND);
+  const [monthlyTrend, setMonthlyTrend] = useState<MonthlyTrend[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -285,6 +268,7 @@ export default function PayrollPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee|null>(null);
   const [payEmployee, setPayEmployee] = useState<Employee|null>(null);
   const [showBonusModal, setShowBonusModal] = useState(false);
+  const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [payrollMonth, setPayrollMonth] = useState('2026-06');
   const [workflowStep, setWorkflowStep] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -323,14 +307,14 @@ export default function PayrollPage() {
         }));
         setEmployees(mapped);
       } else {
-        setEmployees(FALLBACK_EMPLOYEES);
+        setEmployees([]);
       }
       if (dash?.monthlyTrend && dash.monthlyTrend.length > 0) {
         setMonthlyTrend(dash.monthlyTrend);
       }
     } catch {
-      setEmployees(FALLBACK_EMPLOYEES);
-      setMonthlyTrend(FALLBACK_TREND);
+      setEmployees([]);
+      setMonthlyTrend([]);
     } finally {
       setLoading(false);
     }
@@ -428,11 +412,28 @@ export default function PayrollPage() {
   }
 
   /* ── Mark as Paid ── */
-  function handlePaid(empId: string, method: string, ref: string) {
-    setEmployees(prev=>prev.map(e=>e.id===empId?{...e,status:'Paid'}:e));
-    setPayEmployee(null);
-    const emp = employees.find(e=>e.id===empId);
-    showToast(`${emp?.name} marked as Paid via ${method}${ref?` (Ref: ${ref})`:''}`);
+  async function handlePaid(empId: string, method: string, ref: string) {
+    try {
+      await financeUpdatePayrollStatus(empId, { status: 'Paid', payment_method: method, payment_ref: ref });
+      setPayEmployee(null);
+      const emp = employees.find(e=>e.id===empId);
+      showToast(`${emp?.name} marked as Paid via ${method}${ref?` (Ref: ${ref})`:''}`);
+      fetchData();
+    } catch (err) {
+      showToast('Failed to mark as paid', 'error');
+    }
+  }
+
+  /* ── Add Employee ── */
+  async function handleAddEmployee(data: any) {
+    try {
+      await financeCreatePayrollEmployee(data);
+      setShowAddEmployee(false);
+      showToast('Employee successfully added to payroll!');
+      fetchData();
+    } catch (err) {
+      showToast('Failed to add employee', 'error');
+    }
   }
 
   /* ── Add Bonus ── */
@@ -485,6 +486,10 @@ export default function PayrollPage() {
             <button onClick={() => csvRef.current?.click()}
               className="flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl text-xs font-bold text-white transition backdrop-blur-sm">
               <Upload className="w-3.5 h-3.5" /> Import CSV
+            </button>
+            <button onClick={() => setShowAddEmployee(true)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-indigo-500 hover:bg-indigo-400 border border-white/20 rounded-xl text-xs font-bold text-white transition shadow-sm">
+              <Users className="w-3.5 h-3.5" /> Add Employee
             </button>
             <button onClick={exportCSV}
               className="flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl text-xs font-bold text-white transition backdrop-blur-sm">
@@ -1039,6 +1044,110 @@ export default function PayrollPage() {
           />
         )}
       </AnimatePresence>
+      {/* ─── ADD EMPLOYEE MODAL ─── */}
+      <AnimatePresence>
+        {showAddEmployee && (
+          <AddEmployeeModal
+            onClose={() => setShowAddEmployee(false)}
+            onAdd={handleAddEmployee}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function AddEmployeeModal({ onClose, onAdd }: { onClose: () => void, onAdd: (data: any) => Promise<void> }) {
+  const [employeeId, setEmployeeId] = useState('');
+  const [salary, setSalary] = useState('');
+  const [bonus, setBonus] = useState('');
+  const [deductions, setDeductions] = useState('');
+  const [payPeriod, setPayPeriod] = useState('Monthly');
+  const [department, setDepartment] = useState('Sales');
+  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    import('@/services/salesManagerService').then(({ smGetTeam }) => {
+      smGetTeam().then((res: any) => setUsers(res || [])).catch(() => {});
+    });
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    await onAdd({
+      employee_id: employeeId || null,
+      salary: parseFloat(salary) || 0,
+      bonus: parseFloat(bonus) || 0,
+      deductions: parseFloat(deductions) || 0,
+      net_pay: (parseFloat(salary) || 0) + (parseFloat(bonus) || 0) - (parseFloat(deductions) || 0),
+      pay_period: payPeriod,
+      department: department,
+      status: 'Pending'
+    });
+    setLoading(false);
+  }
+
+  return (
+    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={onClose}>
+      <motion.div initial={{scale:.92,y:20}} animate={{scale:1,y:0}} exit={{scale:.92,y:20}}
+        onClick={e=>e.stopPropagation()}
+        className="w-full max-w-md rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-2xl overflow-hidden">
+        <div className="p-5 border-b border-[var(--border)] bg-indigo-600">
+          <h3 className="text-base font-bold text-white">Add Employee to Payroll</h3>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div>
+            <label className="text-xs font-bold text-[var(--muted-foreground)] block mb-1">Select Employee</label>
+            <select value={employeeId} onChange={e=>setEmployeeId(e.target.value)} required
+              className="w-full border border-[var(--border)] rounded-xl px-3 py-2 text-xs bg-[var(--card)] text-[var(--foreground)]">
+              <option value="">-- Select --</option>
+              {users.map(u => (
+                <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-[var(--muted-foreground)] block mb-1">Base Salary (₹)</label>
+            <input type="number" value={salary} onChange={e=>setSalary(e.target.value)} required
+              className="w-full border border-[var(--border)] rounded-xl px-3 py-2 text-xs bg-[var(--card)] text-[var(--foreground)]" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-[var(--muted-foreground)] block mb-1">Bonus (₹)</label>
+              <input type="number" value={bonus} onChange={e=>setBonus(e.target.value)}
+                className="w-full border border-[var(--border)] rounded-xl px-3 py-2 text-xs bg-[var(--card)] text-[var(--foreground)]" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-[var(--muted-foreground)] block mb-1">Deductions (₹)</label>
+              <input type="number" value={deductions} onChange={e=>setDeductions(e.target.value)}
+                className="w-full border border-[var(--border)] rounded-xl px-3 py-2 text-xs bg-[var(--card)] text-[var(--foreground)]" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-[var(--muted-foreground)] block mb-1">Pay Period</label>
+              <select value={payPeriod} onChange={e=>setPayPeriod(e.target.value)} className="w-full border border-[var(--border)] rounded-xl px-3 py-2 text-xs bg-[var(--card)] text-[var(--foreground)]">
+                <option>Monthly</option>
+                <option>Bi-Weekly</option>
+                <option>Weekly</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-[var(--muted-foreground)] block mb-1">Department</label>
+              <input type="text" value={department} onChange={e=>setDepartment(e.target.value)}
+                className="w-full border border-[var(--border)] rounded-xl px-3 py-2 text-xs bg-[var(--card)] text-[var(--foreground)]" />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 py-2 rounded-xl border border-[var(--border)] text-xs font-bold hover:bg-[var(--accent)] transition">Cancel</button>
+            <button type="submit" disabled={loading} className="flex-1 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition">Save Record</button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -25,9 +25,10 @@ router.get('/leads/:id/activity', authorize('leads', 'read'),   ctrl.getLeadActi
 // TASKS
 router.get('/tasks',              authorize('tasks', 'read'),   ctrl.listTasks);
 router.post('/tasks',             authorize('tasks', 'create'), ctrl.createTask);
+router.get('/tasks/today',        authorize('tasks', 'read'),   ctrl.getTodayTasks);
+router.get('/tasks/:id',          authorize('tasks', 'read'),   ctrl.getTask);
 router.patch('/tasks/:id',        authorize('tasks', 'update'), ctrl.updateTask);
 router.delete('/tasks/:id',       authorize('tasks', 'delete'), ctrl.deleteTask);
-router.get('/tasks/today',        authorize('tasks', 'read'),   ctrl.getTodayTasks);
 
 // ACTIVITIES
 router.get('/activities',         authorize('activities', 'read'),   ctrl.listActivities);
@@ -38,6 +39,10 @@ router.get('/activities/summary', authorize('activities', 'read'),   ctrl.getAct
 router.get('/profile',            ctrl.getProfile);
 router.patch('/profile',          ctrl.updateProfile);
 router.get('/performance',        ctrl.getPerformance);
+router.patch('/performance',      ctrl.updatePerformance);
 router.get('/dashboard',          ctrl.getDashboard);
+router.get('/achievements',       ctrl.getAchievements);
+router.get('/login-history',      ctrl.getLoginHistory);
+router.post('/change-password',   ctrl.changePassword);
 
 module.exports = router;

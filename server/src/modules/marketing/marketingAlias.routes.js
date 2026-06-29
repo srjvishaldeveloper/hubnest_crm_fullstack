@@ -13,6 +13,7 @@ router.use(authenticate);
 // GET /marketing/dashboard
 router.get('/dashboard', authorize('campaigns', 'read'), ctrl.getDashboardAnalytics);
 router.get('/analytics', authorize('campaigns', 'read'), ctrl.getDashboardAnalytics);
+router.patch('/targets', authorize('campaigns', 'read'), ctrl.updateTargets);
 router.get('/roi', authorize('campaigns', 'read'), ctrl.getROIData);
 
 // Campaigns CRUD

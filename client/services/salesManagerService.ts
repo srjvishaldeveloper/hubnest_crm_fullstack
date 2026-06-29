@@ -3,8 +3,8 @@ import { api } from './api';
 const BASE = '/sales-manager';
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-export const smGetDashboard = async () => {
-  const res = await api.get(`${BASE}/dashboard`);
+export const smGetDashboard = async (timeFilter: string = 'Monthly') => {
+  const res = await api.get(`${BASE}/dashboard`, { params: { timeFilter } });
   return res.data?.data ?? res.data ?? null;
 };
 
@@ -66,6 +66,17 @@ export const smBulkAssignLeads = async (leadIds: string[], executiveId: string) 
   return res.data?.data ?? res.data ?? null;
 };
 
+export const smGetActivities = async (params?: Record<string, unknown>) => {
+  const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+  const res = await api.get(`/sales-manager/activities${query}`);
+  return res.data?.data?.activities || [];
+};
+
+export const smCreateActivity = async (data: Record<string, unknown>) => {
+  const res = await api.post(`${BASE}/activities`, data);
+  return res.data?.data ?? res.data ?? null;
+};
+
 // ─── TASKS ────────────────────────────────────────────────────────────────────
 export const smGetTasks = async (params?: { status?: string; priority?: string; userId?: string }) => {
   const res = await api.get(`${BASE}/tasks`, { params });
@@ -88,8 +99,8 @@ export const smDeleteTask = async (id: string) => {
 };
 
 // ─── REPORTS ──────────────────────────────────────────────────────────────────
-export const smGetReports = async () => {
-  const res = await api.get(`${BASE}/reports`);
+export const smGetReports = async (timeFilter: string = 'Month') => {
+  const res = await api.get(`${BASE}/reports`, { params: { timeFilter } });
   return res.data?.data ?? res.data ?? null;
 };
 
@@ -113,3 +124,80 @@ export const smUpdateTargets = async (data: Record<string, unknown>) => {
   const res = await api.patch(`${BASE}/targets`, data);
   return res.data?.data ?? res.data ?? null;
 };
+
+// ─── NEW MANAGER ACTIONS & PIPELINE ──────────────────────────────────────────
+export const smGetPipeline = async () => {
+  const res = await api.get(`${BASE}/pipeline`);
+  return res.data?.data ?? res.data ?? null;
+};
+
+export const smDeleteLead = async (id: string) => {
+  const res = await api.delete(`${BASE}/leads/${id}`);
+  return res.data?.data ?? res.data ?? null;
+};
+
+export const smBulkDeleteLeads = async (leadIds: string[]) => {
+  const res = await api.post(`${BASE}/leads/bulk-delete`, { leadIds });
+  return res.data?.data ?? res.data ?? null;
+};
+
+export const smEscalateLead = async (id: string, reason?: string) => {
+  const res = await api.patch(`${BASE}/leads/${id}/escalate`, { reason });
+  return res.data?.data ?? res.data ?? null;
+};
+
+export const smRemoveMember = async (id: string) => {
+  const res = await api.delete(`${BASE}/team/${id}`);
+  return res.data?.data ?? res.data ?? null;
+};
+
+export const smUpdateMemberStatus = async (id: string, status: string) => {
+  const res = await api.patch(`${BASE}/team/${id}/status`, { status });
+  return res.data?.data ?? res.data ?? null;
+};
+
+export const smBroadcast = async (data: { message: string; priority?: string }) => {
+  const res = await api.post(`${BASE}/team/broadcast`, data);
+  return res.data?.data ?? res.data ?? null;
+};
+
+export const smApprove = async (data: { requestId: string; type: string; decision: string; notes?: string }) => {
+  const res = await api.post(`${BASE}/team/approve`, data);
+  return res.data?.data ?? res.data ?? null;
+};
+
+export const smUpdatePassword = async (data: Record<string, unknown>) => {
+  const res = await api.patch(`${BASE}/profile/password`, data);
+  return res.data?.data ?? res.data ?? null;
+};
+
+export const smUpdateSettings = async (data: Record<string, unknown>) => {
+  const res = await api.patch(`${BASE}/profile/settings`, data);
+  return res.data?.data ?? res.data ?? null;
+};
+
+export const smUploadDoc = async (data: Record<string, unknown>) => {
+  const res = await api.post(`${BASE}/profile/document`, data);
+  return res.data?.data ?? res.data ?? null;
+};
+
+export const smGetSessions = async () => {
+  const res = await api.get(`${BASE}/profile/sessions`);
+  return res.data?.data ?? res.data ?? null;
+};
+
+export const smUpdateProfilePicture = async (data: Record<string, unknown>) => {
+  const res = await api.post(`${BASE}/profile/picture`, data);
+  return res.data?.data ?? res.data ?? null;
+};
+
+export const smUpdateCoverPicture = async (data: Record<string, unknown>) => {
+  const res = await api.post(`${BASE}/profile/cover`, data);
+  return res.data?.data ?? res.data ?? null;
+};
+
+export const smGetNotifications = async () => {
+  const res = await api.get('/notifications');
+  return res.data?.data ?? res.data ?? null;
+};
+

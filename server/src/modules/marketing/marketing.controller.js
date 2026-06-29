@@ -2,6 +2,7 @@ const svc = require('./marketing.service');
 const { sendSuccess, sendError } = require('../../utils/helpers');
 const axios = require('axios');
 const nodemailer = require('nodemailer');
+const subscriptionService = require('../../services/subscriptionService');
 
 // Microservice endpoints config
 const SERVICES = {
@@ -73,8 +74,13 @@ async function listSalesUsers(req, res) {
 }
 
 async function getDashboardAnalytics(req, res) {
-  const data = await svc.getDashboardAnalytics(req.user.tenant_id);
+  const data = await svc.getDashboardAnalytics(req.user.tenant_id, req.user.id);
   sendSuccess(res, data);
+}
+
+async function updateTargets(req, res) {
+  const target = await svc.updateMarketingTargets(req.user.tenant_id, req.user.id, req.body);
+  sendSuccess(res, { target }, 'Marketing targets updated successfully');
 }
 
 async function getROIData(req, res) {
@@ -328,7 +334,21 @@ async function listMedia(req, res) {
 }
 
 async function createMedia(req, res) {
-  const asset = await svc.createMedia(req.user.tenant_id, req.body);
+  const tenantId = req.user.tenant_id;
+  const departmentId = req.user.department_id; // Added from user context
+  const { file_size } = req.body;
+  
+  if (file_size) {
+    const size = parseInt(file_size, 10);
+    const limitCheck = await subscriptionService.checkStorageLimit(tenantId, departmentId, size);
+    if (!limitCheck.allowed) {
+      return sendError(res, limitCheck.reason || 'Storage limit exceeded', 400);
+    }
+    // Track usage
+    await subscriptionService.trackStorageUsage(tenantId, departmentId, size);
+  }
+
+  const asset = await svc.createMedia(tenantId, req.body);
   sendSuccess(res, { asset }, 'Media asset created', 201);
 }
 
@@ -710,7 +730,7 @@ module.exports = {
   getIntegrationSettings, upsertIntegrationSettings, deleteIntegrationSettings, testIntegration,
   syncMetaLeads, syncInstagramLeads, getMetaAdInsights, syncWhatsAppContacts,
   getMetaOAuthUrl, handleMetaOAuthCallback,
-  getDashboardAnalytics, getROIData,
+  getDashboardAnalytics, updateTargets, getROIData,
   
   // Lists
   listContactLists, createContactList, deleteContactList, importContacts, getContactListContacts,

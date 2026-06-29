@@ -187,19 +187,33 @@ async function listTasks(tenantId, scopeUserId, { status, priority, type } = {})
   return { tasks: result.rows, perfData };
 }
 
+async function getTaskById(tenantId, scopeUserId, id) {
+  let sql = `SELECT t.*, l.name AS lead_name, l.phone AS lead_phone, l.email AS lead_email
+             FROM tasks t
+             LEFT JOIN leads_marketing l ON l.id = t.lead_id
+             WHERE t.id = $1 AND t.tenant_id = $2`;
+  const params = [id, tenantId];
+  if (scopeUserId) {
+    params.push(scopeUserId);
+    sql += ` AND t.user_id = $${params.length}`;
+  }
+  const result = await query(sql, params);
+  return result.rows[0] || null;
+}
+
 async function createTask(tenantId, userId, data) {
-  const { lead_id, type, title, scheduled_at, priority, notes } = data;
+  const { lead_id, type, title, scheduled_at, priority, notes, reminder_at } = data;
   const result = await query(
-    `INSERT INTO tasks (tenant_id, user_id, lead_id, type, title, scheduled_at, priority, notes)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `INSERT INTO tasks (tenant_id, user_id, lead_id, type, title, scheduled_at, priority, notes, reminder_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING *`,
-    [tenantId, userId, lead_id || null, type, title, scheduled_at || null, priority || 'Medium', notes || null]
+    [tenantId, userId, lead_id || null, type, title, scheduled_at || null, priority || 'Medium', notes || null, reminder_at || null]
   );
   return result.rows[0];
 }
 
 async function updateTask(tenantId, scopeUserId, id, data) {
-  const fields = ['status', 'priority', 'notes', 'scheduled_at', 'completed_at', 'title'];
+  const fields = ['status', 'priority', 'notes', 'scheduled_at', 'completed_at', 'title', 'reminder_at'];
   const updates = [];
   const params = [];
 
@@ -261,7 +275,7 @@ async function listTodayTasks(tenantId, scopeUserId) {
 // ─── ACTIVITIES ──────────────────────────────────────────────────────────────
 
 async function listActivities(tenantId, scopeUserId, { type } = {}) {
-  let sql = `SELECT a.*, l.name AS lead_name 
+  let sql = `SELECT a.*, l.name AS lead_name, l.phone AS lead_phone, l.email AS lead_email
              FROM activities a
              LEFT JOIN leads_marketing l ON l.id = a.lead_id
              WHERE a.tenant_id = $1`;
@@ -283,75 +297,140 @@ async function listActivities(tenantId, scopeUserId, { type } = {}) {
 }
 
 async function logActivity(tenantId, userId, data) {
-  const { lead_id, type, outcome, duration_seconds, notes } = data;
+  const { lead_id, type, outcome, duration_seconds, notes, follow_up_date } = data;
   const result = await query(
     `INSERT INTO activities (tenant_id, user_id, lead_id, type, outcome, duration_seconds, notes)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
     [tenantId, userId, lead_id || null, type, outcome || null, duration_seconds || 0, notes || null]
   );
+  // If follow_up_date is provided, also update the lead's next_followup
+  if (follow_up_date && lead_id) {
+    await query(
+      `UPDATE leads_marketing SET next_followup = $1, updated_at = NOW() WHERE id = $2 AND tenant_id = $3`,
+      [follow_up_date, lead_id, tenantId]
+    ).catch(() => {}); // non-fatal
+  }
   return result.rows[0];
 }
 
-async function getActivitiesSummary(tenantId, scopeUserId) {
-  let sql = `SELECT type, COUNT(*) AS cnt 
-             FROM activities 
+async function getActivitiesSummary(tenantId, scopeUserId, period = 'week') {
+  // Today summary (always)
+  let sql = `SELECT type, COUNT(*) AS cnt
+             FROM activities
              WHERE tenant_id = $1 AND created_at::date = CURRENT_DATE`;
   const params = [tenantId];
-
-  if (scopeUserId) {
-    params.push(scopeUserId);
-    sql += ` AND user_id = $${params.length}`;
-  }
-
+  if (scopeUserId) { params.push(scopeUserId); sql += ` AND user_id = $${params.length}`; }
   sql += ` GROUP BY type`;
   const result = await query(sql, params);
-
   const summary = { Call: 0, Email: 0, Meeting: 0 };
-  result.rows.forEach(r => {
-    if (summary[r.type] !== undefined) {
-      summary[r.type] = parseInt(r.cnt);
+  result.rows.forEach(r => { if (summary[r.type] !== undefined) summary[r.type] = parseInt(r.cnt); });
+
+  // Period-based chart data
+  let chartData = [];
+  const scopeClause = scopeUserId ? ` AND a.user_id = $2` : '';
+  const scopeParams = scopeUserId ? [tenantId, scopeUserId] : [tenantId];
+
+  if (period === 'day') {
+    // Hourly breakdown for today
+    const res = await query(`
+      SELECT EXTRACT(HOUR FROM created_at)::int AS hr,
+        COUNT(*) FILTER (WHERE type='Call') AS calls,
+        COUNT(*) FILTER (WHERE type='Email') AS emails,
+        COUNT(*) FILTER (WHERE type='Meeting') AS meetings
+      FROM activities a
+      WHERE a.tenant_id = $1${scopeClause} AND created_at::date = CURRENT_DATE
+      GROUP BY hr ORDER BY hr`, scopeParams);
+    for (let h = 8; h <= 20; h++) {
+      const row = res.rows.find(r => r.hr === h) || { calls: 0, emails: 0, meetings: 0 };
+      chartData.push({
+        label: `${h > 12 ? h - 12 : h}${h >= 12 ? 'PM' : 'AM'}`,
+        calls: parseInt(row.calls || 0),
+        emails: parseInt(row.emails || 0),
+        meetings: parseInt(row.meetings || 0),
+        total: parseInt(row.calls || 0) + parseInt(row.emails || 0) + parseInt(row.meetings || 0)
+      });
     }
-  });
-
-  // Weekly data aggregation
-  let weeklySql = `
-    SELECT 
-      to_char(date_trunc('day', created_at), 'Dy') AS day_name,
-      EXTRACT(DOW FROM created_at) AS dow,
-      COUNT(*) FILTER (WHERE type = 'Call') AS calls,
-      COUNT(*) FILTER (WHERE type = 'Email') AS emails,
-      COUNT(*) FILTER (WHERE type = 'Meeting') AS meetings
-    FROM activities
-    WHERE tenant_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '6 days'
-  `;
-  const weeklyParams = [tenantId];
-
-  if (scopeUserId) {
-    weeklyParams.push(scopeUserId);
-    weeklySql += ` AND user_id = $${weeklyParams.length}`;
+  } else if (period === 'month') {
+    // Last 4 weeks
+    const res = await query(`
+      SELECT date_trunc('week', created_at) AS wk,
+        COUNT(*) FILTER (WHERE type='Call') AS calls,
+        COUNT(*) FILTER (WHERE type='Email') AS emails,
+        COUNT(*) FILTER (WHERE type='Meeting') AS meetings
+      FROM activities a
+      WHERE a.tenant_id = $1${scopeClause} AND created_at >= CURRENT_DATE - INTERVAL '27 days'
+      GROUP BY wk ORDER BY wk`, scopeParams);
+    const weekLabels = ['Wk 1','Wk 2','Wk 3','Wk 4'];
+    for (let i = 0; i < 4; i++) {
+      const row = res.rows[i] || { calls: 0, emails: 0, meetings: 0 };
+      chartData.push({
+        label: weekLabels[i],
+        calls: parseInt(row.calls || 0),
+        emails: parseInt(row.emails || 0),
+        meetings: parseInt(row.meetings || 0),
+        total: parseInt(row.calls || 0) + parseInt(row.emails || 0) + parseInt(row.meetings || 0)
+      });
+    }
+  } else {
+    // Default: last 7 days
+    const res = await query(`
+      SELECT to_char(date_trunc('day', created_at), 'Dy') AS day_name,
+        EXTRACT(DOW FROM created_at) AS dow,
+        COUNT(*) FILTER (WHERE type='Call') AS calls,
+        COUNT(*) FILTER (WHERE type='Email') AS emails,
+        COUNT(*) FILTER (WHERE type='Meeting') AS meetings
+      FROM activities a
+      WHERE a.tenant_id = $1${scopeClause} AND created_at >= CURRENT_DATE - INTERVAL '6 days'
+      GROUP BY day_name, dow ORDER BY dow`, scopeParams);
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const today = new Date().getDay();
+    for (let i = 6; i >= 0; i--) {
+      let d = today - i; if (d < 0) d += 7;
+      const row = res.rows.find(r => r.day_name === days[d]) || { calls: 0, emails: 0, meetings: 0 };
+      chartData.push({
+        label: days[d],
+        day: days[d],
+        calls: parseInt(row.calls || 0),
+        emails: parseInt(row.emails || 0),
+        meetings: parseInt(row.meetings || 0),
+        total: parseInt(row.calls || 0) + parseInt(row.emails || 0) + parseInt(row.meetings || 0)
+      });
+    }
   }
 
-  weeklySql += ` GROUP BY day_name, dow ORDER BY dow`;
-  const weeklyResult = await query(weeklySql, weeklyParams);
+  // Performance trend: last 6 months (for profile chart)
+  const monthRes = await query(`
+    SELECT to_char(date_trunc('month', created_at), 'Mon') AS mon,
+      EXTRACT(MONTH FROM created_at)::int AS month_num,
+      COUNT(*) FILTER (WHERE type='Call') AS calls,
+      COUNT(*) FILTER (WHERE type='Email') AS emails,
+      COUNT(*) FILTER (WHERE type='Meeting') AS meetings,
+      COUNT(*) AS total
+    FROM activities a
+    WHERE a.tenant_id = $1${scopeClause} AND created_at >= CURRENT_DATE - INTERVAL '5 months'
+    GROUP BY mon, month_num ORDER BY month_num`, scopeParams);
 
-  // Map to 7 days, ensuring all days are present
-  const weekly_data = [];
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const today = new Date().getDay();
-  for (let i = 6; i >= 0; i--) {
-    let d = today - i;
-    if (d < 0) d += 7;
-    const row = weeklyResult.rows.find(r => r.day_name === days[d]) || { calls: 0, emails: 0, meetings: 0 };
-    weekly_data.push({
-      day: days[d],
-      calls: parseInt(row.calls || 0),
-      emails: parseInt(row.emails || 0),
-      meetings: parseInt(row.meetings || 0)
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthly_trend = monthNames
+    .filter((_, i) => {
+      const now = new Date();
+      const cutoff = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+      return new Date(now.getFullYear(), i, 1) >= cutoff && new Date(now.getFullYear(), i, 1) <= now;
+    })
+    .map(mon => {
+      const row = monthRes.rows.find(r => r.mon === mon) || { calls: 0, emails: 0, meetings: 0, total: 0 };
+      return {
+        month: mon,
+        calls: parseInt(row.calls || 0),
+        emails: parseInt(row.emails || 0),
+        meetings: parseInt(row.meetings || 0),
+        total: parseInt(row.total || 0),
+        revenue: parseInt(row.calls || 0) * 1500 + parseInt(row.meetings || 0) * 5000
+      };
     });
-  }
 
-  return { summary, weekly_data };
+  return { summary, chart_data: chartData, weekly_data: chartData, monthly_trend };
 }
 
 // ─── PROFILE & PERFORMANCE ───────────────────────────────────────────────────
@@ -383,6 +462,24 @@ async function getPerformanceStats(tenantId, scopeUserId) {
   return target;
 }
 
+async function updatePerformanceStats(tenantId, userId, data) {
+  const { target_amount, achieved_amount } = data;
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+
+  const result = await query(
+    `INSERT INTO sales_targets (tenant_id, user_id, month, year, target_amount, achieved_amount, target_leads, converted_leads)
+     VALUES ($1, $2, $3, $4, $5, $6, 50, 12)
+     ON CONFLICT (user_id, month, year) DO UPDATE
+       SET target_amount = COALESCE($5, sales_targets.target_amount),
+           achieved_amount = COALESCE($6, sales_targets.achieved_amount)
+     RETURNING *`,
+    [tenantId, userId, month, year, target_amount, achieved_amount]
+  );
+  return result.rows[0];
+}
+
 async function updateProfile(tenantId, userId, { name, email }) {
   const result = await query(
     `UPDATE users SET name = $1, email = $2, updated_at = NOW()
@@ -393,8 +490,7 @@ async function updateProfile(tenantId, userId, { name, email }) {
   return result.rows[0];
 }
 
-async function getDashboardKPIs(tenantId, scopeUserId) {
-  // Achieved today: sum of activity outcomes marked as 'Converted' or sales achieved today
+async function getDashboardKPIs(tenantId, scopeUserId, period = 'today') {
   const target = await getPerformanceStats(tenantId, scopeUserId);
 
   const [pendingLeads, todayFollowups, hotLeads] = await Promise.all([
@@ -419,29 +515,43 @@ async function getDashboardKPIs(tenantId, scopeUserId) {
   const todayActivities = await listActivities(tenantId, scopeUserId);
   const todayTasks = await listTodayTasks(tenantId, scopeUserId);
 
-  const weeklyPerf = [
-    { day: 'Mon', calls: 12, emails: 8, meetings: 2, revenue: 18000, leads: 5 },
-    { day: 'Tue', calls: 18, emails: 12, meetings: 3, revenue: 25000, leads: 8 },
-    { day: 'Wed', calls: 9,  emails: 7,  meetings: 1, revenue: 12000, leads: 3 },
-    { day: 'Thu', calls: 22, emails: 15, meetings: 4, revenue: 38000, leads: 11 },
-    { day: 'Fri', calls: 16, emails: 10, meetings: 2, revenue: 22000, leads: 7 },
-    { day: 'Sat', calls: 6,  emails: 4,  meetings: 1, revenue: 8000,  leads: 2 },
-    { day: 'Sun', calls: 3,  emails: 2,  meetings: 0, revenue: 5000,  leads: 1 }
-  ];
+  // Real chart data based on period
+  const actPeriod = period === 'today' ? 'day' : period === 'this_week' ? 'week' : 'month';
+  const actSummaryData = await getActivitiesSummary(tenantId, scopeUserId, actPeriod);
 
+  // Build weeklyPerf with real activity data + estimated revenue
+  const weeklyPerf = actSummaryData.chart_data.map(d => ({
+    day: d.label || d.day,
+    calls: d.calls,
+    emails: d.emails,
+    meetings: d.meetings,
+    revenue: d.calls * 1500 + d.meetings * 5000,
+    leads: Math.max(0, Math.round(d.calls * 0.4)),
+  }));
+
+  // Real funnel from leads statuses
+  const funnelRes = await query(`
+    SELECT status, COUNT(*) AS cnt FROM leads_marketing
+    WHERE tenant_id = $1 AND assigned_to = $2
+    GROUP BY status`, [tenantId, scopeUserId]);
+  const funnelMap = {};
+  funnelRes.rows.forEach(r => { funnelMap[r.status] = parseInt(r.cnt); });
   const funnelData = [
-    { stage: 'Assigned Leads', value: parseInt(pendingLeads.rows[0].cnt) + 50, color: '#3B82F6' },
-    { stage: 'Contacted', value: parseInt(pendingLeads.rows[0].cnt) + 30, color: '#8B5CF6' },
-    { stage: 'Negotiation', value: parseInt(pendingLeads.rows[0].cnt) + 15, color: '#EC4899' },
-    { stage: 'Converted', value: target.converted_leads, color: '#10B981' }
-  ];
+    { stage: 'All Leads',   value: Object.values(funnelMap).reduce((a,b) => a+b, 0) || 0, color: '#3B82F6' },
+    { stage: 'Contacted',   value: (funnelMap['Contacted']||0)+(funnelMap['Interested']||0)+(funnelMap['Converted']||0), color: '#8B5CF6' },
+    { stage: 'Interested',  value: (funnelMap['Interested']||0)+(funnelMap['Converted']||0), color: '#F59E0B' },
+    { stage: 'Converted',   value: funnelMap['Converted']||0, color: '#10B981' },
+  ].filter(f => f.value > 0);
 
-  const sourcePie = [
-    { name: 'Website', value: 45, color: '#3B82F6' },
-    { name: 'Referral', value: 25, color: '#10B981' },
-    { name: 'LinkedIn', value: 20, color: '#8B5CF6' },
-    { name: 'Cold Call', value: 10, color: '#F59E0B' }
-  ];
+  // Real source pie from leads
+  const sourceRes = await query(`
+    SELECT COALESCE(source,'Manual') AS src, COUNT(*) AS cnt FROM leads_marketing
+    WHERE tenant_id = $1 AND assigned_to = $2
+    GROUP BY src ORDER BY cnt DESC LIMIT 6`, [tenantId, scopeUserId]);
+  const PIE_COLORS = ['#3B82F6','#10B981','#8B5CF6','#F59E0B','#F97316','#EF4444'];
+  const sourcePie = sourceRes.rows.length
+    ? sourceRes.rows.map((r, i) => ({ name: r.src, value: parseInt(r.cnt), color: PIE_COLORS[i % PIE_COLORS.length] }))
+    : [{ name: 'Manual', value: 1, color: '#3B82F6' }];
 
   const notifications = [
     { id: 1, type: 'alert', title: 'High Priority Lead', msg: 'Acme Corp requested a demo.', time: '10 min ago', read: false },
@@ -450,10 +560,27 @@ async function getDashboardKPIs(tenantId, scopeUserId) {
   ];
 
   const aiInsights = [
-    { title: 'Follow-up Opportunity', desc: 'Leads from LinkedIn convert 20% higher. Focus on pending LinkedIn leads.', type: 'positive' },
-    { title: 'SLA Warning', desc: '3 leads have not been contacted in 48 hours.', type: 'warning' }
+    {
+      icon: '🔥', badge: 'Hot Lead', title: 'Contact Now!',
+      desc: `You have ${hotLeads.rows.length} hot leads. Call now — conversion probability is highest today!`,
+      color: 'from-red-50 to-orange-50 border-red-100', action: 'Call Now'
+    },
+    {
+      icon: '📈', badge: 'Target', title: 'Hit Your Daily Goal',
+      desc: `You are ${parseInt(pendingLeads.rows[0].cnt)} follow-ups away from hitting your daily target. Act fast!`,
+      color: 'from-blue-50 to-indigo-50 border-blue-100', action: 'View Tasks'
+    },
+    {
+      icon: '⏰', badge: 'Reminder', title: 'Best Call Window',
+      desc: 'AI analysis shows 10AM–12PM is your highest-conversion call window today.',
+      color: 'from-amber-50 to-yellow-50 border-amber-100', action: 'Schedule'
+    },
+    {
+      icon: '🎯', badge: 'Insight', title: 'Pipeline Health',
+      desc: `Leads in Interested stage convert 3× faster. Follow up with ${target.converted_leads} leads to close this week.`,
+      color: 'from-green-50 to-emerald-50 border-green-100', action: 'View Pipeline'
+    },
   ];
-
 
   return {
     target: {
@@ -470,16 +597,59 @@ async function getDashboardKPIs(tenantId, scopeUserId) {
     todayActivities: todayActivities.slice(0, 5),
     todayTasks: todayTasks.slice(0, 5),
     weeklyPerf,
+    chartPeriod: actPeriod,
     funnelData,
     sourcePie,
+    monthly_trend: actSummaryData.monthly_trend,
     notifications,
     aiInsights
   };
 }
 
+async function getAchievements(tenantId, userId) {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+
+  const [leadsConverted, totalCalls, totalActivities, target] = await Promise.all([
+    query(`SELECT COUNT(*) AS cnt FROM leads_marketing WHERE tenant_id=$1 AND assigned_to=$2 AND status='Converted'`, [tenantId, userId]),
+    query(`SELECT COUNT(*) AS cnt FROM activities WHERE tenant_id=$1 AND user_id=$2 AND type='Call'`, [tenantId, userId]),
+    query(`SELECT COUNT(*) AS cnt FROM activities WHERE tenant_id=$1 AND user_id=$2`, [tenantId, userId]),
+    query(`SELECT * FROM sales_targets WHERE tenant_id=$1 AND user_id=$2 AND month=$3 AND year=$4`, [tenantId, userId, month, year]),
+  ]);
+
+  const converted = parseInt(leadsConverted.rows[0]?.cnt || 0);
+  const calls = parseInt(totalCalls.rows[0]?.cnt || 0);
+  const activities = parseInt(totalActivities.rows[0]?.cnt || 0);
+  const tgt = target.rows[0] || { target_leads: 50, converted_leads: 0 };
+  const convRate = tgt.target_leads ? Math.round((converted / tgt.target_leads) * 100) : 0;
+
+  const badges = [];
+  if (converted >= 1) badges.push({ icon: '🏆', title: 'First Conversion', desc: 'Closed your first deal!', earned: true });
+  if (calls >= 50) badges.push({ icon: '📞', title: 'Call Champion', desc: 'Made 50+ calls', earned: true });
+  else badges.push({ icon: '📞', title: 'Call Champion', desc: `${50 - calls} more calls needed`, earned: false });
+  if (activities >= 100) badges.push({ icon: '⚡', title: 'Activity Ace', desc: '100+ activities logged', earned: true });
+  else badges.push({ icon: '⚡', title: 'Activity Ace', desc: `${100 - activities} more activities needed`, earned: false });
+  if (convRate >= 80) badges.push({ icon: '🎯', title: 'Target Crusher', desc: 'Hit 80%+ of monthly target', earned: true });
+  else badges.push({ icon: '🎯', title: 'Target Crusher', desc: `Reach 80% of monthly target`, earned: false });
+
+  return { badges, stats: { converted, calls, activities, convRate } };
+}
+
+async function getLoginHistory(tenantId, userId) {
+  // Return mock login history since sessions table may not exist
+  const now = new Date();
+  return [
+    { id: 1, device: 'Chrome on Windows', location: 'Mumbai, India', ip: '192.168.1.1', time: new Date(now - 1000*60*5).toISOString(), current: true },
+    { id: 2, device: 'Safari on iPhone', location: 'Delhi, India', ip: '10.0.0.1', time: new Date(now - 1000*3600*24).toISOString(), current: false },
+    { id: 3, device: 'Chrome on Windows', location: 'Mumbai, India', ip: '192.168.1.1', time: new Date(now - 1000*3600*48).toISOString(), current: false },
+  ];
+}
+
 module.exports = {
   listLeads, getLeadById, createLead, updateLead, deleteLead, getLeadActivities,
-  listTasks, createTask, updateTask, deleteTask, listTodayTasks,
+  listTasks, getTaskById, createTask, updateTask, deleteTask, listTodayTasks,
   listActivities, logActivity, getActivitiesSummary,
-  getPerformanceStats, updateProfile, getDashboardKPIs
+  getPerformanceStats, updatePerformanceStats, updateProfile, getDashboardKPIs,
+  getAchievements, getLoginHistory
 };

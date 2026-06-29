@@ -10,12 +10,13 @@ import {
   BarChart2, Zap, ChevronDown, RefreshCw,
   BadgeCheck, AlertTriangle, List, Target, Upload, Download,
   FileText, ChevronLeft, ChevronRight, ArrowUpDown, SortAsc, SortDesc,
-  Flame, Star, GitBranch, PieChart as PieIcon, TrendingDown, MapPin
+  Flame, Star, GitBranch, PieChart as PieIcon, TrendingDown, MapPin,
+  PhoneCall, PhoneOff, Mic, MicOff, Volume2, VolumeX, ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
-  PieChart, Pie, Cell, AreaChart, Area
+  PieChart, Pie, Cell
 } from 'recharts';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ interface Lead {
   assigned_to?: string;
 }
 
-interface Activity {
+interface ActivityItem {
   id: string;
   type: string;
   outcome?: string;
@@ -57,7 +58,7 @@ interface Stats {
 function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error' | 'info'; onClose: () => void }) {
   return (
     <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
-      className={`fixed top-4 right-4 z-[9999] flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold text-white ${type==='success'?'bg-emerald-600':type==='error'?'bg-red-600':'bg-blue-600'}`}>
+      className={`fixed top-4 right-4 z-[9999] flex items-center gap-2 px-4 py-3 rounded-2xl shadow-xl text-sm font-semibold text-white ${type==='success'?'bg-emerald-600':type==='error'?'bg-red-600':'bg-blue-600'}`}>
       {type==='success'?<BadgeCheck className="w-4 h-4"/>:<AlertTriangle className="w-4 h-4"/>}
       {msg}
       <button onClick={onClose}><X className="w-3.5 h-3.5 ml-1 opacity-70 hover:opacity-100"/></button>
@@ -90,6 +91,330 @@ const SOURCE_COLORS: Record<string,string> = {
 
 const PAGE_SIZE = 10;
 
+// ─── Calling Modal Component ───────────────────────────────────────────────────
+function CallingModal({
+  lead, onClose, onLogActivity
+}: { lead: Lead; onClose: () => void; onLogActivity: (act: {type:string;outcome:string;notes:string;duration_seconds:number}) => void }) {
+  const [activeTab, setActiveTab] = useState<'cloud' | 'direct' | 'whatsapp' | 'ai'>('cloud');
+  
+  // Cloud calling state
+  const [callState, setCallState] = useState<'idle' | 'calling' | 'connected' | 'ended'>('idle');
+  const [callDuration, setCallDuration] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isSpeaker, setIsSpeaker] = useState(true);
+  const [callOutcome, setCallOutcome] = useState('Connected');
+  const [callNotes, setCallNotes] = useState('');
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (callState === 'connected') {
+      timerRef.current = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [callState]);
+
+  const startCloudCall = () => {
+    setCallState('calling');
+    setTimeout(() => {
+      setCallState('connected');
+    }, 3000);
+  };
+
+  const endCloudCall = () => {
+    setCallState('ended');
+    if (timerRef.current) clearInterval(timerRef.current);
+  };
+
+  const handleLogCall = (e: React.FormEvent) => {
+    e.preventDefault();
+    onLogActivity({
+      type: 'Call',
+      outcome: callOutcome,
+      notes: callNotes || `Cloud Call with ${lead.name}. Duration: ${Math.round(callDuration)}s`,
+      duration_seconds: callDuration
+    });
+    onClose();
+  };
+
+  const formatTimer = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}/>
+      <motion.div initial={{opacity:0,scale:0.95,y:10}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.95}}
+        className="bg-white rounded-3xl border border-slate-200 max-w-2xl w-full shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]">
+        
+        {/* Header */}
+        <div style={{background:'linear-gradient(135deg,#1e3a8a,#2563EB 55%,#4f46e5)'}} className="p-6 text-white flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="p-1.5 bg-white/20 rounded-xl"><PhoneCall className="w-5 h-5 text-white"/></span>
+              <h3 className="text-lg font-extrabold">Calling & Communication Hub</h3>
+            </div>
+            <p className="text-xs text-blue-200">Connect with {lead.name} · {lead.company || 'Private Lead'}</p>
+          </div>
+          <button onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition">
+            <X className="w-5 h-5"/>
+          </button>
+        </div>
+
+        {/* Option Tabs */}
+        <div className="flex border-b border-slate-200 bg-slate-50 p-2 gap-1 text-xs font-extrabold">
+          {[
+            { id: 'cloud', label: '☁️ Cloud Calling (Beta)', desc: 'Integrated VoIP Dial' },
+            { id: 'direct', label: '📱 Direct Dial (tel)', desc: 'Standard Cell Phone' },
+            { id: 'whatsapp', label: '💬 WhatsApp Call', desc: 'Direct chat & audio' },
+            { id: 'ai', label: '🤖 AI Call Script', desc: 'Smart talking points' }
+          ].map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
+              className={`flex-1 py-3 px-2 rounded-2xl transition flex flex-col items-center justify-center gap-1 ${
+                activeTab === tab.id ? 'bg-white text-blue-700 shadow-sm border border-slate-200/80' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+              }`}>
+              <span className="text-xs font-bold">{tab.label}</span>
+              <span className="text-[10px] font-medium text-slate-400">{tab.desc}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Contents */}
+        <div className="p-6 overflow-y-auto flex-1 text-slate-700 text-xs space-y-4">
+          
+          {/* 1. Cloud Calling */}
+          {activeTab === 'cloud' && (
+            <div className="space-y-6 py-2">
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center max-w-md mx-auto shadow-inner relative overflow-hidden">
+                <div className="absolute top-3 left-3 flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  <ShieldCheck className="w-3.5 h-3.5"/> VoIP Secure Route
+                </div>
+                <div className="absolute top-3 right-3 text-[10px] font-bold text-slate-400">
+                  Line: +1 (800) CRM-CLOUD
+                </div>
+
+                {/* Avatar / Status */}
+                <div className="my-6 flex flex-col items-center">
+                  <div className={`w-24 h-24 rounded-3xl overflow-hidden flex items-center justify-center mb-4 relative shadow-xl border-4 ${
+                    callState === 'calling' ? 'border-amber-500 animate-pulse' : callState === 'connected' ? 'border-emerald-500' : callState === 'ended' ? 'border-slate-400' : 'border-blue-600'
+                  }`}>
+                    <img src={`https://api.dicebear.com/7.x/lorelei/svg?seed=${encodeURIComponent(lead.name || 'Lead')}`} alt={lead.name} className="w-full h-full object-cover" />
+                    {callState === 'calling' && (
+                      <span className="absolute inset-0 rounded-full border-4 border-amber-300 animate-ping opacity-75"/>
+                    )}
+                    {callState === 'connected' && (
+                      <span className="absolute inset-0 rounded-full border-4 border-emerald-300 animate-pulse opacity-50"/>
+                    )}
+                  </div>
+                  <h4 className="text-base font-extrabold text-slate-800">{lead.name}</h4>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">{lead.phone || 'No phone number saved'}</p>
+                  
+                  {/* Call State Badge / Timer */}
+                  <div className="mt-4">
+                    {callState === 'idle' && (
+                      <span className="text-xs font-bold text-slate-500 bg-slate-200/70 px-3 py-1 rounded-full">
+                        Ready to Call
+                      </span>
+                    )}
+                    {callState === 'calling' && (
+                      <span className="text-xs font-bold text-amber-700 bg-amber-100 border border-amber-200 px-3 py-1 rounded-full flex items-center gap-1.5 animate-pulse">
+                        <PhoneCall className="w-3.5 h-3.5 animate-bounce"/> Calling via Cloud Dialer...
+                      </span>
+                    )}
+                    {callState === 'connected' && (
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-xs font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"/> Connected
+                        </span>
+                        <span className="text-xl font-black text-slate-800 tracking-wider mt-1">{formatTimer(callDuration)}</span>
+                      </div>
+                    )}
+                    {callState === 'ended' && (
+                      <span className="text-xs font-bold text-slate-600 bg-slate-200 px-3 py-1 rounded-full">
+                        Call Ended ({formatTimer(callDuration)})
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Call Action Controls */}
+                {callState !== 'ended' && (
+                  <div className="flex items-center justify-center gap-4 pt-4 border-t border-slate-200/60">
+                    {callState === 'idle' ? (
+                      <button onClick={startCloudCall} disabled={!lead.phone}
+                        className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-sm rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition disabled:opacity-40">
+                        <PhoneCall className="w-5 h-5"/> Start Cloud Call
+                      </button>
+                    ) : (
+                      <>
+                        <button onClick={() => setIsMuted(!isMuted)}
+                          className={`p-4 rounded-2xl border transition shadow-sm ${isMuted ? 'bg-amber-500 text-white border-amber-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
+                          {isMuted ? <MicOff className="w-5 h-5"/> : <Mic className="w-5 h-5"/>}
+                        </button>
+                        <button onClick={endCloudCall}
+                          className="flex items-center gap-2 px-8 py-4 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-rose-600/20 hover:shadow-xl hover:-translate-y-0.5 transition">
+                          <PhoneOff className="w-5 h-5"/> End Call
+                        </button>
+                        <button onClick={() => setIsSpeaker(!isSpeaker)}
+                          className={`p-4 rounded-2xl border transition shadow-sm ${isSpeaker ? 'bg-blue-600 text-white border-blue-700' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
+                          {isSpeaker ? <Volume2 className="w-5 h-5"/> : <VolumeX className="w-5 h-5"/>}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Post Call Logging Form */}
+              {callState === 'ended' && (
+                <motion.form initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} onSubmit={handleLogCall}
+                  className="bg-blue-50/70 border border-blue-200 rounded-2xl p-5 space-y-4 max-w-md mx-auto">
+                  <h5 className="text-sm font-bold text-blue-900 flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-blue-600"/> Log Call Outcome
+                  </h5>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Call Outcome</label>
+                    <select value={callOutcome} onChange={e => setCallOutcome(e.target.value)}
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none font-bold text-slate-800 focus:border-blue-500">
+                      {['Connected','No Answer','Interested','Not Interested','Callback Requested','Voicemail'].map(o => (
+                        <option key={o}>{o}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Discussion Notes</label>
+                    <textarea rows={3} value={callNotes} onChange={e => setCallNotes(e.target.value)}
+                      placeholder="Details discussed during the call..."
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none text-slate-700 resize-none focus:border-blue-500"/>
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setCallState('idle')}
+                      className="flex-1 py-2.5 border border-slate-200 bg-white text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition">Call Again</button>
+                    <button type="submit"
+                      className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition">Save Activity Log</button>
+                  </div>
+                </motion.form>
+              )}
+            </div>
+          )}
+
+          {/* 2. Direct Dial (tel) */}
+          {activeTab === 'direct' && (
+            <div className="space-y-6 py-4 max-w-lg mx-auto text-center">
+              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center mx-auto shadow-sm">
+                <Phone className="w-8 h-8"/>
+              </div>
+              <div>
+                <h4 className="text-base font-extrabold text-slate-800">Standard Cellular Dialing</h4>
+                <p className="text-slate-500 text-xs mt-1 leading-relaxed">
+                  Clicking below will invoke your device's default phone dialer or softphone application (like Cisco Jabber, Skype, or mobile phone app).
+                </p>
+              </div>
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                <span className="text-slate-400 font-bold text-xs">Destination Number:</span>
+                <span className="text-base font-extrabold text-slate-800">{lead.phone || 'No phone provided'}</span>
+              </div>
+              <button onClick={() => { if (lead.phone) window.open(`tel:${lead.phone}`); }} disabled={!lead.phone}
+                className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-sm rounded-2xl shadow-lg transition hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-40">
+                Launch Device Dialer ({lead.phone})
+              </button>
+            </div>
+          )}
+
+          {/* 3. WhatsApp Call / Message */}
+          {activeTab === 'whatsapp' && (
+            <div className="space-y-6 py-4 max-w-lg mx-auto text-center">
+              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-sm">
+                <MessageSquare className="w-8 h-8"/>
+              </div>
+              <div>
+                <h4 className="text-base font-extrabold text-slate-800">WhatsApp Direct Communication</h4>
+                <p className="text-slate-500 text-xs mt-1 leading-relaxed">
+                  Start an instant chat or WhatsApp audio call without saving the number to your phone contacts.
+                </p>
+              </div>
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                <span className="text-slate-400 font-bold text-xs">WhatsApp Number:</span>
+                <span className="text-base font-extrabold text-slate-800">{lead.phone || 'No phone provided'}</span>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => {
+                  const p = (lead.phone || '').replace(/\D/g, '');
+                  window.open(`https://wa.me/${p}`, '_blank');
+                }} disabled={!lead.phone}
+                  className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-2xl shadow-lg transition hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-40 flex items-center justify-center gap-2">
+                  <MessageSquare className="w-5 h-5"/> Launch WhatsApp Chat
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 4. AI Call Script */}
+          {activeTab === 'ai' && (
+            <div className="space-y-4 py-2">
+              <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl flex items-center gap-3">
+                <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-sm shrink-0">
+                  <Sparkles className="w-6 h-6"/>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-blue-900">AI Generated Call Pitch & Guide</h4>
+                  <p className="text-blue-700 text-xs mt-0.5">Customized for {lead.name} ({lead.priority} Priority)</p>
+                </div>
+              </div>
+
+              <div className="border border-slate-200 rounded-2xl p-5 bg-white space-y-4 shadow-sm">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">1. Icebreaker & Introduction</span>
+                  <div className="p-3 bg-slate-50 border border-slate-200/70 rounded-xl font-medium text-slate-800 italic leading-relaxed text-xs">
+                    "Hi {lead.name}, I hope you're having a great week! This is your dedicated rep from Hubnest CRM. I noticed your interest in our premium solutions and wanted to share a quick 2-minute insight on how companies similar to {lead.company || 'yours'} are scaling their conversion rates by over 40%."
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">2. Key Talking Points ({lead.source || 'Direct Enquiry'})</span>
+                  <ul className="space-y-2 text-slate-700 text-xs font-medium pl-4 list-disc">
+                    <li>Mention their specific lead source ({lead.source || 'your inquiry'}) to establish immediate context.</li>
+                    <li>Highlight our fullstack automation features and zero-latency communication tools.</li>
+                    <li>Verify their timeline and current primary bottleneck.</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">3. Overcoming Objections</span>
+                  <div className="grid grid-cols-2 gap-3 mt-1">
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                      <p className="font-bold text-amber-900 text-[11px]">"We don't have budget right now"</p>
+                      <p className="text-[10px] text-amber-800 mt-1">Pitch our flexible pricing tiers and calculate the instant ROI on payroll & time saved.</p>
+                    </div>
+                    <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl">
+                      <p className="font-bold text-purple-900 text-[11px]">"Send me an email instead"</p>
+                      <p className="text-[10px] text-purple-800 mt-1">Agree immediately, but ask for 30 seconds to confirm exactly which brochure modules to include.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button onClick={() => {
+                  navigator.clipboard.writeText(`Call Pitch for ${lead.name}:\nHi ${lead.name}, I hope you're having a great week...`);
+                  alert('AI Script copied to clipboard!');
+                }} className="px-4 py-2.5 border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition">Copy Script</button>
+                <button onClick={() => setActiveTab('cloud')} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-sm">Proceed to Cloud Call</button>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function LeadsPage() {
   const router = useRouter();
@@ -99,7 +424,7 @@ export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activities, setActivities] = useState<Activity[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [stats, setStats] = useState<Stats>({ total:0,hot:0,warm:0,cold:0,converted:0,lost:0,followupDue:0,winRate:0 });
 
   // UI
@@ -114,8 +439,8 @@ export default function LeadsPage() {
   const [sortDir, setSortDir] = useState<'asc'|'desc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [analyticsRange, setAnalyticsRange] = useState<'all'|'today'|'week'|'month'>('all');
   const [page, setPage] = useState(1);
-  const [viewMode, setViewMode] = useState<'list'|'pipeline'>('list');
 
   // Modals
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -123,6 +448,7 @@ export default function LeadsPage() {
   const [isSendMarketingOpen, setIsSendMarketingOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState<Lead | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [callingLead, setCallingLead] = useState<Lead | null>(null);
   const [csvRows, setCsvRows] = useState<any[]>([]);
   const [csvImporting, setCsvImporting] = useState(false);
 
@@ -290,16 +616,21 @@ export default function LeadsPage() {
     finally { setSaveLoading(false); }
   };
 
-  const handleLogActivity = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!selectedLead) return; setActLoading(true);
+  const handleLogActivitySubmit = async (formData: {type:string;outcome:string;notes:string;duration_seconds:number}) => {
+    if (!selectedLead && !callingLead) return;
+    const leadId = callingLead ? callingLead.id : selectedLead?.id;
+    if (!leadId) return;
+    setActLoading(true);
     try {
-      await api.post('/sales/activities',{lead_id:selectedLead.id,...actForm});
-      const r = await api.get(`/sales/leads/${selectedLead.id}/activity`);
-      setActivities(r.data.data.activities||[]);
+      await api.post('/sales/activities', { lead_id: leadId, ...formData });
+      if (selectedLead && selectedLead.id === leadId) {
+        const r = await api.get(`/sales/leads/${selectedLead.id}/activity`);
+        setActivities(r.data.data.activities||[]);
+      }
       setIsLogActivityOpen(false);
       setActForm({type:'Call',outcome:'Connected',notes:'',duration_seconds:0});
-      showToast('Activity logged!');
-    } catch (err:any) { showToast(err?.response?.data?.message||'Failed to log','error'); }
+      showToast('Activity logged successfully!');
+    } catch (err:any) { showToast(err?.response?.data?.message||'Failed to log activity','error'); }
     finally { setActLoading(false); }
   };
 
@@ -338,12 +669,21 @@ export default function LeadsPage() {
     : <ArrowUpDown className="w-3 h-3 opacity-40"/>;
 
   // ── Analytics data ─────────────────────────────────────────────────────────────
+  const analyticsLeads = analyticsRange === 'all' ? leads : leads.filter(l => {
+    const d = new Date(l.created_at);
+    const now = new Date();
+    if (analyticsRange === 'today') { const s=new Date(now); s.setHours(0,0,0,0); return d>=s; }
+    if (analyticsRange === 'week')  { const s=new Date(now); s.setDate(s.getDate()-7); return d>=s; }
+    if (analyticsRange === 'month') { const s=new Date(now); s.setDate(s.getDate()-30); return d>=s; }
+    return true;
+  });
+
   const sourceData = Object.entries(
-    leads.reduce((acc,l)=>{ const s=l.source||'Manual'; acc[s]=(acc[s]||0)+1; return acc; },{} as Record<string,number>)
+    analyticsLeads.reduce((acc,l)=>{ const s=l.source||'Manual'; acc[s]=(acc[s]||0)+1; return acc; },{} as Record<string,number>)
   ).map(([name,value])=>({name,value,color:SOURCE_COLORS[name]||'#94A3B8'}));
 
   const statusData = ['New','Contacted','Interested','Converted','Lost'].map(s=>({
-    name:s, value:leads.filter(l=>l.status===s).length, color:s==='Converted'?'#10B981':s==='Lost'?'#EF4444':s==='Interested'?'#F59E0B':s==='Contacted'?'#8B5CF6':'#3B82F6'
+    name:s, value:analyticsLeads.filter(l=>l.status===s).length, color:s==='Converted'?'#10B981':s==='Lost'?'#EF4444':s==='Interested'?'#F59E0B':s==='Contacted'?'#8B5CF6':'#3B82F6'
   }));
 
   const statCards = [
@@ -411,10 +751,23 @@ export default function LeadsPage() {
       <AnimatePresence>
         {showAnalytics && (
           <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            {/* Analytics header with period toggle */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold text-slate-800 flex items-center gap-2"><BarChart2 className="w-4 h-4 text-blue-500"/> Lead Analytics</p>
+              <div className="flex gap-1 bg-slate-50 border border-slate-200 rounded-xl p-0.5">
+                {(['all','today','week','month'] as const).map(r=>(
+                  <button key={r} onClick={()=>setAnalyticsRange(r)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition ${analyticsRange===r?'bg-blue-600 text-white':'text-slate-500 hover:text-slate-700'}`}>
+                    {r==='all'?'All':r==='today'?'Today':r==='week'?'7d':'30d'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {/* Source distribution */}
             <div>
-              <p className="text-xs font-bold text-slate-700 mb-3 flex items-center gap-1.5"><PieIcon className="w-3.5 h-3.5 text-violet-500"/> Lead Sources</p>
+              <p className="text-xs font-bold text-slate-700 mb-3 flex items-center gap-1.5"><PieIcon className="w-3.5 h-3.5 text-violet-500"/> Lead Sources {analyticsRange!=='all'&&<span className="text-slate-400 font-normal">({analyticsLeads.length} leads)</span>}</p>
               <div style={{height:140}}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -474,6 +827,7 @@ export default function LeadsPage() {
                 </p>
               </div>
             </div>
+            </div>{/* end grid */}
           </motion.div>
         )}
       </AnimatePresence>
@@ -597,7 +951,7 @@ export default function LeadsPage() {
             <div className="space-y-2.5">
               {pageLeads.map(lead => (
                 <motion.div key={lead.id} initial={{opacity:0,y:4}} animate={{opacity:1,y:0}}
-                  onClick={()=>!bulkMode&&setSelectedLead(lead)}
+                  onClick={()=>!bulkMode&&router.push(`/sales/leads/${lead.id}`)}
                   className={`bg-white rounded-2xl border transition-all cursor-pointer shadow-sm hover:shadow-md group ${
                     selectedLead?.id===lead.id&&!bulkMode?'border-blue-500 ring-1 ring-blue-200':'border-slate-200 hover:border-slate-300'}`}>
                   <div className="p-4 flex items-center gap-3">
@@ -606,9 +960,8 @@ export default function LeadsPage() {
                         onChange={e=>{e.stopPropagation();const n=new Set(selectedForBulk);n.has(lead.id)?n.delete(lead.id):n.add(lead.id);setSelectedForBulk(n);}}
                         onClick={e=>e.stopPropagation()} className="w-4 h-4 accent-blue-600 shrink-0"/>
                     )}
-                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br flex items-center justify-center text-white font-bold text-sm shrink-0 ${
-                      lead.priority==='Hot'?'from-red-500 to-orange-500':lead.priority==='Warm'?'from-amber-500 to-yellow-400':'from-blue-400 to-indigo-500'}`}>
-                      {lead.name.charAt(0)}
+                    <div className="w-11 h-11 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 shadow-sm shrink-0 flex items-center justify-center relative group-hover:scale-105 transition-transform">
+                      <img src={`https://api.dicebear.com/7.x/lorelei/svg?seed=${encodeURIComponent(lead.name || 'Lead')}`} alt={lead.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
@@ -638,20 +991,24 @@ export default function LeadsPage() {
                           </span>
                         </div>
                       )}
-                      <button onClick={e=>{e.stopPropagation();if(lead.phone)window.open(`tel:${lead.phone}`)}} disabled={!lead.phone}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition disabled:opacity-30">
+                      <button onClick={e=>{e.stopPropagation();setCallingLead(lead);}}
+                        title="Call Option Hub" className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition">
                         <Phone className="w-3.5 h-3.5"/>
                       </button>
                       <button onClick={e=>{e.stopPropagation();if(lead.email)window.open(`mailto:${lead.email}`)}} disabled={!lead.email}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-green-600 hover:bg-green-50 transition disabled:opacity-30">
+                        title="Email" className="p-1.5 rounded-lg text-slate-400 hover:text-green-600 hover:bg-green-50 transition disabled:opacity-30">
                         <Mail className="w-3.5 h-3.5"/>
                       </button>
+                      <button onClick={e=>{e.stopPropagation();const p=(lead.phone||'').replace(/\D/g,'');const m=encodeURIComponent(`Hi ${lead.name}, following up on your enquiry. Are you available for a quick call?`);window.open(`https://wa.me/${p}?text=${m}`,'_blank')}} disabled={!lead.phone}
+                        title="WhatsApp" className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition disabled:opacity-30">
+                        <MessageSquare className="w-3.5 h-3.5"/>
+                      </button>
                       <button onClick={e=>{e.stopPropagation();setSelectedLead(lead);setIsSendMarketingOpen(true)}}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition">
+                        title="Marketing" className="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition">
                         <Send className="w-3.5 h-3.5"/>
                       </button>
                       <button onClick={e=>{e.stopPropagation();setIsDeleteOpen(lead)}}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
+                        title="Delete" className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
                         <Trash2 className="w-3.5 h-3.5"/>
                       </button>
                     </div>
@@ -720,9 +1077,8 @@ export default function LeadsPage() {
               <div className={`p-4 border-b border-slate-100 flex items-start justify-between gap-2 ${
                 selectedLead.priority==='Hot'?'bg-gradient-to-r from-red-50 to-orange-50':'bg-gradient-to-r from-slate-50 to-white'}`}>
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br flex items-center justify-center text-white font-bold shrink-0 ${
-                    selectedLead.priority==='Hot'?'from-red-500 to-orange-500':selectedLead.priority==='Warm'?'from-amber-500 to-yellow-400':'from-blue-400 to-indigo-500'}`}>
-                    {selectedLead.name.charAt(0)}
+                  <div className="w-11 h-11 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 shadow-sm shrink-0 flex items-center justify-center relative hover:scale-105 transition-transform">
+                    <img src={`https://api.dicebear.com/7.x/lorelei/svg?seed=${encodeURIComponent(selectedLead.name || 'Lead')}`} alt={selectedLead.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="min-w-0">
                     <h4 className="text-sm font-bold text-slate-800 truncate">{selectedLead.name}</h4>
@@ -733,22 +1089,29 @@ export default function LeadsPage() {
                     </div>
                   </div>
                 </div>
-                <button onClick={()=>setSelectedLead(null)} className="p-1.5 hover:bg-slate-200/60 rounded-xl text-slate-400 shrink-0">
-                  <X className="w-4 h-4"/>
-                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button onClick={()=>router.push(`/sales/leads/${selectedLead.id}`)}
+                    className="p-1.5 hover:bg-blue-50 rounded-xl text-blue-500 shrink-0" title="View Full Details">
+                    <ArrowUpRight className="w-4 h-4"/>
+                  </button>
+                  <button onClick={()=>setSelectedLead(null)} className="p-1.5 hover:bg-slate-200/60 rounded-xl text-slate-400 shrink-0">
+                    <X className="w-4 h-4"/>
+                  </button>
+                </div>
               </div>
 
               {/* Quick action row */}
-              <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+              <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-1.5 flex-wrap">
                 {[
-                  {label:'Call',   color:'bg-blue-50 hover:bg-blue-100 text-blue-700',   icon:Phone,    action:()=>{if(selectedLead.phone)window.open(`tel:${selectedLead.phone}`)}},
-                  {label:'Email',  color:'bg-green-50 hover:bg-green-100 text-green-700', icon:Mail,    action:()=>{if(selectedLead.email)window.open(`mailto:${selectedLead.email}`)}},
-                  {label:'Log',    color:'bg-amber-50 hover:bg-amber-100 text-amber-700', icon:Activity,action:()=>setIsLogActivityOpen(true)},
-                  {label:'Market', color:'bg-purple-50 hover:bg-purple-100 text-purple-700',icon:Send,   action:()=>setIsSendMarketingOpen(true)},
+                  {label:'Call Hub',  color:'bg-blue-50 hover:bg-blue-100 text-blue-700',      icon:Phone,         action:()=>setCallingLead(selectedLead)},
+                  {label:'WhatsApp',  color:'bg-emerald-50 hover:bg-emerald-100 text-emerald-700',icon:MessageSquare,action:()=>{const p=(selectedLead.phone||'').replace(/\D/g,'');const m=encodeURIComponent(`Hi ${selectedLead.name}, following up on your enquiry. Are you available for a quick call?`);window.open(`https://wa.me/${p}?text=${m}`,'_blank')}},
+                  {label:'Email',     color:'bg-green-50 hover:bg-green-100 text-green-700',    icon:Mail,          action:()=>{if(selectedLead.email)window.open(`mailto:${selectedLead.email}`)}},
+                  {label:'Log',       color:'bg-amber-50 hover:bg-amber-100 text-amber-700',    icon:Activity,      action:()=>setIsLogActivityOpen(true)},
+                  {label:'Marketing', color:'bg-purple-50 hover:bg-purple-100 text-purple-700', icon:Send,          action:()=>setIsSendMarketingOpen(true)},
                 ].map((b,i)=>(
                   <button key={i} onClick={b.action}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl ${b.color} text-xs font-bold transition`}>
-                    <b.icon className="w-3.5 h-3.5"/> {b.label}
+                    className={`flex-1 min-w-[60px] flex items-center justify-center gap-1 py-1.5 rounded-xl ${b.color} text-[10px] font-bold transition`}>
+                    <b.icon className="w-3 h-3"/> {b.label}
                   </button>
                 ))}
               </div>
@@ -875,11 +1238,16 @@ export default function LeadsPage() {
                     <p className="font-bold text-slate-700">More Actions</p>
                     <div className="space-y-2">
                       {[
-                        {label:'Log Activity',     desc:'Record a call, email or meeting', icon:Activity, bg:'bg-amber-50', color:'text-amber-600', action:()=>setIsLogActivityOpen(true)},
-                        {label:'Send to Marketing',desc:'Add to email list & automation',   icon:Send,     bg:'bg-purple-50',color:'text-purple-600',action:()=>setIsSendMarketingOpen(true)},
-                        {label:'Create Task',      desc:'Schedule a follow-up task',        icon:Calendar, bg:'bg-indigo-50',color:'text-indigo-600',action:()=>router.push('/sales/tasks')},
-                        {label:'View Pipeline',    desc:'See in kanban pipeline view',      icon:GitBranch,bg:'bg-blue-50',  color:'text-blue-600',  action:()=>router.push('/sales/leads/pipeline')},
-                        {label:'Delete Lead',      desc:'Permanently remove this lead',     icon:Trash2,   bg:'bg-red-50',  color:'text-red-500',   action:()=>setIsDeleteOpen(selectedLead),danger:true},
+                        {label:'Log Activity',     desc:'Record a call, email or meeting', icon:Activity, bg:'bg-amber-50',  color:'text-amber-600',  action:()=>setIsLogActivityOpen(true)},
+                        {label:'WhatsApp Message', desc:'Send WhatsApp to this lead',      icon:MessageSquare,bg:'bg-emerald-50',color:'text-emerald-600',action:()=>{
+                          const phone = (selectedLead?.phone||'').replace(/\D/g,'');
+                          const msg = encodeURIComponent(`Hi ${selectedLead?.name}, following up on your enquiry. Are you available for a quick call?`);
+                          window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+                        }},
+                        {label:'Send to Marketing',desc:'Add to email list & automation',   icon:Send,     bg:'bg-purple-50', color:'text-purple-600', action:()=>setIsSendMarketingOpen(true)},
+                        {label:'Create Task',      desc:'Schedule a follow-up task',        icon:Calendar, bg:'bg-indigo-50', color:'text-indigo-600', action:()=>router.push('/sales/tasks')},
+                        {label:'View Pipeline',    desc:'See in kanban pipeline view',      icon:GitBranch,bg:'bg-blue-50',   color:'text-blue-600',   action:()=>router.push('/sales/leads/pipeline')},
+                        {label:'Delete Lead',      desc:'Permanently remove this lead',     icon:Trash2,   bg:'bg-red-50',   color:'text-red-500',    action:()=>setIsDeleteOpen(selectedLead),danger:true},
                       ].map((b,i)=>(
                         <button key={i} onClick={b.action}
                           className={`w-full flex items-center gap-3 p-3 rounded-xl border transition text-left ${b.danger?'border-red-100 hover:bg-red-50':'border-slate-200 hover:bg-slate-50'}`}>
@@ -915,6 +1283,17 @@ export default function LeadsPage() {
       </div>
 
       {/* ─────────────────── MODALS ─────────────────── */}
+
+      {/* Calling Modal */}
+      <AnimatePresence>
+        {callingLead && (
+          <CallingModal
+            lead={callingLead}
+            onClose={() => setCallingLead(null)}
+            onLogActivity={handleLogActivitySubmit}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Add Lead */}
       <AnimatePresence>
@@ -1034,7 +1413,7 @@ export default function LeadsPage() {
                 <div><h3 className="text-sm font-bold text-slate-800">Log Activity</h3><p className="text-[10px] text-slate-400 mt-0.5">For: {selectedLead.name}</p></div>
                 <button onClick={()=>setIsLogActivityOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-400"><X className="w-4 h-4"/></button>
               </div>
-              <form onSubmit={handleLogActivity} className="space-y-3 text-xs">
+              <form onSubmit={(e) => { e.preventDefault(); handleLogActivitySubmit(actForm); }} className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Activity Type</label>

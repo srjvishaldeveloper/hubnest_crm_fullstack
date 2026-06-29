@@ -1,22 +1,11 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Instrument_Serif } from 'next/font/google';
 import Script from 'next/script';
 import './globals.css';
 import { ThemeProvider } from '../components/shared/ThemeProvider';
 import GoogleProvider from '../components/shared/GoogleProvider';
 
-const inter = Inter({
-  variable: '--font-inter',
-  subsets: ['latin'],
-  display: 'swap',
-});
-
-const instrumentSerif = Instrument_Serif({
-  variable: '--font-instrument-serif',
-  subsets: ['latin'],
-  weight: '400',
-  display: 'swap',
-});
+const inter = { variable: 'font-sans' };
+const instrumentSerif = { variable: 'font-serif' };
 
 const BASE_URL = 'https://hubnest.in';
 

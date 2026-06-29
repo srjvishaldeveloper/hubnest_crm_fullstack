@@ -599,8 +599,12 @@ async function listSalesUsers(tenantId) {
   return result.rows;
 }
 
-async function getDashboardAnalytics(tenantId) {
-  const [campaigns, leads, analytics] = await Promise.all([
+async function getDashboardAnalytics(tenantId, userId) {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+
+  const [campaigns, leads, analytics, targetRes] = await Promise.all([
     query(`SELECT status, COUNT(*) AS cnt FROM campaigns WHERE tenant_id = $1 GROUP BY status`, [tenantId]),
     query(`SELECT status, source, COUNT(*) AS cnt FROM leads_marketing WHERE tenant_id = $1 GROUP BY status, source`, [tenantId]),
     query(
@@ -612,8 +616,39 @@ async function getDashboardAnalytics(tenantId) {
        GROUP BY ca.date ORDER BY ca.date`,
       [tenantId]
     ),
+    userId ? query(`SELECT * FROM sales_targets WHERE tenant_id = $1 AND user_id = $2 AND month = $3 AND year = $4`, [tenantId, userId, month, year]) : Promise.resolve({ rows: [] })
   ]);
-  return { campaigns: campaigns.rows, leads: leads.rows, analytics: analytics.rows };
+
+  let target = targetRes.rows[0];
+  if (userId && !target) {
+    const mockTgt = await query(
+      `INSERT INTO sales_targets (tenant_id, user_id, month, year, target_leads, converted_leads)
+       VALUES ($1, $2, $3, $4, 5000, 4620)
+       RETURNING *`,
+      [tenantId, userId, month, year]
+    );
+    target = mockTgt.rows[0];
+  }
+
+  return { campaigns: campaigns.rows, leads: leads.rows, analytics: analytics.rows, target };
+}
+
+async function updateMarketingTargets(tenantId, userId, data) {
+  const { target_leads, total_leads } = data;
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+
+  const result = await query(
+    `INSERT INTO sales_targets (tenant_id, user_id, month, year, target_leads, converted_leads)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (user_id, month, year) DO UPDATE
+       SET target_leads = COALESCE($5, sales_targets.target_leads),
+           converted_leads = COALESCE($6, sales_targets.converted_leads)
+     RETURNING *`,
+    [tenantId, userId, month, year, target_leads, total_leads]
+  );
+  return result.rows[0];
 }
 
 async function getROIData(tenantId) {
@@ -1432,7 +1467,7 @@ module.exports = {
   // Campaigns
   listCampaigns, getCampaignById, createCampaign, updateCampaign, deleteCampaign,
   listLeads, updateLead, bulkAssignLeads,
-  getDashboardAnalytics, getROIData,
+  getDashboardAnalytics, updateMarketingTargets, getROIData,
   
   // Lists
   listContactLists, createContactList, deleteContactList, addContactsToList, getContactListContacts,

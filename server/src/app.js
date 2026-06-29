@@ -30,6 +30,7 @@ const marketingPublicRoutes = require('./modules/marketing/marketingPublic.route
 const paymentGatewayRoutes = require('./modules/tenant/paymentGateway.routes');
 const subscriptionBillingRoutes = require('./modules/hubnest/subscriptionBilling.routes');
 const webhookRoutes = require('./modules/webhooks/webhooks.routes');
+const notificationRoutes = require('./modules/notifications/notifications.routes');
 
 const app = express();
 
@@ -92,6 +93,7 @@ app.use('/api/v1/org-chat', orgChatRoutes);
 app.use('/api/v1/tenant/payment-gateway', paymentGatewayRoutes);
 app.use('/api/v1/hubnest/billing', subscriptionBillingRoutes);
 app.use('/api/v1/webhooks', webhookRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
 // 404 — route not found
 app.use((req, res) => {
   sendError(res, `Cannot ${req.method} ${req.path}`, 404);

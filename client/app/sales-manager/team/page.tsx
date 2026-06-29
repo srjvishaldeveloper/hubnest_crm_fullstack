@@ -12,6 +12,11 @@ import {
   smGetTeam,
   smAddExecutive,
   smUpdateMemberTarget,
+  smUpdateTargets,
+  smUpdateMemberStatus,
+  smBroadcast,
+  smApprove,
+  smRemoveMember,
 } from '../../../services/salesManagerService';
 import api from '../../../services/api';
 
@@ -23,7 +28,7 @@ interface TeamMember {
   email: string;
   employeeId: string;
   mobile?: string;
-  status: 'Active' | 'Inactive';
+  status: string;
   targetAmount: number;
   achievedAmount: number;
   targetLeads: number;
@@ -97,13 +102,14 @@ function ProgressBar({ value, max, color = 'bg-blue-500' }: { value: number; max
   );
 }
 
-function StatusBadge({ status }: { status: 'Active' | 'Inactive' }) {
+function StatusBadge({ status }: { status?: string }) {
+  const st = status || 'Active';
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide ${
-      status === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+      st === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
     }`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-      {status}
+      <span className={`w-1.5 h-1.5 rounded-full ${st === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+      {st}
     </span>
   );
 }
@@ -136,7 +142,7 @@ function Toast({ message, type, onClose }: { message: string; type: 'success' | 
 }
 
 // ─── Member Card ──────────────────────────────────────────────────────────────
-function MemberCard({ member, index, router }: { member: TeamMember; index: number; router: ReturnType<typeof useRouter> }) {
+function MemberCard({ member, index, router, onToggleStatus, onRemove }: { member: TeamMember; index: number; router: ReturnType<typeof useRouter>; onToggleStatus: (id: string, st: string) => void; onRemove: (id: string) => void }) {
   const pct = Math.min(100, member.targetAmount > 0 ? Math.round((member.achievedAmount / member.targetAmount) * 100) : 0);
   const gradient = AVATAR_GRADIENTS[index % AVATAR_GRADIENTS.length];
   const progressColor = pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-blue-500' : 'bg-amber-500';
@@ -204,21 +210,37 @@ function MemberCard({ member, index, router }: { member: TeamMember; index: numb
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-[#1f1f1f]">
-        <button
-          onClick={() => router.push(`/sales-manager/team/${member._id}`)}
-          className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2563EB] hover:text-blue-800 transition-colors"
-        >
-          <Eye className="w-3.5 h-3.5" />
-          View Details
-        </button>
-        <button
-          onClick={() => router.push(`/sales-manager/team/${member._id}?tab=target`)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563EB] text-white text-[11px] font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20"
-        >
-          <Target className="w-3 h-3" />
-          Set Target
-        </button>
+      <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-[#1f1f1f]">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => router.push(`/sales-manager/team/${member._id}`)}
+            className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2563EB] hover:text-blue-800 transition-colors"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            View Details
+          </button>
+          <button
+            onClick={() => router.push(`/sales-manager/team/${member._id}?tab=target`)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563EB] text-white text-[11px] font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20"
+          >
+            <Target className="w-3 h-3" />
+            Set Target
+          </button>
+        </div>
+        <div className="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-[#1f1f1f]">
+          <button
+            onClick={() => onToggleStatus(member._id, member.status === 'Active' ? 'Inactive' : 'Active')}
+            className="text-[11px] font-semibold text-amber-600 hover:text-amber-700 transition-colors"
+          >
+            Toggle Status
+          </button>
+          <button
+            onClick={() => onRemove(member._id)}
+            className="text-[11px] font-semibold text-red-600 hover:text-red-700 transition-colors"
+          >
+            Remove Member
+          </button>
+        </div>
       </div>
     </motion.div>
   );
@@ -232,9 +254,63 @@ function SalesManagerTeamPageContent() {
 
   // State
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [managerTarget, setManagerTarget] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showManagerTargetModal, setShowManagerTargetModal] = useState(false);
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [broadcastMsg, setBroadcastMsg] = useState('');
+  const [broadcastPrio, setBroadcastPrio] = useState('Normal');
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [approvalsList, setApprovalsList] = useState([
+    { id: 'app-1', title: 'Leave Request — Arjun Mehta', type: 'Leave', status: 'Pending', date: '2026-06-28' },
+    { id: 'app-2', title: 'Special Discount 15% — Sunita Sharma', type: 'Discount', status: 'Pending', date: '2026-06-29' }
+  ]);
+
+  const handleToggleStatus = async (id: string, newStatus: string) => {
+    try {
+      await smUpdateMemberStatus(id, newStatus);
+      setMembers(prev => prev.map(m => m._id === id ? { ...m, status: newStatus } : m));
+      setToast({ message: `Member status updated to ${newStatus}`, type: 'success' });
+    } catch (e) {
+      setToast({ message: 'Failed to update member status', type: 'error' });
+    }
+  };
+
+  const handleRemove = async (id: string) => {
+    if (!confirm('Are you sure you want to remove this member from the team?')) return;
+    try {
+      await smRemoveMember(id);
+      setMembers(prev => prev.filter(m => m._id !== id));
+      setToast({ message: 'Member removed successfully', type: 'success' });
+    } catch (e) {
+      setToast({ message: 'Failed to remove member', type: 'error' });
+    }
+  };
+
+  const handleBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!broadcastMsg) return;
+    try {
+      await smBroadcast({ message: broadcastMsg, priority: broadcastPrio });
+      setToast({ message: 'Broadcast message sent to entire team!', type: 'success' });
+      setShowBroadcastModal(false);
+      setBroadcastMsg('');
+    } catch (e) {
+      setToast({ message: 'Failed to send broadcast', type: 'error' });
+    }
+  };
+
+  const handleApproveRequest = async (id: string, decision: 'approved' | 'rejected') => {
+    try {
+      await smApprove({ requestId: id, type: 'general', decision });
+      setApprovalsList(prev => prev.map(a => a.id === id ? { ...a, status: decision === 'approved' ? 'Approved' : 'Rejected' } : a));
+      setToast({ message: `Request ${decision} successfully`, type: 'success' });
+    } catch (e) {
+      setToast({ message: 'Failed to process approval', type: 'error' });
+    }
+  };
 
   // Email validation checking states
   const [emailCheckErr, setEmailCheckErr] = useState('');
@@ -317,9 +393,23 @@ function SalesManagerTeamPageContent() {
     async function load() {
       try {
         const data = await smGetTeam();
-        setMembers(Array.isArray(data) ? data : MOCK_MEMBERS);
+        const fetchedMembers = Array.isArray(data?.members) ? data.members : (Array.isArray(data) ? data : []);
+        if (fetchedMembers.length > 0) {
+          const mapped = fetchedMembers.map((m: any) => ({
+            ...m,
+            _id: m.id || m._id,
+            leadsHandled: m.leadsTotal || 0,
+            converted: m.leadsConverted || 0,
+          }));
+          setMembers(mapped);
+          if (data?.target) {
+            setManagerTarget(data.target);
+          }
+        } else {
+          setMembers(Array.isArray(data) ? data : []);
+        }
       } catch {
-        setMembers(MOCK_MEMBERS);
+        setMembers([]);
       } finally {
         setLoading(false);
       }
@@ -403,7 +493,7 @@ function SalesManagerTeamPageContent() {
       setAddForm({ name: '', email: '', employeeId: '', mobile: '', password: '', autoGenPassword: false, sendCredentials: true });
       // Refresh team
       const data = await smGetTeam();
-      setMembers(Array.isArray(data) ? data : MOCK_MEMBERS);
+      setMembers(Array.isArray(data) ? data : []);
     } catch (err: any) {
       if (err.response?.status === 409) {
         setEmailCheckErr('This email is already in use. Try a different one.');
@@ -506,6 +596,20 @@ function SalesManagerTeamPageContent() {
             <UserPlus className="w-4 h-4" />
             Add Executive
           </button>
+          <button
+            onClick={() => setShowBroadcastModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#7C3AED] text-white text-sm font-semibold rounded-xl hover:bg-purple-700 transition-colors shadow-md shadow-purple-500/25"
+          >
+            <Mail className="w-4 h-4" />
+            Broadcast
+          </button>
+          <button
+            onClick={() => setShowApproveModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#059669] text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-500/25"
+          >
+            <Shield className="w-4 h-4" />
+            Approvals
+          </button>
         </div>
       </motion.div>
 
@@ -585,7 +689,7 @@ function SalesManagerTeamPageContent() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
               {filtered.map((member, i) => (
-                <MemberCard key={member._id} member={member} index={i} router={router} />
+                <MemberCard key={member._id} member={member} index={i} router={router} onToggleStatus={handleToggleStatus} onRemove={handleRemove} />
               ))}
             </div>
           )}
@@ -720,7 +824,7 @@ function SalesManagerTeamPageContent() {
             <p className="text-sm font-bold mb-1">Set Monthly Targets</p>
             <p className="text-[11px] opacity-75 mb-3">Assign revenue & lead targets to keep your team focused.</p>
             <button
-              onClick={() => router.push('/sales-manager/team')}
+              onClick={() => setShowManagerTargetModal(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-xl text-[11px] font-semibold transition-colors"
             >
               Manage Targets <ChevronRight className="w-3.5 h-3.5" />
@@ -932,6 +1036,204 @@ function SalesManagerTeamPageContent() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Manager Targets Modal ───────────────────────────── */}
+      <AnimatePresence>
+        {showManagerTargetModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}
+            onClick={e => { if (e.target === e.currentTarget) setShowManagerTargetModal(false); }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden"
+            >
+              <div className="px-6 py-5 border-b border-slate-100 dark:border-[#1f1f1f] flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                  <Target className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-[#0F172A] dark:text-[#F9FAFB]">Set Monthly Target</h2>
+                  <p className="text-[11px] text-slate-500">Define your team's overall goals</p>
+                </div>
+                <button
+                  onClick={() => setShowManagerTargetModal(false)}
+                  className="ml-auto w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <form 
+                className="p-6 space-y-4"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.currentTarget);
+                  try {
+                    await smUpdateTargets({
+                      revenueTarget: parseFloat(fd.get('revenueTarget') as string),
+                      leadsTarget: parseInt(fd.get('leadsTarget') as string, 10),
+                    });
+                    setToast({ message: 'Targets updated successfully', type: 'success' });
+                    setShowManagerTargetModal(false);
+                    const data = await smGetTeam();
+                    if (data?.target) setManagerTarget(data.target);
+                  } catch (err: any) {
+                    setToast({ message: 'Failed to update targets', type: 'error' });
+                  }
+                }}
+              >
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                    Revenue Target (₹)
+                  </label>
+                  <input
+                    name="revenueTarget"
+                    type="number"
+                    defaultValue={managerTarget?.revenue_target || 0}
+                    required
+                    min="0"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                    Leads Target
+                  </label>
+                  <input
+                    name="leadsTarget"
+                    type="number"
+                    defaultValue={managerTarget?.leads_target || 0}
+                    required
+                    min="0"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
+                  />
+                </div>
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    className="w-full py-3 bg-[#2563EB] text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/25"
+                  >
+                    Save Targets
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Broadcast Modal ── */}
+      <AnimatePresence>
+        {showBroadcastModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}
+            onClick={() => setShowBroadcastModal(false)}>
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              style={{ background: '#fff', borderRadius: 20, padding: '28px', width: '100%', maxWidth: 460, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#7C3AED,#A78BFA)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Mail size={20} color="#fff" />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', margin: 0 }}>Broadcast Message</h2>
+                    <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>Send instant alert to entire team</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowBroadcastModal(false)}
+                  style={{ border: 'none', background: '#F1F5F9', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <X size={16} color="#64748B" />
+                </button>
+              </div>
+              <form onSubmit={handleBroadcast} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Priority Level</label>
+                  <select value={broadcastPrio} onChange={e => setBroadcastPrio(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E2E8F0', fontSize: 14, color: '#0F172A', background: '#F8FAFC', outline: 'none' }}>
+                    <option value="Normal">Normal Priority</option>
+                    <option value="High">High Priority</option>
+                    <option value="Urgent">Urgent / Immediate</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Message Content</label>
+                  <textarea value={broadcastMsg} onChange={e => setBroadcastMsg(e.target.value)} required rows={4} placeholder="Enter your announcement here..."
+                    style={{ width: '100%', padding: '12px', borderRadius: 10, border: '1.5px solid #E2E8F0', fontSize: 14, color: '#0F172A', background: '#F8FAFC', outline: 'none', boxSizing: 'border-box', resize: 'none' }} />
+                </div>
+                <button type="submit"
+                  style={{ width: '100%', padding: '12px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#7C3AED,#A78BFA)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', marginTop: 8 }}>
+                  Send Broadcast
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Approvals Modal ── */}
+      <AnimatePresence>
+        {showApproveModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}
+            onClick={() => setShowApproveModal(false)}>
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              style={{ background: '#fff', borderRadius: 20, padding: '28px', width: '100%', maxWidth: 540, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', maxHeight: '80vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#059669,#34D399)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Shield size={20} color="#fff" />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', margin: 0 }}>Pending Approvals</h2>
+                    <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>Review requests from team executives</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowApproveModal(false)}
+                  style={{ border: 'none', background: '#F1F5F9', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <X size={16} color="#64748B" />
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {approvalsList.map(item => (
+                  <div key={item.id} style={{ background: '#F8FAFC', border: '1.5px solid #E2E8F0', borderRadius: 14, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 8, background: 'rgba(5,150,105,0.1)', color: '#059669' }}>{item.type}</span>
+                        <span style={{ fontSize: 12, color: '#64748B' }}>{item.date}</span>
+                      </div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#0F172A' }}>{item.title}</div>
+                      <div style={{ fontSize: 12, color: item.status === 'Approved' ? '#059669' : item.status === 'Rejected' ? '#DC2626' : '#F59E0B', fontWeight: 600, marginTop: 4 }}>
+                        Status: {item.status}
+                      </div>
+                    </div>
+                    {item.status === 'Pending' && (
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={() => handleApproveRequest(item.id, 'approved')}
+                          style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: '#059669', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                          Approve
+                        </button>
+                        <button onClick={() => handleApproveRequest(item.id, 'rejected')}
+                          style={{ padding: '8px 14px', borderRadius: 10, border: '1.5px solid #DC2626', background: 'transparent', color: '#DC2626', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

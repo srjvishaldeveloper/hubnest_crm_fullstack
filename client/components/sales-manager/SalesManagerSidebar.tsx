@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore';
 import {
   Home, Users, BarChart3, UserCircle, LogOut, X,
   Sparkles, Briefcase, ClipboardList, Shield, TrendingUp,
+  Kanban, CheckSquare, Activity as ActivityIcon, MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -26,8 +27,17 @@ const sections = [
     title: 'MANAGEMENT',
     items: [
       { title: 'Leads', href: '/sales-manager/leads', icon: Users },
+      { title: 'Pipeline', href: '/sales-manager/leads?tab=pipeline', icon: Kanban },
       { title: 'Team', href: '/sales-manager/team', icon: ClipboardList },
       { title: 'Reports', href: '/sales-manager/reports', icon: BarChart3 },
+    ],
+  },
+  {
+    title: 'WORKFLOW & CHAT',
+    items: [
+      { title: 'Tasks', href: '/sales-manager/tasks', icon: CheckSquare },
+      { title: 'Activity', href: '/sales-manager/activity', icon: ActivityIcon },
+      { title: 'Team Chat', href: '/sales-manager/chat', icon: MessageSquare },
     ],
   },
   {
@@ -49,8 +59,12 @@ export default function SalesManagerSidebar({ open, collapsed, onClose }: Props)
     router.replace('/auth/login');
   }
 
-  const isActive = (href: string) =>
-    pathname === href || (href !== '/sales-manager/dashboard' && pathname.startsWith(href));
+  const isActive = (href: string) => {
+    if (href === '/sales-manager/dashboard') return pathname === href;
+    if (href.includes('?tab=pipeline')) return pathname === '/sales-manager/leads' && typeof window !== 'undefined' && window.location.search.includes('tab=pipeline');
+    if (href === '/sales-manager/leads') return pathname === '/sales-manager/leads' && (typeof window === 'undefined' || !window.location.search.includes('tab=pipeline'));
+    return pathname.startsWith(href);
+  };
 
   const sidebarWidth = collapsed ? 'lg:w-[72px]' : 'lg:w-[240px]';
   const mobileTranslate = open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0';
@@ -79,7 +93,9 @@ export default function SalesManagerSidebar({ open, collapsed, onClose }: Props)
             <Briefcase className="w-5 h-5 text-white" />
           </div>
           <div className={`${collapsed ? 'lg:hidden' : ''} overflow-hidden`}>
-            <p className="text-[#0F172A] dark:text-white font-bold text-sm tracking-tight whitespace-nowrap">HubNest CRM</p>
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap truncate w-40" title={(user as any)?.company || 'HubNest CRM'}>
+              {(user as any)?.company || 'HubNest CRM'}
+            </p>
             <span className="inline-flex items-center text-[10px] font-extrabold text-[#2563EB] dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-full uppercase tracking-wider mt-0.5">
               Sales Manager
             </span>
